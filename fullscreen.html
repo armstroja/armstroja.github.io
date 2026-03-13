@@ -1,6 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
 <style>
-background-color: #000000;
+  body {
+    background-color: #000000;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh; /* Centers the game vertically on the screen */
+    color: #ffffff; /* Makes any text readable against the black */
+  }
+
+  iframe {
+    border: 2px solid #333; /* Adds a subtle frame so it doesn't float in the void */
+    border-radius: 8px;
+    box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.1);
+  }
 </style>
+</head>
+<body>
 
+  <iframe 
+    src="https://claude.site/public/artifacts/3b04eb28-11c0-4ede-b7f8-585f0b091a85/embed" 
+    title="Claude Artifact" 
+    width="600" 
+    height="600" 
+    frameborder="0" 
+    allow="clipboard-write" 
+    allowfullscreen>
+  </iframe>
 
-<iframe src="https://claude.site/public/artifacts/3b04eb28-11c0-4ede-b7f8-585f0b091a85/embed" title="Claude Artifact" width="600" height="600" frameborder="0" allow="clipboard-write" allowfullscreen></iframe>
+</body>
+</html>
