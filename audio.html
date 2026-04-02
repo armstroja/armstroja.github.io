@@ -53,7 +53,6 @@ h1.fading{opacity:0;}
 #prog-track{width:100%;height:2px;background:#e2e2d5;position:relative;}
 #prog-bar{height:100%;background:#8040ff;width:0%;pointer-events:none;}
 #time{font-size:9px;color:#a0a090;letter-spacing:.08em;min-width:56px;text-align:right;user-select:none;-webkit-user-select:none;}
-/* hidden audio element used to route to current system output on iOS */
 #ios-out{display:none;}
 #jog-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;width:min(340px,100%);margin-top:-6px;}
 #jog-hint{font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:#c0c0b0;user-select:none;}
@@ -137,22 +136,15 @@ STEMS.forEach(s=>{eqSmooth[s.id]=new Float32Array(STEPS).fill(0);});
 let colDrag={active:false,id:null,startY:0,startVol:0,moved:false};
 let dotClickTimer=null;
 
-// ── iOS audio routing fix ────────────────────────────────────────────────────
-// We pipe the AudioContext output into a MediaStream, then feed that stream
-// to an <audio> element.  iOS Safari always routes <audio> playback through
-// the current system audio output (speaker ↔ AirPods) and honours mid-session
-// route changes, whereas a raw AudioContext destination is locked at creation.
-const iosOut = document.getElementById('ios-out');
+// scrub state — was playing before scrub started?
+let scrubbing=false,wasPlayingBeforeScrub=false;
 
-function patchIOSOutput() {
-  if (!actx || !mediaStreamDest) return;
-  // MediaStreamAudioDestinationNode already exists – just (re-)assign its stream
-  iosOut.srcObject = mediaStreamDest.stream;
-  // Must call play() inside a user-gesture context; callers ensure this.
-  const p = iosOut.play();
-  if (p && p.catch) p.catch(()=>{});
+const iosOut=document.getElementById('ios-out');
+function patchIOSOutput(){
+  if(!actx||!mediaStreamDest)return;
+  iosOut.srcObject=mediaStreamDest.stream;
+  const p=iosOut.play();if(p&&p.catch)p.catch(()=>{});
 }
-// ────────────────────────────────────────────────────────────────────────────
 
 const titleEl=document.getElementById('title');
 let titleIdx=0,titleInterval=null;
@@ -273,14 +265,9 @@ function initCtx(){
   if(actx)return;
   actx=new(window.AudioContext||window.webkitAudioContext)();
   masterGain=actx.createGain();
-
-  // Create a MediaStreamDestination so we can pipe into <audio>
-  // This is the key to making iOS respect system audio route changes
   mediaStreamDest=actx.createMediaStreamDestination();
   masterGain.connect(mediaStreamDest);
-  // Also connect directly for non-iOS browsers
   masterGain.connect(actx.destination);
-
   STEMS.forEach(s=>{
     const g=actx.createGain();const an=actx.createAnalyser();
     an.fftSize=256;an.smoothingTimeConstant=0.75;
@@ -288,7 +275,6 @@ function initCtx(){
     gainNodes[s.id]=g;analyserNodes[s.id]=an;
     eqData[s.id]=new Uint8Array(an.frequencyBinCount);
   });
-
   patchIOSOutput();
 }
 
@@ -315,7 +301,6 @@ function spawnSrc(id,offset=0){
 function playAll(){
   if(!hasAnyStem())return;
   if(actx.state==='suspended')actx.resume();
-  // Re-patch iOS output on every play to pick up any route change
   patchIOSOutput();
   STEMS.forEach(s=>spawnSrc(s.id,pauseOff));
   startTime=actx.currentTime-pauseOff;playing=true;dot.classList.add('playing');
@@ -326,6 +311,38 @@ function pauseAll(){
   STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
   playing=false;dot.classList.remove('playing');
 }
+
+// ── Scrub helpers ─────────────────────────────────────────────────────────────
+// Call before any scrub gesture begins
+function scrubStart(){
+  if(scrubbing)return;
+  scrubbing=true;
+  wasPlayingBeforeScrub=playing;
+  if(playing){
+    // Pause silently (don't change pauseOff yet — scrubMove will update it)
+    pauseOff=actx.currentTime-startTime;
+    STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
+    playing=false;dot.classList.remove('playing');
+  }
+}
+// Call whenever the scrub position changes — updates UI only
+function scrubMove(newOff){
+  pauseOff=Math.max(0,Math.min(duration,newOff));
+  if(duration>0){
+    document.getElementById('prog-bar').style.width=(pauseOff/duration*100)+'%';
+    document.getElementById('time').textContent=fmt(pauseOff)+' / '+fmt(duration);
+  }
+}
+// Call when the scrub gesture ends
+function scrubEnd(){
+  if(!scrubbing)return;
+  scrubbing=false;
+  if(wasPlayingBeforeScrub){
+    playAll();
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function hasAnyStem(){return STEMS.some(s=>buffers[s.id]);}
 function applyVol(id){if(!gainNodes[id])return;gainNodes[id].gain.setTargetAtTime(muted[id]?0:vols[id]/STEPS,actx.currentTime,0.02);}
 
@@ -430,97 +447,94 @@ dot.addEventListener('touchend',e=>{
   dotClickTimer=setTimeout(()=>{dotClickTimer=null;playing?pauseAll():playAll();},220);
 });
 
+// ── Progress bar — click to seek ─────────────────────────────────────────────
 document.getElementById('prog-wrap').addEventListener('click',e=>{
   if(!duration)return;
   const rect=e.currentTarget.getBoundingClientRect();
   const pct=(e.clientX-rect.left)/rect.width;
-  pauseOff=pct*duration;
-  if(playing){pauseAll();playAll();}
-  else{document.getElementById('prog-bar').style.width=(pct*100)+'%';document.getElementById('time').textContent=fmt(pauseOff)+' / '+fmt(duration);}
+  scrubStart();
+  scrubMove(pct*duration);
+  scrubEnd();
 });
 document.getElementById('prog-wrap').addEventListener('touchend',e=>{
   if(!duration)return;
   const rect=e.currentTarget.getBoundingClientRect();
   const pct=(e.changedTouches[0].clientX-rect.left)/rect.width;
-  pauseOff=Math.max(0,Math.min(1,pct))*duration;
-  if(playing){pauseAll();playAll();}
-  else{document.getElementById('prog-bar').style.width=(Math.max(0,Math.min(1,pct))*100)+'%';document.getElementById('time').textContent=fmt(pauseOff)+' / '+fmt(duration);}
+  scrubStart();
+  scrubMove(pct*duration);
+  scrubEnd();
 });
 
 // ── Jog wheel ────────────────────────────────────────────────────────────────
-const jogEl = document.getElementById('jog');
-const disc   = document.getElementById('jog-disc');
-let jogDrag  = {active:false, lastX:0, lastAngle:0};
-let jogAngle = 0;
-let jogVel   = 0;
-let jogLastX = 0, jogLastT = 0;
-const JOG_SENS = 0.4; // degrees of rotation per pixel
-const JOG_SCRUB = 0.003; // seconds scrubbed per degree
+const jogEl=document.getElementById('jog');
+const disc=document.getElementById('jog-disc');
+let jogDrag={active:false,lastX:0};
+let jogAngle=0;
+let jogVel=0,jogLastT=0;
+const JOG_SENS=0.4;   // degrees per pixel
+const JOG_SCRUB=0.003; // seconds per degree
 
-function jogApply(dx) {
-  if (!duration) return;
-  const deg = dx * JOG_SENS;
-  jogAngle  += deg;
-  disc.style.transform = `rotate(${jogAngle}deg)`;
+function jogApply(dx){
+  if(!duration)return;
+  const deg=dx*JOG_SENS;
+  jogAngle+=deg;
+  disc.style.transform=`rotate(${jogAngle}deg)`;
   disc.classList.add('spinning');
-  const scrub = deg * JOG_SCRUB;
-  if (playing) {
-    pauseOff = Math.max(0, Math.min(duration, (actx.currentTime - startTime) + scrub));
-    pauseAll(); playAll();
-  } else {
-    pauseOff = Math.max(0, Math.min(duration, pauseOff + scrub));
-    document.getElementById('prog-bar').style.width = (pauseOff/duration*100) + '%';
-    document.getElementById('time').textContent = fmt(pauseOff) + ' / ' + fmt(duration);
-  }
+  scrubMove(pauseOff+deg*JOG_SCRUB);
 }
 
 // mouse
-jogEl.addEventListener('mousedown', e => {
-  jogDrag = {active:true, lastX:e.clientX};
-  jogLastX = e.clientX; jogLastT = performance.now(); jogVel = 0;
+jogEl.addEventListener('mousedown',e=>{
+  if(!hasAnyStem())return;
+  initCtx();
+  jogDrag={active:true,lastX:e.clientX};
+  jogLastT=performance.now();jogVel=0;
   disc.classList.add('spinning');
+  scrubStart();
 });
-window.addEventListener('mousemove', e => {
-  if (!jogDrag.active) return;
-  const dx = e.clientX - jogDrag.lastX;
-  const now = performance.now();
-  jogVel = dx / Math.max(1, now - jogLastT);
-  jogLastX = e.clientX; jogLastT = now;
+window.addEventListener('mousemove',e=>{
+  if(!jogDrag.active)return;
+  const dx=e.clientX-jogDrag.lastX;
+  const now=performance.now();
+  jogVel=dx/Math.max(1,now-jogLastT);
+  jogLastT=now;
   jogApply(dx);
-  jogDrag.lastX = e.clientX;
+  jogDrag.lastX=e.clientX;
 });
-window.addEventListener('mouseup', () => {
-  if (jogDrag.active) { jogDrag.active = false; disc.classList.remove('spinning'); }
+window.addEventListener('mouseup',()=>{
+  if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
 
 // touch
-jogEl.addEventListener('touchstart', e => {
+jogEl.addEventListener('touchstart',e=>{
   e.preventDefault();
-  jogDrag = {active:true, lastX:e.touches[0].clientX};
-  jogLastX = e.touches[0].clientX; jogLastT = performance.now(); jogVel = 0;
+  if(!hasAnyStem())return;
+  initCtx();
+  jogDrag={active:true,lastX:e.touches[0].clientX};
+  jogLastT=performance.now();jogVel=0;
   disc.classList.add('spinning');
-}, {passive:false});
-window.addEventListener('touchmove', e => {
-  if (!jogDrag.active) return;
-  const dx = e.touches[0].clientX - jogDrag.lastX;
-  const now = performance.now();
-  jogVel = dx / Math.max(1, now - jogLastT);
-  jogLastX = e.touches[0].clientX; jogLastT = now;
+  scrubStart();
+},{passive:false});
+window.addEventListener('touchmove',e=>{
+  if(!jogDrag.active)return;
+  const dx=e.touches[0].clientX-jogDrag.lastX;
+  const now=performance.now();
+  jogVel=dx/Math.max(1,now-jogLastT);
+  jogLastT=now;
   jogApply(dx);
-  jogDrag.lastX = e.touches[0].clientX;
-}, {passive:true});
-window.addEventListener('touchend', () => {
-  if (jogDrag.active) { jogDrag.active = false; disc.classList.remove('spinning'); }
+  jogDrag.lastX=e.touches[0].clientX;
+},{passive:true});
+window.addEventListener('touchend',()=>{
+  if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
 
-// momentum coast
-function coastJog() {
-  if (!jogDrag.active && Math.abs(jogVel) > 0.01) {
-    jogApply(jogVel * 16);
-    jogVel *= 0.82;
+// momentum coast — only while actively dragging; stop on release
+function coastJog(){
+  if(!jogDrag.active&&Math.abs(jogVel)>0.01){
+    jogApply(jogVel*16);
+    jogVel*=0.82;
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 function animate(){
   requestAnimationFrame(animate);
