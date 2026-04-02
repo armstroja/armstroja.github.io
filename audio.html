@@ -7,81 +7,84 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
-  background:#f5f5f0;
-  color:#2a2a2a;
+  background:#f5f5f0;color:#2a2a2a;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
   min-height:100vh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:40px 20px;
-  user-select:none;-webkit-user-select:none;
-  gap:20px;overflow:hidden;position:relative;
-  touch-action:pan-x pan-y;
+  padding:40px 20px;user-select:none;-webkit-user-select:none;
+  gap:20px;overflow:hidden;position:relative;touch-action:pan-x pan-y;
 }
-#art-bg{
-  position:fixed;inset:0;z-index:0;
-  background-size:cover;background-position:center;
-  filter:blur(36px) brightness(1.1) saturate(1.2);
-  transform:scale(1.1);opacity:0;transition:opacity 1s ease;
-  pointer-events:none;
-}
+#art-bg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;filter:blur(36px) brightness(1.1) saturate(1.2);transform:scale(1.1);opacity:0;transition:opacity 1s ease;pointer-events:none;}
 #art-bg.visible{opacity:0.3;}
 body>*:not(#art-bg){position:relative;z-index:1;}
-
 h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cursor:default;transition:opacity .25s ease;user-select:none;-webkit-user-select:none;}
 h1.fading{opacity:0;}
 .top-links{display:flex;gap:18px;align-items:center;}
 .top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#8a8a80;background:none;border:none;cursor:pointer;padding:6px 4px;transition:color .2s;text-decoration:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
 .top-links a:hover,.top-links button:hover{color:#1a1a1a;}
 #art-file{display:none;}
-
 #stems-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(340px,100%);}
 .drop-zone{border:1px solid #dcdcd0;border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:background .2s;min-height:72px;background:#ffffff66;-webkit-tap-highlight-color:transparent;}
 .drop-zone:hover,.drop-zone.drag-over{background:#ffffffaa;border-color:#8040ff;}
 .drop-zone input[type=file]{display:none;}
 .dz-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px;user-select:none;-webkit-user-select:none;}
 .dz-hint{font-size:9px;color:#a0a090;user-select:none;-webkit-user-select:none;}
-
 .eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .2s;background:#ffffffcc;-webkit-tap-highlight-color:transparent;}
 .eq-card.muted{opacity:.35;}
 .eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold;user-select:none;-webkit-user-select:none;}
 .eq-bars{display:flex;align-items:flex-end;gap:2px;height:32px;flex:1;}
 .eq-bar{flex:1;border-radius:1px;background:#e2e2d5;min-height:2px;transition:height .05s;}
 .eq-filename{font-size:7px;color:#a0a090;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:none;-webkit-user-select:none;}
-
 #status{font-size:9px;letter-spacing:.16em;color:#a0a090;text-transform:uppercase;height:12px;user-select:none;-webkit-user-select:none;}
-
 #mixer-panel{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:min(340px,100%);}
 .channel{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .ch-segs{display:flex;flex-direction:column-reverse;gap:4px;touch-action:none;}
-.seg{
-  width:clamp(28px,8vw,36px);height:clamp(12px,3.5vw,14px);background:#e2e2d5;border:none;cursor:pointer;
-  border-radius:3px;transition:background .06s,transform .1s,opacity .2s;
-  position:relative;overflow:hidden;
-  -webkit-tap-highlight-color:transparent;touch-action:none;
-}
+.seg{width:clamp(28px,8vw,36px);height:clamp(12px,3.5vw,14px);background:#e2e2d5;border:none;cursor:pointer;border-radius:3px;transition:background .06s,transform .1s,opacity .2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;touch-action:none;}
 .seg:active{transform:scale(.92);}
 .seg.muted{opacity:.2;}
 .seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:2px;pointer-events:none;opacity:0;transition:opacity .15s;}
 .ch-label{font-size:clamp(6px,2vw,8px);letter-spacing:0.18em;text-transform:uppercase;text-align:center;font-weight:bold;user-select:none;-webkit-user-select:none;}
 .ch-label.inactive{color:#dcdcd0;}
-
-#center-dot{
-  width:clamp(36px,10vw,44px);height:clamp(36px,10vw,44px);border-radius:50%;
-  background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;
-  transition:all .2s ease;-webkit-tap-highlight-color:transparent;
-}
+#center-dot{width:clamp(36px,10vw,44px);height:clamp(36px,10vw,44px);border-radius:50%;background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;transition:all .2s ease;-webkit-tap-highlight-color:transparent;}
 #center-dot:active{transform:scale(0.9);}
 #center-dot.playing{background:#8040ff;border-color:#8040ff;}
-
 #transport{display:flex;align-items:center;gap:12px;width:min(340px,100%);}
 #prog-wrap{flex:1;height:12px;display:flex;align-items:center;cursor:pointer;position:relative;padding:5px 0;}
 #prog-track{width:100%;height:2px;background:#e2e2d5;position:relative;}
 #prog-bar{height:100%;background:#8040ff;width:0%;pointer-events:none;}
 #time{font-size:9px;color:#a0a090;letter-spacing:.08em;min-width:56px;text-align:right;user-select:none;-webkit-user-select:none;}
+/* hidden audio element used to route to current system output on iOS */
+#ios-out{display:none;}
+#jog-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;width:min(340px,100%);margin-top:-6px;}
+#jog-hint{font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:#c0c0b0;user-select:none;}
+#jog{
+  width:120px;height:60px;overflow:hidden;cursor:grab;position:relative;
+  -webkit-tap-highlight-color:transparent;touch-action:none;
+}
+#jog:active{cursor:grabbing;}
+#jog-disc{
+  width:120px;height:120px;border-radius:50%;
+  background:conic-gradient(
+    #2a2a2a 0deg, #3a3a3a 30deg, #2a2a2a 60deg, #3a3a3a 90deg,
+    #2a2a2a 120deg,#3a3a3a 150deg,#2a2a2a 180deg,#3a3a3a 210deg,
+    #2a2a2a 240deg,#3a3a3a 270deg,#2a2a2a 300deg,#3a3a3a 330deg, #2a2a2a 360deg
+  );
+  border:2px solid #4a4a44;
+  box-shadow:0 2px 12px #0002;
+  position:absolute;top:0;left:0;
+  transform-origin:center center;
+  transition:box-shadow .15s;
+}
+#jog-disc.spinning{box-shadow:0 2px 20px #8040ff44;}
+#jog-label{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  font-size:6px;letter-spacing:.22em;text-transform:uppercase;color:#888;
+  pointer-events:none;user-select:none;white-space:nowrap;
+}
 </style>
 </head>
 <body>
-
+<audio id="ios-out" autoplay playsinline></audio>
 <div id="art-bg"></div>
 <h1 id="title">Stem Mixer</h1>
 <div class="top-links">
@@ -95,6 +98,12 @@ h1.fading{opacity:0;}
 <div id="transport">
   <div id="prog-wrap"><div id="prog-track"><div id="prog-bar"></div></div></div>
   <div id="time">0:00 / 0:00</div>
+</div>
+<div id="jog-wrap">
+  <div id="jog">
+    <div id="jog-disc"><div id="jog-label">◀ scrub ▶</div></div>
+  </div>
+  <div id="jog-hint">scrub</div>
 </div>
 
 <script>
@@ -117,7 +126,7 @@ const TRANSLATIONS=[
   {t:'Миксер',c:'#00b8ff'},{t:'混音器',c:'#f5a623'},{t:'믹서',c:'#20d67b'},{t:'Misturador',c:'#8040ff'},
 ];
 
-let actx=null,masterGain=null;
+let actx=null,masterGain=null,mediaStreamDest=null;
 let buffers={},srcNodes={},gainNodes={},analyserNodes={},eqData={};
 let vols={},muted={};
 STEMS.forEach(s=>{vols[s.id]=STEPS;muted[s.id]=false;});
@@ -127,6 +136,23 @@ const rainbowState={},eqSmooth={};
 STEMS.forEach(s=>{eqSmooth[s.id]=new Float32Array(STEPS).fill(0);});
 let colDrag={active:false,id:null,startY:0,startVol:0,moved:false};
 let dotClickTimer=null;
+
+// ── iOS audio routing fix ────────────────────────────────────────────────────
+// We pipe the AudioContext output into a MediaStream, then feed that stream
+// to an <audio> element.  iOS Safari always routes <audio> playback through
+// the current system audio output (speaker ↔ AirPods) and honours mid-session
+// route changes, whereas a raw AudioContext destination is locked at creation.
+const iosOut = document.getElementById('ios-out');
+
+function patchIOSOutput() {
+  if (!actx || !mediaStreamDest) return;
+  // MediaStreamAudioDestinationNode already exists – just (re-)assign its stream
+  iosOut.srcObject = mediaStreamDest.stream;
+  // Must call play() inside a user-gesture context; callers ensure this.
+  const p = iosOut.play();
+  if (p && p.catch) p.catch(()=>{});
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 const titleEl=document.getElementById('title');
 let titleIdx=0,titleInterval=null;
@@ -180,10 +206,8 @@ const panel=document.getElementById('mixer-panel');
 STEMS.forEach(s=>{
   const ch=document.createElement('div');
   ch.className='channel';ch.id='ch-'+s.id;
-
   const segsEl=document.createElement('div');
   segsEl.className='ch-segs';segsEl.id='segs-'+s.id;
-
   for(let i=0;i<STEPS;i++){
     const btn=document.createElement('button');
     btn.className='seg';btn.dataset.idx=i;
@@ -200,24 +224,11 @@ STEMS.forEach(s=>{
     });
     segsEl.appendChild(btn);
   }
-
-  // Mouse drag
-  segsEl.addEventListener('mousedown',e=>{
-    e.stopPropagation();
-    colDrag={active:true,id:s.id,startY:e.clientY,startVol:vols[s.id],moved:false};
-    startHold(s.id);
-  });
-  // Touch drag
-  segsEl.addEventListener('touchstart',e=>{
-    e.stopPropagation();
-    colDrag={active:true,id:s.id,startY:e.touches[0].clientY,startVol:vols[s.id],moved:false};
-    startHold(s.id);
-  },{passive:true});
-
+  segsEl.addEventListener('mousedown',e=>{e.stopPropagation();colDrag={active:true,id:s.id,startY:e.clientY,startVol:vols[s.id],moved:false};startHold(s.id);});
+  segsEl.addEventListener('touchstart',e=>{e.stopPropagation();colDrag={active:true,id:s.id,startY:e.touches[0].clientY,startVol:vols[s.id],moved:false};startHold(s.id);},{passive:true});
   const lbl=document.createElement('div');
   lbl.className='ch-label inactive';lbl.id='lbl-'+s.id;lbl.textContent=s.label;
   lbl.style.color='#dcdcd0';
-
   ch.appendChild(segsEl);ch.appendChild(lbl);
   panel.appendChild(ch);
 });
@@ -261,7 +272,15 @@ function buildEqCard(id,name){
 function initCtx(){
   if(actx)return;
   actx=new(window.AudioContext||window.webkitAudioContext)();
-  masterGain=actx.createGain();masterGain.connect(actx.destination);
+  masterGain=actx.createGain();
+
+  // Create a MediaStreamDestination so we can pipe into <audio>
+  // This is the key to making iOS respect system audio route changes
+  mediaStreamDest=actx.createMediaStreamDestination();
+  masterGain.connect(mediaStreamDest);
+  // Also connect directly for non-iOS browsers
+  masterGain.connect(actx.destination);
+
   STEMS.forEach(s=>{
     const g=actx.createGain();const an=actx.createAnalyser();
     an.fftSize=256;an.smoothingTimeConstant=0.75;
@@ -269,7 +288,10 @@ function initCtx(){
     gainNodes[s.id]=g;analyserNodes[s.id]=an;
     eqData[s.id]=new Uint8Array(an.frequencyBinCount);
   });
+
+  patchIOSOutput();
 }
+
 async function loadStem(id,file){
   initCtx();setStatus('Loading '+id+'…');
   try{
@@ -293,6 +315,8 @@ function spawnSrc(id,offset=0){
 function playAll(){
   if(!hasAnyStem())return;
   if(actx.state==='suspended')actx.resume();
+  // Re-patch iOS output on every play to pick up any route change
+  patchIOSOutput();
   STEMS.forEach(s=>spawnSrc(s.id,pauseOff));
   startTime=actx.currentTime-pauseOff;playing=true;dot.classList.add('playing');
   STEMS.forEach(s=>applyVol(s.id));
@@ -353,7 +377,6 @@ function updateEqBars(){
     }
   });
 }
-
 function getSegBandEnergy(id,segIdx){
   const data=eqData[id];if(!data)return 0;
   const bins=data.length;
@@ -362,7 +385,6 @@ function getSegBandEnergy(id,segIdx){
   let sum=0;for(let i=lo;i<hi;i++)sum+=data[i]||0;
   return sum/Math.max(1,hi-lo)/255;
 }
-
 function updateColEq(){
   STEMS.forEach(s=>{
     const an=analyserNodes[s.id];
@@ -385,7 +407,6 @@ function updateColEq(){
     });
   });
 }
-
 function triggerRainbow(id){rainbowState[id]={start:performance.now(),active:true};}
 function rainbowColor(s,idx,elapsed){
   const prog=Math.min(elapsed/RAINBOW_DUR,1);
@@ -426,8 +447,84 @@ document.getElementById('prog-wrap').addEventListener('touchend',e=>{
   else{document.getElementById('prog-bar').style.width=(Math.max(0,Math.min(1,pct))*100)+'%';document.getElementById('time').textContent=fmt(pauseOff)+' / '+fmt(duration);}
 });
 
+// ── Jog wheel ────────────────────────────────────────────────────────────────
+const jogEl = document.getElementById('jog');
+const disc   = document.getElementById('jog-disc');
+let jogDrag  = {active:false, lastX:0, lastAngle:0};
+let jogAngle = 0;
+let jogVel   = 0;
+let jogLastX = 0, jogLastT = 0;
+const JOG_SENS = 0.4; // degrees of rotation per pixel
+const JOG_SCRUB = 0.003; // seconds scrubbed per degree
+
+function jogApply(dx) {
+  if (!duration) return;
+  const deg = dx * JOG_SENS;
+  jogAngle  += deg;
+  disc.style.transform = `rotate(${jogAngle}deg)`;
+  disc.classList.add('spinning');
+  const scrub = deg * JOG_SCRUB;
+  if (playing) {
+    pauseOff = Math.max(0, Math.min(duration, (actx.currentTime - startTime) + scrub));
+    pauseAll(); playAll();
+  } else {
+    pauseOff = Math.max(0, Math.min(duration, pauseOff + scrub));
+    document.getElementById('prog-bar').style.width = (pauseOff/duration*100) + '%';
+    document.getElementById('time').textContent = fmt(pauseOff) + ' / ' + fmt(duration);
+  }
+}
+
+// mouse
+jogEl.addEventListener('mousedown', e => {
+  jogDrag = {active:true, lastX:e.clientX};
+  jogLastX = e.clientX; jogLastT = performance.now(); jogVel = 0;
+  disc.classList.add('spinning');
+});
+window.addEventListener('mousemove', e => {
+  if (!jogDrag.active) return;
+  const dx = e.clientX - jogDrag.lastX;
+  const now = performance.now();
+  jogVel = dx / Math.max(1, now - jogLastT);
+  jogLastX = e.clientX; jogLastT = now;
+  jogApply(dx);
+  jogDrag.lastX = e.clientX;
+});
+window.addEventListener('mouseup', () => {
+  if (jogDrag.active) { jogDrag.active = false; disc.classList.remove('spinning'); }
+});
+
+// touch
+jogEl.addEventListener('touchstart', e => {
+  e.preventDefault();
+  jogDrag = {active:true, lastX:e.touches[0].clientX};
+  jogLastX = e.touches[0].clientX; jogLastT = performance.now(); jogVel = 0;
+  disc.classList.add('spinning');
+}, {passive:false});
+window.addEventListener('touchmove', e => {
+  if (!jogDrag.active) return;
+  const dx = e.touches[0].clientX - jogDrag.lastX;
+  const now = performance.now();
+  jogVel = dx / Math.max(1, now - jogLastT);
+  jogLastX = e.touches[0].clientX; jogLastT = now;
+  jogApply(dx);
+  jogDrag.lastX = e.touches[0].clientX;
+}, {passive:true});
+window.addEventListener('touchend', () => {
+  if (jogDrag.active) { jogDrag.active = false; disc.classList.remove('spinning'); }
+});
+
+// momentum coast
+function coastJog() {
+  if (!jogDrag.active && Math.abs(jogVel) > 0.01) {
+    jogApply(jogVel * 16);
+    jogVel *= 0.82;
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function animate(){
   requestAnimationFrame(animate);
+  coastJog();
   updateEqBars();updateColEq();
   STEMS.forEach(s=>{
     const rs=rainbowState[s.id];
