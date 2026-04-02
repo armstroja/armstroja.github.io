@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>STEM MIXER | ENTER</title>
 <style>
-    /* Core Aesthetics - Matching your Mixer styling */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         background: #f5f5f0; 
@@ -16,14 +15,13 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
+        padding: 20px;
         overflow: hidden;
         position: relative;
         user-select: none;
         -webkit-user-select: none;
     }
 
-    /* Blurred Backdrop */
     #art-bg {
         position: fixed;
         inset: 0;
@@ -31,83 +29,73 @@
         background: radial-gradient(circle at center, #ffffff 0%, #e2e2d5 100%);
         filter: blur(40px);
         opacity: 0.6;
-        transform: scale(1.1);
+        transition: transform 0.1s ease-out;
     }
 
     .container {
         position: relative;
         z-index: 1;
         text-align: center;
-        max-width: 340px;
+        max-width: 400px;
         width: 100%;
-        display: flex;
-        flex-direction: column;
-        gap: 30px;
     }
 
-    /* Top Branding */
-    .brand-header {
+    /* 4-Channel EQ Animation Styles */
+    #eq-container {
         display: flex;
-        flex-direction: column;
+        justify-content: center;
         gap: 12px;
-        align-items: center;
+        margin-bottom: 30px;
+        height: 50px;
+        align-items: flex-end;
+    }
+
+    .eq-group {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+        height: 100%;
+        padding: 0 4px;
+    }
+
+    .eq-bar {
+        width: 3px;
+        border-radius: 1px;
+        background: #dcdcd0;
+        transition: height 0.1s ease;
     }
 
     h1 {
         font-size: 10px;
-        letter-spacing: .4em;
+        letter-spacing: .5em;
         text-transform: uppercase;
         color: #4a4a44;
-        opacity: 0.8;
+        margin-bottom: 40px;
     }
 
-    /* Live Visualizer Logic */
-    #viz-box {
-        height: 60px;
-        width: 120px;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-        gap: 3px;
-        margin: 0 auto;
-    }
-
-    .viz-bar {
-        width: 4px;
-        background: #dcdcd0;
-        border-radius: 2px;
-        transition: height 0.15s ease, background 0.3s ease;
-    }
-
-    /* Main Entry Module */
-    .hero-card {
-        background: rgba(255, 255, 255, 0.5);
+    .hero-box {
+        background: rgba(255, 255, 255, 0.4);
         border: 1px solid #dcdcd0;
         border-radius: 12px;
-        padding: 30px 20px;
+        padding: 40px 20px;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     }
 
     .enter-btn {
-        display: block;
-        width: 100%;
-        padding: 18px;
+        display: inline-block;
+        padding: 16px 32px;
         background: #2a2a2a;
         color: #f5f5f0;
         text-decoration: none;
         font-size: 9px;
-        font-weight: bold;
-        letter-spacing: .32em;
+        letter-spacing: .3em;
         text-transform: uppercase;
-        border-radius: 8px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        border: none;
+        border-radius: 30px;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
         cursor: pointer;
+        margin-bottom: 20px;
     }
 
     .enter-btn:hover {
@@ -116,58 +104,35 @@
         box-shadow: 0 4px 15px rgba(128, 64, 255, 0.2);
     }
 
-    .enter-btn:active {
-        transform: scale(0.97);
-    }
-
-    /* Feature Grid - matching your 2-column stem grid */
-    .info-grid {
+    .features {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 15px;
+        margin-top: 30px;
     }
 
-    .info-tag {
-        font-size: 7px;
-        letter-spacing: .18em;
+    .feat-item {
+        font-size: 8px;
+        letter-spacing: .15em;
         text-transform: uppercase;
         color: #8a8a80;
         padding: 10px;
-        border: 1px solid rgba(220, 220, 208, 0.5);
-        border-radius: 6px;
+        border-top: 1px solid #dcdcd0;
     }
 
-    /* Footer Links */
-    .bottom-nav {
+    .footer-links {
+        margin-top: 40px;
         display: flex;
         justify-content: center;
         gap: 20px;
     }
 
-    .bottom-nav a {
+    .footer-links a {
         font-size: 8px;
         letter-spacing: .2em;
         text-transform: lowercase;
         color: #a0a090;
         text-decoration: none;
-        transition: color 0.2s;
-    }
-
-    .bottom-nav a:hover {
-        color: #1a1a1a;
-    }
-
-    /* Animations */
-    @keyframes pulse {
-        0% { opacity: 0.6; }
-        50% { opacity: 1; }
-        100% { opacity: 0.6; }
-    }
-    .active-dot {
-        width: 6px; height: 6px;
-        background: #8040ff;
-        border-radius: 50%;
-        animation: pulse 2s infinite ease-in-out;
     }
 </style>
 </head>
@@ -176,67 +141,76 @@
 <div id="art-bg"></div>
 
 <div class="container">
-    <div class="brand-header">
-        <div id="viz-box">
-            </div>
-        <h1>Stem Mixer</h1>
-        <div class="active-dot"></div>
+    <div id="eq-container">
+        <div class="eq-group" id="group-0"></div>
+        <div class="eq-group" id="group-1"></div>
+        <div class="eq-group" id="group-2"></div>
+        <div class="eq-group" id="group-3"></div>
     </div>
 
-    <div class="hero-card">
-        <a href="audio.html" class="enter-btn">Open Mixer</a>
+    <h1>Stem Mixer</h1>
+
+    <div class="hero-box">
+        <a href="mixer.html" class="enter-btn">Launch Workspace</a>
         
-        <div class="info-grid">
-            <div class="info-tag">4-Stem Split</div>
-            <div class="info-tag">Local Processing</div>
-            <div class="info-tag">Jog Scrub</div>
-            <div class="info-tag">Browser Audio</div>
+        <div class="features">
+            <div class="feat-item">4-Channel Split</div>
+            <div class="feat-item">Jog-Wheel Scrub</div>
+            <div class="feat-item">Visual EQ</div>
+            <div class="feat-item">Client-Side</div>
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <a href="https://github.com/" target="armstroja/armstroja.github.io">repository</a>
+    <div class="footer-links">
+        <a href="https://github.com/armstroja/armstroja.github.io" target="_blank">Git Repository</a>
+        <a href="#">Privacy</a>
     </div>
 </div>
 
 <script>
-    // 1. Generate EQ Bars
-    const vizBox = document.getElementById('viz-box');
-    const barCount = 12;
-    const bars = [];
+    // Colors from your Mixer STEMS array
+    const STEM_COLORS = ['#ff0066', '#f5a623', '#00b8ff', '#20d67b'];
+    const BARS_PER_GROUP = 4;
 
-    for (let i = 0; i < barCount; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'viz-bar';
-        vizBox.appendChild(bar);
-        bars.push(bar);
-    }
+    // Initialize the 4 EQ groups
+    STEM_COLORS.forEach((color, gIdx) => {
+        const group = document.getElementById(`group-${gIdx}`);
+        for (let i = 0; i < BARS_PER_GROUP; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'eq-bar';
+            bar.style.backgroundColor = color + 'aa'; // Semi-transparent
+            group.appendChild(bar);
+        }
+    });
 
-    // 2. Animate EQ Bars randomly
-    function updateViz() {
-        bars.forEach((bar, i) => {
-            // Generate a random height, but weight it so middle bars are taller
-            const centerFactor = 1 - Math.abs(i - (barCount/2)) / (barCount/2);
-            const randomHeight = Math.random() * 40 * (0.5 + centerFactor);
+    // Randomize the 4 EQs independently
+    function animateEQs() {
+        STEM_COLORS.forEach((_, gIdx) => {
+            const group = document.getElementById(`group-${gIdx}`);
+            const bars = group.getElementsByClassName('eq-bar');
             
-            bar.style.height = (4 + randomHeight) + 'px';
-            
-            // Randomly flash the brand color
-            if (Math.random() > 0.95) {
-                bar.style.background = '#8040ff';
-            } else {
-                bar.style.background = '#dcdcd0';
+            for (let bar of bars) {
+                const randomHeight = Math.floor(Math.random() * 40) + 5;
+                bar.style.height = `${randomHeight}px`;
+                
+                // Add a "sparkle" effect occasionally to match the color
+                if (Math.random() > 0.95) {
+                    bar.style.backgroundColor = STEM_COLORS[gIdx];
+                } else {
+                    bar.style.backgroundColor = STEM_COLORS[gIdx] + '66';
+                }
             }
         });
-        setTimeout(updateViz, 150);
+        setTimeout(animateEQs, 120);
     }
-    updateViz();
 
-    // 3. Background Parallax
+    animateEQs();
+
+    // Parallax background
     window.addEventListener('mousemove', (e) => {
-        const x = (window.innerWidth / 2 - e.clientX) / 50;
-        const y = (window.innerHeight / 2 - e.clientY) / 50;
-        document.getElementById('art-bg').style.transform = `translate(${x}px, ${y}px) scale(1.1)`;
+        const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
+        const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
+        document.getElementById('art-bg').style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
     });
 </script>
 
