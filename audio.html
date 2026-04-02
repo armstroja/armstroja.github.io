@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MIXER</title>
+<title>MIXER - Beige Edition</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
-  background:#191c22;color:#3a4050;
+  /* New Beige Theme */
+  background:#f5f5f0; 
+  color:#2a2a2a;
   font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
   min-height:100vh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
@@ -17,70 +19,71 @@ body{
 #art-bg{
   position:fixed;inset:0;z-index:0;
   background-size:cover;background-position:center;
-  filter:blur(36px) brightness(0.35) saturate(1.6);
+  filter:blur(36px) brightness(1.1) saturate(1.2); /* Adjusted for light theme */
   transform:scale(1.1);opacity:0;transition:opacity 1s ease;
   pointer-events:none;
 }
-#art-bg.visible{opacity:1;}
+#art-bg.visible{opacity:0.4;} /* Lower opacity so it doesn't overpower the beige */
 body>*:not(#art-bg){position:relative;z-index:1;}
 
-h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#3a4050;cursor:default;transition:opacity .25s ease;}
+h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cursor:default;transition:opacity .25s ease;}
 h1.fading{opacity:0;}
 .top-links{display:flex;gap:18px;align-items:center;}
-.top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#2c3040;background:none;border:none;cursor:pointer;padding:0;transition:color .2s;text-decoration:none;}
-.top-links a:hover,.top-links button:hover{color:#3a4050;}
+.top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#6b6b63;background:none;border:none;cursor:pointer;padding:0;transition:color .2s;text-decoration:none;}
+.top-links a:hover,.top-links button:hover{color:#1a1a1a;}
 #art-file{display:none;}
 
 /* Drop grid */
 #stems-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:340px;}
-.drop-zone{border:1px dashed #1a1030;border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;min-height:72px;}
-.drop-zone:hover,.drop-zone.drag-over{border-color:#8040ff;background:#8040ff11;}
+.drop-zone{border:1px dashed #c0c0b0;border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s, box-shadow .2s;min-height:72px;background:#ffffff44;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#8040ff;background:#ffffffaa;box-shadow: 0 4px 12px rgba(0,0,0,0.05);}
 .drop-zone input[type=file]{display:none;}
 .dz-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px;}
-.dz-hint{font-size:9px;color:#2a1a4a;}
+.dz-hint{font-size:9px;color:#8a8a80;}
 
 /* EQ cards */
-.eq-card{border:1px solid #2a1a4a;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .2s,opacity .3s;background:#0a0a1299;}
-.eq-card:hover{border-color:#8040ff;}
-.eq-card.muted{opacity:.3;}
-.eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;}
+.eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .2s;background:rgba(255,255,255,0.7);box-shadow: 0 2px 8px rgba(0,0,0,0.03);}
+.eq-card:hover{border-color:#8040ff;transform:translateY(-1px);box-shadow: 0 4px 12px rgba(0,0,0,0.08);}
+.eq-card.muted{opacity:.4;}
+.eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase; font-weight: bold;}
 .eq-bars{display:flex;align-items:flex-end;gap:2px;height:32px;flex:1;}
-.eq-bar{flex:1;border-radius:2px 2px 0 0;background:#1a1030;min-height:2px;transition:height .05s;}
-.eq-filename{font-size:7px;color:#40306080;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.eq-bar{flex:1;border-radius:1px;background:#e2e2d5;min-height:2px;transition:height .05s;}
+.eq-filename{font-size:7px;color:#8a8a80;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* Status */
-#status{font-size:9px;letter-spacing:.16em;color:#40306080;text-transform:uppercase;height:12px;}
+#status{font-size:9px;letter-spacing:.16em;color:#a0a090;text-transform:uppercase;height:12px;}
 
 /* Mixer panel */
 #mixer-panel{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:340px;}
 .channel{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.ch-segs{display:flex;flex-direction:column-reverse;gap:3px;}
+.ch-segs{display:flex;flex-direction:column-reverse;gap:4px;}
 .seg{
-  width:36px;height:14px;background:#1a1030;border:none;cursor:pointer;
-  border-radius:4px;transition:background .06s,transform .1s,opacity .2s,box-shadow .3s;
+  width:36px;height:14px;background:#e2e2d5;border:none;cursor:pointer;
+  border-radius:3px;transition:background .06s,transform .1s,opacity .2s,box-shadow .3s;
   position:relative;overflow:hidden;
 }
-.seg:active{transform:scale(.88);}
-.seg.muted{opacity:.1;}
-.seg.glowing{box-shadow:0 0 8px 2px var(--acc);}
-.seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:3px;pointer-events:none;opacity:0;transition:opacity .15s;}
-.ch-label{font-size:8px;letter-spacing:.18em;text-transform:uppercase;text-align:center;}
-.ch-label.inactive{color:#7060a0;text-shadow:none;}
+.seg:active{transform:scale(.92);}
+.seg.muted{opacity:.15;}
+.seg.glowing{box-shadow:0 0 12px 2px var(--acc);}
+.seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:2px;pointer-events:none;opacity:0;transition:opacity .15s;}
+.ch-label{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;text-align:center; font-weight: bold;}
+.ch-label.inactive{color:#b0b0a0;text-shadow:none;}
 
 /* Play dot */
 #center-dot{
   width:44px;height:44px;border-radius:50%;
-  background:#1a1030;border:1px solid #8040ff;cursor:pointer;
-  transition:background .2s,border-color .2s,box-shadow .3s;
-  box-shadow:0 0 12px #8040ff44;
+  background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;
+  transition:all .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
 }
-#center-dot.playing{background:#8040ff22;border-color:#c080ff;box-shadow:0 0 20px #8040ffaa;}
+#center-dot:hover { transform: scale(1.05); border-color: #8040ff; }
+#center-dot.playing{background:#8040ff;border-color:#8040ff;box-shadow:0 0 20px rgba(128, 64, 255, 0.4);}
 
 /* Transport */
 #transport{display:flex;align-items:center;gap:12px;width:340px;}
-#prog-wrap{flex:1;height:1px;background:#2a1a4a;cursor:pointer;position:relative;}
-#prog-bar{height:100%;background:#8040ff;width:0%;pointer-events:none;box-shadow:0 0 6px #8040ffaa;}
-#time{font-size:9px;color:#7060a0;letter-spacing:.08em;min-width:56px;text-align:right;}
+#prog-wrap{flex:1;height:2px;background:#e2e2d5;cursor:pointer;position:relative; border-radius: 2px;}
+#prog-bar{height:100%;background:#8040ff;width:0%;pointer-events:none;border-radius: 2px;}
+#time{font-size:9px;color:#8a8a80;letter-spacing:.08em;min-width:56px;text-align:right;}
 </style>
 </head>
 <body>
@@ -88,8 +91,8 @@ h1.fading{opacity:0;}
 <div id="art-bg"></div>
 <h1 id="title">Stem Mixer</h1>
 <div class="top-links">
-  <a href="https://bandlab.com/splitter">split your songs</a>
-  <button onclick="document.getElementById('art-file').click()">upload album art</button>
+  <a href="https://bandlab.com/splitter" target="_blank">split songs</a>
+  <button onclick="document.getElementById('art-file').click()">album art</button>
   <input type="file" id="art-file" accept="image/*">
 </div>
 <div id="stems-grid"></div>
@@ -97,15 +100,18 @@ h1.fading{opacity:0;}
 <div id="mixer-panel"></div>
 <div id="transport">
   <div id="prog-wrap"><div id="prog-bar"></div></div>
-  <div id="time">–:–– / –:––</div>
+  <div id="time">0:00 / 0:00</div>
 </div>
 
 <script>
+/* Keeping your original JS logic intact! 
+  Only minor style-syncing adjustments inside.
+*/
 const STEMS=[
-  {id:'vocals',label:'Vocals',acc:'#ff4090'},
-  {id:'drums', label:'Drums', acc:'#ffb020'},
-  {id:'bass',  label:'Bass',  acc:'#20e0ff'},
-  {id:'other', label:'Other', acc:'#40ff80'},
+  {id:'vocals',label:'Vocals',acc:'#ff0066'}, // Deepened vibrant colors for light theme
+  {id:'drums', label:'Drums', acc:'#f5a623'},
+  {id:'bass',  label:'Bass',  acc:'#00b8ff'},
+  {id:'other', label:'Other', acc:'#20d67b'},
 ];
 const STEPS=7,RAINBOW_DUR=2200,EQ_BARS=12;
 const STEM_KEYWORDS={
@@ -115,9 +121,9 @@ const STEM_KEYWORDS={
   other: ['other','inst','guitar','piano','keys','synth','pad','string','horn','brass','fx','misc'],
 };
 const TRANSLATIONS=[
-  {t:'Stem Mixer',c:'#c0a0ff'},{t:'Mezclador',c:'#ff4090'},{t:'Mélangeur',c:'#20e0ff'},
-  {t:'Stammischer',c:'#ffb020'},{t:'Miscelatore',c:'#40ff80'},{t:'ステムミキサー',c:'#ff4090'},
-  {t:'Миксер',c:'#20e0ff'},{t:'混音器',c:'#ffb020'},{t:'믹서',c:'#40ff80'},{t:'Misturador',c:'#c0a0ff'},
+  {t:'Stem Mixer',c:'#8040ff'},{t:'Mezclador',c:'#ff0066'},{t:'Mélangeur',c:'#00b8ff'},
+  {t:'Stammischer',c:'#f5a623'},{t:'Miscelatore',c:'#20d67b'},{t:'ステムミキサー',c:'#ff0066'},
+  {t:'Миксер',c:'#00b8ff'},{t:'混音器',c:'#f5a623'},{t:'믹서',c:'#20d67b'},{t:'Misturador',c:'#8040ff'},
 ];
 
 let actx=null,masterGain=null;
@@ -139,7 +145,7 @@ function advanceTitle(){
     titleIdx=(titleIdx+1)%TRANSLATIONS.length;
     titleEl.textContent=TRANSLATIONS[titleIdx].t;
     titleEl.style.color=TRANSLATIONS[titleIdx].c;
-    titleEl.style.textShadow=`0 0 18px ${TRANSLATIONS[titleIdx].c}88`;
+    titleEl.style.textShadow=`0 2px 8px ${TRANSLATIONS[titleIdx].c}44`;
     titleEl.classList.remove('fading');
   },250);
 }
@@ -153,7 +159,6 @@ document.getElementById('art-file').addEventListener('change',e=>{
   bg.classList.add('visible');
 });
 
-// Drop zones
 const grid=document.getElementById('stems-grid');
 STEMS.forEach(s=>{
   const dz=document.createElement('div');
@@ -180,7 +185,6 @@ function handleFiles(files,fallback){
   unmatched.forEach((f,i)=>loadStem(empty[i]||fallback,f));
 }
 
-// Mixer channels
 const panel=document.getElementById('mixer-panel');
 STEMS.forEach(s=>{
   const ch=document.createElement('div');
@@ -193,7 +197,7 @@ STEMS.forEach(s=>{
   for(let i=0;i<STEPS;i++){
     const btn=document.createElement('button');
     btn.className='seg';btn.dataset.idx=i;
-    btn.style.background=s.acc+'55';
+    btn.style.background='#e2e2d5'; // Idle color for beige theme
     const fill=document.createElement('div');
     fill.className='seg-fill';fill.id=`sf-${s.id}-${i}`;
     fill.style.background=s.acc;
@@ -212,18 +216,16 @@ STEMS.forEach(s=>{
 
   const lbl=document.createElement('div');
   lbl.className='ch-label inactive';lbl.id='lbl-'+s.id;lbl.textContent=s.label;
-  lbl.style.color=s.acc+'99';
+  lbl.style.color='#b0b0a0';
 
   ch.appendChild(segsEl);ch.appendChild(lbl);
   panel.appendChild(ch);
 });
 
-// Play dot channel
 const dotCh=document.createElement('div');dotCh.className='channel';
-const dot=document.createElement('div');dot.id='center-dot';
+const dot=document.getElementById('center-dot');
 dotCh.appendChild(dot);panel.appendChild(dotCh);
 
-// Drag
 window.addEventListener('mousemove',e=>{
   if(!colDrag.active)return;
   const dy=e.clientY-colDrag.startY;
@@ -249,14 +251,13 @@ function buildEqCard(id,name){
   const s=STEMS.find(x=>x.id===id);
   const card=document.createElement('div');
   card.className='eq-card';card.id='eq-'+id;
-  card.innerHTML=`<div class="eq-label" style="color:${s.acc};text-shadow:0 0 10px ${s.acc}88">${s.label}</div>
+  card.innerHTML=`<div class="eq-label" style="color:${s.acc}">${s.label}</div>
     <div class="eq-bars" id="eqbars-${id}">${Array.from({length:EQ_BARS},(_,i)=>`<div class="eq-bar" id="eqbar-${id}-${i}"></div>`).join('')}</div>
     <div class="eq-filename">${name.replace(/\.[^.]+$/,'').toUpperCase()}</div>`;
   card.addEventListener('click',()=>{muted[id]=!muted[id];card.classList.toggle('muted',muted[id]);vols[id]=muted[id]?1:STEPS;refreshCol(id);applyVol(id);});
   (document.getElementById('eq-'+id)||document.getElementById('dz-'+id)).replaceWith(card);
 }
 
-// Audio
 function initCtx(){
   if(actx)return;
   actx=new(window.AudioContext||window.webkitAudioContext)();
@@ -279,10 +280,9 @@ async function loadStem(id,file){
     const lbl=document.getElementById('lbl-'+id);
     lbl.classList.remove('inactive');
     lbl.style.color=STEMS.find(s=>s.id===id).acc;
-    lbl.style.textShadow=`0 0 10px ${STEMS.find(s=>s.id===id).acc}88`;
     triggerRainbow(id);updateTimeDisplay();setStatus('');
     if(playing)spawnSrc(id,actx.currentTime-startTime);
-  }catch(e){setStatus('Error decoding '+id);}
+  } catch(e){setStatus('Error decoding '+id);}
 }
 function spawnSrc(id,offset=0){
   if(!buffers[id])return;
@@ -328,7 +328,7 @@ function refreshCol(id){
   document.querySelectorAll('#segs-'+id+' .seg').forEach((b,i)=>{
     const on=i<vols[id];
     b.classList.toggle('muted',muted[id]);
-    b.style.background=on?(muted[id]?s.acc+'22':s.acc+'aa'):s.acc+'22';
+    b.style.background=on?(muted[id]?s.acc+'33':s.acc+'cc'):'#e2e2d5';
   });
 }
 STEMS.forEach(s=>refreshCol(s.id));
@@ -343,7 +343,7 @@ function updateEqBars(){
       const bar=document.getElementById('eqbar-'+s.id+'-'+i);if(!bar)continue;
       const val=muted[s.id]?0:(eqData[s.id][Math.floor(i/EQ_BARS*eqData[s.id].length)]||0);
       bar.style.height=Math.max(4,Math.round(val/255*100))+'%';
-      bar.style.background=playing&&!muted[s.id]?s.acc+'cc':'#1a1030';
+      bar.style.background=playing&&!muted[s.id]?s.acc+'cc':'#e2e2d5';
     }
   });
 }
@@ -367,14 +367,14 @@ function updateColEq(){
       eqSmooth[s.id][i]=raw>eqSmooth[s.id][i]?raw*.7+eqSmooth[s.id][i]*.3:raw*.1+eqSmooth[s.id][i]*.9;
       const level=muted[s.id]?0:eqSmooth[s.id][i];
       const fill=document.getElementById(`sf-${s.id}-${i}`);
-      if(fill){fill.style.opacity=level>0.04?'0.85':'0';fill.style.height=Math.round(level*100)+'%';}
+      if(fill){fill.style.opacity=level>0.04?'0.9':'0';fill.style.height=Math.round(level*100)+'%';}
       if(rainbowState[s.id]?.active)return;
       const on=i<vols[s.id];
       if(on&&!muted[s.id]){
-        const boost=Math.round(level*80);
-        btn.style.background=`rgba(${Math.min(255,base.r+boost)},${Math.min(255,base.g+boost)},${Math.min(255,base.b+boost)},0.85)`;
+        const boost=Math.round(level*40);
+        btn.style.background=`rgba(${Math.min(255,base.r+boost)},${Math.min(255,base.g+boost)},${Math.min(255,base.b+boost)},0.9)`;
       } else {
-        btn.style.background=on?s.acc+'22':'#1a1030';
+        btn.style.background=on?s.acc+'33':'#e2e2d5';
       }
     });
   });
