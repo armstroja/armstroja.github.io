@@ -40,29 +40,21 @@
         width: 100%;
     }
 
-    /* 4-Channel EQ Animation Styles */
+    /* Single Large Bar Styling */
     #eq-container {
         display: flex;
         justify-content: center;
-        gap: 12px;
+        gap: 16px; /* Increased gap for larger bars */
         margin-bottom: 30px;
-        height: 50px;
+        height: 60px; /* Slightly taller for impact */
         align-items: flex-end;
     }
 
-    .eq-group {
-        display: flex;
-        gap: 2px;
-        align-items: flex-end;
-        height: 100%;
-        padding: 0 4px;
-    }
-
-    .eq-bar {
-        width: 3px;
-        border-radius: 1px;
+    .eq-bar-large {
+        width: 24px; /* Wider, "huge" bar */
+        border-radius: 4px; /* Smoother corners for larger size */
+        transition: height 0.12s ease-out, background-color 0.2s ease;
         background: #dcdcd0;
-        transition: height 0.1s ease;
     }
 
     h1 {
@@ -142,10 +134,10 @@
 
 <div class="container">
     <div id="eq-container">
-        <div class="eq-group" id="group-0"></div>
-        <div class="eq-group" id="group-1"></div>
-        <div class="eq-group" id="group-2"></div>
-        <div class="eq-group" id="group-3"></div>
+        <div class="eq-bar-large" id="bar-0"></div>
+        <div class="eq-bar-large" id="bar-1"></div>
+        <div class="eq-bar-large" id="bar-2"></div>
+        <div class="eq-bar-large" id="bar-3"></div>
     </div>
 
     <h1>Stem Mixer</h1>
@@ -168,43 +160,33 @@
 </div>
 
 <script>
-    // Colors from your Mixer STEMS array
     const STEM_COLORS = ['#ff0066', '#f5a623', '#00b8ff', '#20d67b'];
-    const BARS_PER_GROUP = 4;
 
-    // Initialize the 4 EQ groups
-    STEM_COLORS.forEach((color, gIdx) => {
-        const group = document.getElementById(`group-${gIdx}`);
-        for (let i = 0; i < BARS_PER_GROUP; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'eq-bar';
-            bar.style.backgroundColor = color + 'aa'; // Semi-transparent
-            group.appendChild(bar);
-        }
+    // Initialize bars with colors
+    STEM_COLORS.forEach((color, i) => {
+        const bar = document.getElementById(`bar-${i}`);
+        bar.style.backgroundColor = color + 'cc'; // Set base color
     });
 
-    // Randomize the 4 EQs independently
-    function animateEQs() {
-        STEM_COLORS.forEach((_, gIdx) => {
-            const group = document.getElementById(`group-${gIdx}`);
-            const bars = group.getElementsByClassName('eq-bar');
+    function animateBars() {
+        STEM_COLORS.forEach((color, i) => {
+            const bar = document.getElementById(`bar-${i}`);
             
-            for (let bar of bars) {
-                const randomHeight = Math.floor(Math.random() * 40) + 5;
-                bar.style.height = `${randomHeight}px`;
-                
-                // Add a "sparkle" effect occasionally to match the color
-                if (Math.random() > 0.95) {
-                    bar.style.backgroundColor = STEM_COLORS[gIdx];
-                } else {
-                    bar.style.backgroundColor = STEM_COLORS[gIdx] + '66';
-                }
+            // Generate random height for the huge bar
+            const randomHeight = Math.floor(Math.random() * 50) + 10;
+            bar.style.height = `${randomHeight}px`;
+            
+            // Randomly shift opacity to simulate intensity
+            if (Math.random() > 0.8) {
+                bar.style.backgroundColor = color; // Solid on peak
+            } else {
+                bar.style.backgroundColor = color + 'cc'; // Semi-transparent
             }
         });
-        setTimeout(animateEQs, 120);
+        setTimeout(animateBars, 150);
     }
 
-    animateEQs();
+    animateBars();
 
     // Parallax background
     window.addEventListener('mousemove', (e) => {
