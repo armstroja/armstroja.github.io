@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>STEM MIXER | ENTER</title>
 <style>
-    /* Inherited core styles from your mixer */
+    /* Core Aesthetics - Matching your Mixer styling */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
         background: #f5f5f0; 
@@ -16,11 +16,14 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 40px 20px;
         overflow: hidden;
         position: relative;
+        user-select: none;
+        -webkit-user-select: none;
     }
 
+    /* Blurred Backdrop */
     #art-bg {
         position: fixed;
         inset: 0;
@@ -28,49 +31,83 @@
         background: radial-gradient(circle at center, #ffffff 0%, #e2e2d5 100%);
         filter: blur(40px);
         opacity: 0.6;
+        transform: scale(1.1);
     }
 
     .container {
         position: relative;
         z-index: 1;
         text-align: center;
-        max-width: 400px;
+        max-width: 340px;
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    /* Top Branding */
+    .brand-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
     }
 
     h1 {
-        font-size: 11px;
-        letter-spacing: .5em;
+        font-size: 10px;
+        letter-spacing: .4em;
         text-transform: uppercase;
         color: #4a4a44;
-        margin-bottom: 40px;
-        animation: fadeIn 1.5s ease-out;
+        opacity: 0.8;
     }
 
-    .hero-box {
-        background: rgba(255, 255, 255, 0.4);
+    /* Live Visualizer Logic */
+    #viz-box {
+        height: 60px;
+        width: 120px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 3px;
+        margin: 0 auto;
+    }
+
+    .viz-bar {
+        width: 4px;
+        background: #dcdcd0;
+        border-radius: 2px;
+        transition: height 0.15s ease, background 0.3s ease;
+    }
+
+    /* Main Entry Module */
+    .hero-card {
+        background: rgba(255, 255, 255, 0.5);
         border: 1px solid #dcdcd0;
         border-radius: 12px;
-        padding: 40px 20px;
+        padding: 30px 20px;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        transition: transform 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
     }
 
     .enter-btn {
-        display: inline-block;
-        padding: 16px 32px;
+        display: block;
+        width: 100%;
+        padding: 18px;
         background: #2a2a2a;
         color: #f5f5f0;
         text-decoration: none;
         font-size: 9px;
-        letter-spacing: .3em;
+        font-weight: bold;
+        letter-spacing: .32em;
         text-transform: uppercase;
-        border-radius: 30px;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
+        border-radius: 8px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
         cursor: pointer;
-        margin-bottom: 20px;
     }
 
     .enter-btn:hover {
@@ -80,33 +117,34 @@
     }
 
     .enter-btn:active {
-        transform: scale(0.96);
+        transform: scale(0.97);
     }
 
-    .features {
+    /* Feature Grid - matching your 2-column stem grid */
+    .info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-top: 30px;
+        gap: 10px;
     }
 
-    .feat-item {
-        font-size: 8px;
-        letter-spacing: .15em;
+    .info-tag {
+        font-size: 7px;
+        letter-spacing: .18em;
         text-transform: uppercase;
         color: #8a8a80;
         padding: 10px;
-        border-top: 1px solid #dcdcd0;
+        border: 1px solid rgba(220, 220, 208, 0.5);
+        border-radius: 6px;
     }
 
-    .footer-links {
-        margin-top: 40px;
+    /* Footer Links */
+    .bottom-nav {
         display: flex;
         justify-content: center;
         gap: 20px;
     }
 
-    .footer-links a {
+    .bottom-nav a {
         font-size: 8px;
         letter-spacing: .2em;
         text-transform: lowercase;
@@ -115,28 +153,22 @@
         transition: color 0.2s;
     }
 
-    .footer-links a:hover {
+    .bottom-nav a:hover {
         color: #1a1a1a;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Animations */
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
     }
-
-    /* Decorative dots mimicking the mixer segments */
-    .deco-dots {
-        display: flex;
-        gap: 4px;
-        justify-content: center;
-        margin-bottom: 20px;
+    .active-dot {
+        width: 6px; height: 6px;
+        background: #8040ff;
+        border-radius: 50%;
+        animation: pulse 2s infinite ease-in-out;
     }
-    .dot {
-        width: 12px; height: 6px;
-        border-radius: 2px;
-        background: #dcdcd0;
-    }
-    .dot.active { background: #8040ff; }
 </style>
 </head>
 <body>
@@ -144,38 +176,67 @@
 <div id="art-bg"></div>
 
 <div class="container">
-    <div class="deco-dots">
-        <div class="dot"></div>
-        <div class="dot active"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+    <div class="brand-header">
+        <div id="viz-box">
+            </div>
+        <h1>Stem Mixer</h1>
+        <div class="active-dot"></div>
     </div>
 
-    <h1>Stem Mixer</h1>
-
-    <div class="hero-box">
-        <a href="mixer.html" class="enter-btn">Launch Workspace</a>
+    <div class="hero-card">
+        <a href="audio.html" class="enter-btn">Open Mixer</a>
         
-        <div class="features">
-            <div class="feat-item">4-Channel Split</div>
-            <div class="feat-item">Jog-Wheel Scrub</div>
-            <div class="feat-item">Visual EQ</div>
-            <div class="feat-item">Client-Side</div>
+        <div class="info-grid">
+            <div class="info-tag">4-Stem Split</div>
+            <div class="info-tag">Local Processing</div>
+            <div class="info-tag">Jog Scrub</div>
+            <div class="info-tag">Browser Audio</div>
         </div>
     </div>
 
-    <div class="footer-links">
-        <a href="https://github.com/" target="armstroja/armstroja.github.io"> Git Repository</a>
-        <a href="#">Privacy</a>
+    <div class="bottom-nav">
+        <a href="https://github.com/" target="armstroja/armstroja.github.io">repository</a>
     </div>
 </div>
 
 <script>
-    // Subtle parallax effect on the background
+    // 1. Generate EQ Bars
+    const vizBox = document.getElementById('viz-box');
+    const barCount = 12;
+    const bars = [];
+
+    for (let i = 0; i < barCount; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'viz-bar';
+        vizBox.appendChild(bar);
+        bars.push(bar);
+    }
+
+    // 2. Animate EQ Bars randomly
+    function updateViz() {
+        bars.forEach((bar, i) => {
+            // Generate a random height, but weight it so middle bars are taller
+            const centerFactor = 1 - Math.abs(i - (barCount/2)) / (barCount/2);
+            const randomHeight = Math.random() * 40 * (0.5 + centerFactor);
+            
+            bar.style.height = (4 + randomHeight) + 'px';
+            
+            // Randomly flash the brand color
+            if (Math.random() > 0.95) {
+                bar.style.background = '#8040ff';
+            } else {
+                bar.style.background = '#dcdcd0';
+            }
+        });
+        setTimeout(updateViz, 150);
+    }
+    updateViz();
+
+    // 3. Background Parallax
     window.addEventListener('mousemove', (e) => {
-        const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
-        const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
-        document.getElementById('art-bg').style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
+        const x = (window.innerWidth / 2 - e.clientX) / 50;
+        const y = (window.innerHeight / 2 - e.clientY) / 50;
+        document.getElementById('art-bg').style.transform = `translate(${x}px, ${y}px) scale(1.1)`;
     });
 </script>
 
