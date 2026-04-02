@@ -75,11 +75,7 @@ h1.fading{opacity:0;}
   transition:box-shadow .15s;
 }
 #jog-disc.spinning{box-shadow:0 2px 20px #8040ff44;}
-#jog-label{
-  position:absolute;top:14px;left:50%;transform:translateX(-50%);
-  font-size:6px;letter-spacing:.22em;text-transform:uppercase;color:#888;
-  pointer-events:none;user-select:none;white-space:nowrap;
-}
+#jog-label{display:none;}
 </style>
 </head>
 <body>
@@ -267,7 +263,9 @@ function initCtx(){
   masterGain=actx.createGain();
   mediaStreamDest=actx.createMediaStreamDestination();
   masterGain.connect(mediaStreamDest);
-  masterGain.connect(actx.destination);
+  // only connect direct output on non-iOS; iOS routes via the <audio> element
+  const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent);
+  if(!isIOS) masterGain.connect(actx.destination);
   STEMS.forEach(s=>{
     const g=actx.createGain();const an=actx.createAnalyser();
     an.fftSize=256;an.smoothingTimeConstant=0.75;
@@ -471,8 +469,7 @@ const disc=document.getElementById('jog-disc');
 let jogDrag={active:false,lastX:0};
 let jogAngle=0;
 let jogVel=0,jogLastT=0;
-const JOG_SENS=0.4;   // degrees per pixel
-const JOG_SCRUB=0.003; // seconds per degree
+const JOG_SENS=0.6; // degrees per pixel
 
 function jogApply(dx){
   if(!duration)return;
@@ -480,7 +477,9 @@ function jogApply(dx){
   jogAngle+=deg;
   disc.style.transform=`rotate(${jogAngle}deg)`;
   disc.classList.add('spinning');
-  scrubMove(pauseOff+deg*JOG_SCRUB);
+  // map full 360° rotation to full track duration
+  const secPerDeg=duration/360;
+  scrubMove(pauseOff+deg*secPerDeg);
 }
 
 // mouse
@@ -562,6 +561,18 @@ function animate(){
 function updateTimeDisplay(){if(!playing)document.getElementById('time').textContent='0:00 / '+fmt(duration);}
 function fmt(s){const m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc;}
 function setStatus(msg){document.getElementById('status').textContent=msg;}
+// Pause when tab/window loses focus, resume if it was playing
+document.addEventListener('visibilitychange',()=>{
+  if(!actx)return;
+  if(document.hidden){
+    if(playing)pauseAll();
+  }
+});
+window.addEventListener('blur',()=>{
+  if(!actx)return;
+  if(playing)pauseAll();
+});
+
 animate();
 </script>
 </body>
