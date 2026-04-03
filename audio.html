@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MIXER</title>
- <link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="favicon.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -31,11 +31,11 @@ h1.fading{opacity:0;}
 .drop-zone input[type=file]{display:none;}
 .dz-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px;user-select:none;-webkit-user-select:none;}
 .dz-hint{font-size:9px;color:#a0a090;user-select:none;-webkit-user-select:none;}
-.eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .2s;background:#ffffffcc;-webkit-tap-highlight-color:transparent;}
+.eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:opacity .2s,min-height .06s ease-out;background:#ffffffcc;-webkit-tap-highlight-color:transparent;}
 .eq-card.muted{opacity:.35;}
 .eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold;user-select:none;-webkit-user-select:none;}
 .eq-bars{display:flex;align-items:flex-end;gap:2px;height:32px;flex:1;}
-.eq-bar{flex:1;border-radius:1px;background:#e2e2d5;min-height:2px;transition:height .05s;}
+.eq-bar{flex:1;border-radius:1px;background:#e2e2d5;min-height:2px;}
 .eq-filename{font-size:7px;color:#a0a090;letter-spacing:.06em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:none;-webkit-user-select:none;}
 #status{font-size:9px;letter-spacing:.16em;color:#a0a090;text-transform:uppercase;height:12px;user-select:none;-webkit-user-select:none;}
 #mixer-panel{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:min(340px,100%);}
@@ -44,8 +44,8 @@ h1.fading{opacity:0;}
 .seg{width:clamp(28px,8vw,36px);height:clamp(12px,3.5vw,14px);background:#e2e2d5;border:none;cursor:pointer;border-radius:3px;transition:background .06s,transform .1s,opacity .2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;touch-action:none;}
 .seg:active{transform:scale(.92);}
 .seg.muted{opacity:.2;}
-.seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:2px;pointer-events:none;opacity:0;transition:opacity .15s;}
-.ch-label{font-size:clamp(6px,2vw,8px);letter-spacing:0.18em;text-transform:uppercase;text-align:center;font-weight:bold;user-select:none;-webkit-user-select:none;}
+.seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:2px;pointer-events:none;opacity:0;}
+.ch-label{font-size:clamp(6px,2vw,8px);letter-spacing:0.18em;text-transform:uppercase;text-align:center;font-weight:bold;user-select:none;-webkit-user-select:none;display:inline-block;transform-origin:center center;}
 .ch-label.inactive{color:#dcdcd0;}
 #center-dot{width:clamp(36px,10vw,44px);height:clamp(36px,10vw,44px);border-radius:50%;background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;transition:all .2s ease;-webkit-tap-highlight-color:transparent;}
 #center-dot:active{transform:scale(0.9);}
@@ -58,29 +58,25 @@ h1.fading{opacity:0;}
 #ios-out{display:none;}
 #jog-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;width:min(340px,100%);margin-top:-6px;}
 #jog-hint{font-size:7px;letter-spacing:.18em;text-transform:uppercase;color:#c0c0b0;user-select:none;}
-#jog{
-  width:120px;height:60px;overflow:hidden;cursor:grab;position:relative;
-  -webkit-tap-highlight-color:transparent;touch-action:none;
-}
+#jog{width:120px;height:60px;overflow:hidden;cursor:grab;position:relative;-webkit-tap-highlight-color:transparent;touch-action:none;}
 #jog:active{cursor:grabbing;}
 #jog-disc{
   width:120px;height:120px;border-radius:50%;
   background:conic-gradient(
-    #2a2a2a 0deg, #3a3a3a 30deg, #2a2a2a 60deg, #3a3a3a 90deg,
+    #2a2a2a 0deg,#3a3a3a 30deg,#2a2a2a 60deg,#3a3a3a 90deg,
     #2a2a2a 120deg,#3a3a3a 150deg,#2a2a2a 180deg,#3a3a3a 210deg,
-    #2a2a2a 240deg,#3a3a3a 270deg,#2a2a2a 300deg,#3a3a3a 330deg, #2a2a2a 360deg
+    #2a2a2a 240deg,#3a3a3a 270deg,#2a2a2a 300deg,#3a3a3a 330deg,#2a2a2a 360deg
   );
-  border:2px solid #4a4a44;
-  box-shadow:0 2px 12px #0002;
-  position:absolute;top:0;left:0;
-  transform-origin:center center;
-  transition:box-shadow .15s;
+  border:2px solid #4a4a44;box-shadow:0 2px 12px #0002;
+  position:absolute;top:0;left:0;transform-origin:center center;
 }
 #jog-disc.spinning{box-shadow:0 2px 20px #8040ff44;}
-#jog-label{display:none;}
 </style>
 </head>
 <body>
+<!-- iOS needs a real <audio> element fed from a MediaStreamDestination.
+     On all other browsers we connect directly to actx.destination instead,
+     so this element is NEVER used on non-iOS and therefore causes no echo. -->
 <audio id="ios-out" autoplay playsinline></audio>
 <div id="art-bg"></div>
 <h1 id="title">Stem Mixer</h1>
@@ -97,9 +93,7 @@ h1.fading{opacity:0;}
   <div id="time">0:00 / 0:00</div>
 </div>
 <div id="jog-wrap">
-  <div id="jog">
-    <div id="jog-disc"><div id="jog-label">◀ scrub ▶</div></div>
-  </div>
+  <div id="jog"><div id="jog-disc"></div></div>
   <div id="jog-hint">scrub</div>
 </div>
 
@@ -110,7 +104,7 @@ const STEMS=[
   {id:'bass',  label:'Bass',  acc:'#00b8ff'},
   {id:'other', label:'Other', acc:'#20d67b'},
 ];
-const STEPS=7,RAINBOW_DUR=2200,EQ_BARS=12;
+const STEPS=7, RAINBOW_DUR=2200, EQ_BARS=12;
 const STEM_KEYWORDS={
   vocals:['vocal','vox','voice','sing','lead','melody','choir','lyric','harmony'],
   drums: ['drum','beat','kick','snare','hat','perc','rhythm','trap','loop','bpm','cymbal','clap'],
@@ -123,29 +117,36 @@ const TRANSLATIONS=[
   {t:'Миксер',c:'#00b8ff'},{t:'混音器',c:'#f5a623'},{t:'믹서',c:'#20d67b'},{t:'Misturador',c:'#8040ff'},
 ];
 
-let actx=null,masterGain=null,mediaStreamDest=null;
-let buffers={},srcNodes={},gainNodes={},analyserNodes={},eqData={};
-let vols={},muted={};
-STEMS.forEach(s=>{vols[s.id]=STEPS;muted[s.id]=false;});
-let playing=false,startTime=0,pauseOff=0,duration=0;
-let holdTimer=null,soloStem=null,soloSnap={};
-const rainbowState={},eqSmooth={};
-STEMS.forEach(s=>{eqSmooth[s.id]=new Float32Array(STEPS).fill(0);});
-let colDrag={active:false,id:null,startY:0,startVol:0,moved:false};
-let dotClickTimer=null;
+// ── Detect iOS once ───────────────────────────────────────────────────────────
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent);
 
-// scrub state — was playing before scrub started?
-let scrubbing=false,wasPlayingBeforeScrub=false;
+let actx=null, masterGain=null, mediaStreamDest=null;
+let buffers={}, srcNodes={}, gainNodes={}, analyserNodes={}, eqData={};
+let vols={}, muted={};
+STEMS.forEach(s=>{vols[s.id]=STEPS; muted[s.id]=false;});
+let playing=false, startTime=0, pauseOff=0, duration=0;
+let holdTimer=null, soloStem=null, soloSnap={};
+const rainbowState={}, eqSmooth={}, labelScale={};
+STEMS.forEach(s=>{eqSmooth[s.id]=new Float32Array(STEPS).fill(0); labelScale[s.id]=1;});
+let colDrag={active:false,id:null,startY:0,startVol:0,moved:false};
+let faderVel={}, faderLastY={}, faderLastT={};
+STEMS.forEach(s=>{faderVel[s.id]=0; faderLastY[s.id]=0; faderLastT[s.id]=0;});
+let scrubbing=false, wasPlayingBeforeScrub=false;
+let dotTapTimer=null, dotTapCount=0;
+let kbSolo=null;
 
 const iosOut=document.getElementById('ios-out');
+
+// ── iOS audio patch: route through <audio> element only on iOS ────────────────
 function patchIOSOutput(){
-  if(!actx||!mediaStreamDest)return;
+  if(!isIOS||!actx||!mediaStreamDest)return;
   iosOut.srcObject=mediaStreamDest.stream;
-  const p=iosOut.play();if(p&&p.catch)p.catch(()=>{});
+  const p=iosOut.play(); if(p&&p.catch)p.catch(()=>{});
 }
 
+// ── Title translations ────────────────────────────────────────────────────────
 const titleEl=document.getElementById('title');
-let titleIdx=0,titleInterval=null;
+let titleIdx=0, titleInterval=null;
 function advanceTitle(){
   titleEl.classList.add('fading');
   setTimeout(()=>{
@@ -157,26 +158,29 @@ function advanceTitle(){
 }
 titleEl.addEventListener('mouseenter',()=>{advanceTitle();titleInterval=setInterval(advanceTitle,1000);});
 titleEl.addEventListener('mouseleave',()=>{clearInterval(titleInterval);});
-titleEl.addEventListener('touchstart',()=>{advanceTitle();},{passive:true});
+titleEl.addEventListener('touchstart',()=>advanceTitle(),{passive:true});
 
 document.getElementById('art-file').addEventListener('change',e=>{
-  const f=e.target.files[0];if(!f)return;
+  const f=e.target.files[0]; if(!f)return;
   const bg=document.getElementById('art-bg');
   bg.style.backgroundImage=`url(${URL.createObjectURL(f)})`;
   bg.classList.add('visible');
 });
 
+// ── Drop zones ────────────────────────────────────────────────────────────────
 const grid=document.getElementById('stems-grid');
 STEMS.forEach(s=>{
   const dz=document.createElement('div');
-  dz.className='drop-zone';dz.id='dz-'+s.id;
-  dz.innerHTML=`<div class="dz-label" style="color:${s.acc}">${s.label}</div><div class="dz-hint">tap / drop</div><input type="file" id="fi-${s.id}" accept="audio/*" multiple>`;
+  dz.className='drop-zone'; dz.id='dz-'+s.id;
+  dz.innerHTML=`<div class="dz-label" style="color:${s.acc}">${s.label}</div><div class="dz-hint">tap / drop</div><input type="file" id="fi-${s.id}" accept="audio/mpeg,audio/wav,audio/x-wav,audio/aiff,audio/x-aiff,audio/flac,audio/x-flac,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.aif,.aiff,.flac,.ogg,.m4a,.mp4" multiple>`;
   dz.addEventListener('click',()=>document.getElementById('fi-'+s.id).click());
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');handleFiles([...e.dataTransfer.files],s.id);});
   grid.appendChild(dz);
-  setTimeout(()=>document.getElementById('fi-'+s.id).addEventListener('change',e=>{if(e.target.files.length)handleFiles([...e.target.files],s.id);}),0);
+  setTimeout(()=>document.getElementById('fi-'+s.id).addEventListener('change',e=>{
+    if(e.target.files.length)handleFiles([...e.target.files],s.id);
+  }),0);
 });
 
 function detectStem(name){
@@ -187,145 +191,184 @@ function detectStem(name){
 function handleFiles(files,fallback){
   if(files.length===1){loadStem(fallback,files[0]);return;}
   const unmatched=[];
-  files.forEach(f=>{const id=detectStem(f.name);id?loadStem(id,f):unmatched.push(f);});
+  files.forEach(f=>{const id=detectStem(f.name); id?loadStem(id,f):unmatched.push(f);});
   const empty=STEMS.map(s=>s.id).filter(id=>!buffers[id]);
   unmatched.forEach((f,i)=>loadStem(empty[i]||fallback,f));
 }
 
+// ── Mixer fader columns ───────────────────────────────────────────────────────
 const panel=document.getElementById('mixer-panel');
 STEMS.forEach(s=>{
   const ch=document.createElement('div');
-  ch.className='channel';ch.id='ch-'+s.id;
+  ch.className='channel'; ch.id='ch-'+s.id;
   const segsEl=document.createElement('div');
-  segsEl.className='ch-segs';segsEl.id='segs-'+s.id;
+  segsEl.className='ch-segs'; segsEl.id='segs-'+s.id;
   for(let i=0;i<STEPS;i++){
     const btn=document.createElement('button');
-    btn.className='seg';btn.dataset.idx=i;
-    btn.style.background='#e2e2d5';
+    btn.className='seg'; btn.dataset.idx=i;
     const fill=document.createElement('div');
-    fill.className='seg-fill';fill.id=`sf-${s.id}-${i}`;
+    fill.className='seg-fill'; fill.id=`sf-${s.id}-${i}`;
     fill.style.background=s.acc;
     btn.appendChild(fill);
     btn.addEventListener('click',e=>{
       if(colDrag.moved){e.preventDefault();return;}
-      vols[s.id]=i+1;muted[s.id]=(i===0);
+      if(soloStem===s.id)return; // soloed stem locked on
+      vols[s.id]=i+1; muted[s.id]=(i===0);
       document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);
-      refreshCol(s.id);applyVol(s.id);
+      refreshCol(s.id); applyVol(s.id);
     });
     segsEl.appendChild(btn);
   }
-  segsEl.addEventListener('mousedown',e=>{e.stopPropagation();colDrag={active:true,id:s.id,startY:e.clientY,startVol:vols[s.id],moved:false};startHold(s.id);});
-  segsEl.addEventListener('touchstart',e=>{e.stopPropagation();colDrag={active:true,id:s.id,startY:e.touches[0].clientY,startVol:vols[s.id],moved:false};startHold(s.id);},{passive:true});
+  segsEl.addEventListener('mousedown',e=>{
+    e.stopPropagation();
+    colDrag={active:true,id:s.id,startY:e.clientY,startVol:vols[s.id],moved:false};
+    faderLastY[s.id]=e.clientY; faderLastT[s.id]=performance.now(); faderVel[s.id]=0;
+    startHold(s.id);
+  });
+  segsEl.addEventListener('touchstart',e=>{
+    e.stopPropagation();
+    colDrag={active:true,id:s.id,startY:e.touches[0].clientY,startVol:vols[s.id],moved:false};
+    faderLastY[s.id]=e.touches[0].clientY; faderLastT[s.id]=performance.now(); faderVel[s.id]=0;
+    startHold(s.id);
+  },{passive:true});
   const lbl=document.createElement('div');
-  lbl.className='ch-label inactive';lbl.id='lbl-'+s.id;lbl.textContent=s.label;
+  lbl.className='ch-label inactive'; lbl.id='lbl-'+s.id; lbl.textContent=s.label;
   lbl.style.color='#dcdcd0';
-  ch.appendChild(segsEl);ch.appendChild(lbl);
+  ch.appendChild(segsEl); ch.appendChild(lbl);
   panel.appendChild(ch);
 });
 
-const dotCh=document.createElement('div');dotCh.className='channel';
-const dot=document.createElement('div');dot.id='center-dot';
-dotCh.appendChild(dot);panel.appendChild(dotCh);
+const dotCh=document.createElement('div'); dotCh.className='channel';
+const dot=document.createElement('div'); dot.id='center-dot';
+dotCh.appendChild(dot); panel.appendChild(dotCh);
 
-window.addEventListener('mousemove',e=>{
-  if(!colDrag.active)return;
-  const dy=e.clientY-colDrag.startY;
+// ── Drag / touch fader ────────────────────────────────────────────────────────
+function applyFaderDrag(clientY){
+  const dy=clientY-colDrag.startY;
+  const now=performance.now();
   if(Math.abs(dy)>4)colDrag.moved=true;
   if(!colDrag.moved)return;
   if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+  const id=colDrag.id;
+  faderVel[id]=(clientY-faderLastY[id])/Math.max(1,now-faderLastT[id]);
+  faderLastY[id]=clientY; faderLastT[id]=now;
   const nv=Math.max(1,Math.min(STEPS,colDrag.startVol+Math.round(-dy/100*STEPS)));
-  if(nv!==vols[colDrag.id]){vols[colDrag.id]=nv;muted[colDrag.id]=(nv===1);document.getElementById('eq-'+colDrag.id)?.classList.toggle('muted',muted[colDrag.id]);refreshCol(colDrag.id);applyVol(colDrag.id);}
-});
-window.addEventListener('touchmove',e=>{
-  if(!colDrag.active)return;
-  const dy=e.touches[0].clientY-colDrag.startY;
-  if(Math.abs(dy)>4)colDrag.moved=true;
-  if(!colDrag.moved)return;
-  if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
-  const nv=Math.max(1,Math.min(STEPS,colDrag.startVol+Math.round(-dy/100*STEPS)));
-  if(nv!==vols[colDrag.id]){vols[colDrag.id]=nv;muted[colDrag.id]=(nv===1);document.getElementById('eq-'+colDrag.id)?.classList.toggle('muted',muted[colDrag.id]);refreshCol(colDrag.id);applyVol(colDrag.id);}
-},{passive:false});
+  if(nv!==vols[id]){vols[id]=nv; muted[id]=(nv===1); document.getElementById('eq-'+id)?.classList.toggle('muted',muted[id]); refreshCol(id); applyVol(id);}
+}
+window.addEventListener('mousemove',e=>{if(colDrag.active)applyFaderDrag(e.clientY);});
+window.addEventListener('touchmove',e=>{if(colDrag.active)applyFaderDrag(e.touches[0].clientY);},{passive:false});
 window.addEventListener('mouseup',()=>{if(colDrag.active){colDrag.active=false;endHold();}});
 window.addEventListener('touchend',()=>{if(colDrag.active){colDrag.active=false;endHold();}});
 
+function coastFaders(){
+  STEMS.forEach(s=>{
+    if(colDrag.active&&colDrag.id===s.id)return;
+    if(Math.abs(faderVel[s.id])<0.005){faderVel[s.id]=0;return;}
+    faderVel[s.id]*=0.84;
+    const nv=Math.max(1,Math.min(STEPS,vols[s.id]+Math.round(-faderVel[s.id]*16/100*STEPS)));
+    if(nv!==vols[s.id]){vols[s.id]=nv;muted[s.id]=(nv===1);document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);refreshCol(s.id);applyVol(s.id);}
+  });
+}
+
+// ── EQ card ───────────────────────────────────────────────────────────────────
 function buildEqCard(id,name){
   const s=STEMS.find(x=>x.id===id);
   const card=document.createElement('div');
-  card.className='eq-card';card.id='eq-'+id;
+  card.className='eq-card'; card.id='eq-'+id;
   card.innerHTML=`<div class="eq-label" style="color:${s.acc}">${s.label}</div>
     <div class="eq-bars" id="eqbars-${id}">${Array.from({length:EQ_BARS},(_,i)=>`<div class="eq-bar" id="eqbar-${id}-${i}"></div>`).join('')}</div>
     <div class="eq-filename">${name.replace(/\.[^.]+$/,'').toUpperCase()}</div>`;
-  card.addEventListener('click',()=>{muted[id]=!muted[id];card.classList.toggle('muted',muted[id]);vols[id]=muted[id]?1:STEPS;refreshCol(id);applyVol(id);});
+  card.addEventListener('click',()=>{
+    if(soloStem===id)return; // soloed stem locked on
+    muted[id]=!muted[id];
+    card.classList.toggle('muted',muted[id]);
+    vols[id]=muted[id]?1:STEPS;
+    refreshCol(id); applyVol(id);
+  });
   (document.getElementById('eq-'+id)||document.getElementById('dz-'+id)).replaceWith(card);
 }
 
+// ── Audio context ─────────────────────────────────────────────────────────────
 function initCtx(){
   if(actx)return;
   actx=new(window.AudioContext||window.webkitAudioContext)();
   masterGain=actx.createGain();
-  mediaStreamDest=actx.createMediaStreamDestination();
-  masterGain.connect(mediaStreamDest);
-  // only connect direct output on non-iOS; iOS routes via the <audio> element
-  const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent);
-  if(!isIOS) masterGain.connect(actx.destination);
+
+  if(isIOS){
+    // iOS: route through MediaStream → <audio> element (required to unlock audio)
+    mediaStreamDest=actx.createMediaStreamDestination();
+    masterGain.connect(mediaStreamDest);
+    // Do NOT connect to actx.destination — the <audio> element handles output
+  } else {
+    // All other browsers: connect directly; no <audio> element needed
+    masterGain.connect(actx.destination);
+  }
+
   STEMS.forEach(s=>{
-    const g=actx.createGain();const an=actx.createAnalyser();
-    an.fftSize=256;an.smoothingTimeConstant=0.75;
-    g.connect(an);an.connect(masterGain);
-    gainNodes[s.id]=g;analyserNodes[s.id]=an;
+    const g=actx.createGain();
+    const an=actx.createAnalyser();
+    an.fftSize=512; an.smoothingTimeConstant=0.65;
+    g.connect(an); an.connect(masterGain);
+    gainNodes[s.id]=g; analyserNodes[s.id]=an;
     eqData[s.id]=new Uint8Array(an.frequencyBinCount);
   });
   patchIOSOutput();
 }
 
 async function loadStem(id,file){
-  initCtx();setStatus('Loading '+id+'…');
+  initCtx(); setStatus('Loading '+id+'…');
   try{
-    const decoded=await actx.decodeAudioData(await file.arrayBuffer());
+    const buf=await file.arrayBuffer();
+    const decoded=await actx.decodeAudioData(buf);
     buffers[id]=decoded;
     if(decoded.duration>duration)duration=decoded.duration;
     buildEqCard(id,file.name);
     const lbl=document.getElementById('lbl-'+id);
     lbl.classList.remove('inactive');
     lbl.style.color=STEMS.find(s=>s.id===id).acc;
-    triggerRainbow(id);updateTimeDisplay();setStatus('');
+    triggerRainbow(id); updateTimeDisplay(); setStatus('');
     if(playing)spawnSrc(id,actx.currentTime-startTime);
-  }catch(e){setStatus('Error decoding '+id);}
+  }catch(err){setStatus('Error decoding '+id); console.error(err);}
 }
+
 function spawnSrc(id,offset=0){
   if(!buffers[id])return;
-  try{srcNodes[id]?.stop();srcNodes[id]?.disconnect();}catch(e){}
-  const src=actx.createBufferSource();src.buffer=buffers[id];src.connect(gainNodes[id]);
-  src.start(0,Math.max(0,offset%buffers[id].duration));srcNodes[id]=src;
+  try{srcNodes[id]?.stop(); srcNodes[id]?.disconnect();}catch(e){}
+  const src=actx.createBufferSource();
+  src.buffer=buffers[id];
+  src.connect(gainNodes[id]);
+  const safeOff=Math.max(0,Math.min(offset,buffers[id].duration-0.01));
+  src.start(0,safeOff);
+  srcNodes[id]=src;
 }
+
 function playAll(){
   if(!hasAnyStem())return;
   if(actx.state==='suspended')actx.resume();
   patchIOSOutput();
-  STEMS.forEach(s=>spawnSrc(s.id,pauseOff));
-  startTime=actx.currentTime-pauseOff;playing=true;dot.classList.add('playing');
+  const off=pauseOff;
+  STEMS.forEach(s=>spawnSrc(s.id,off));
+  startTime=actx.currentTime-off;
+  playing=true; dot.classList.add('playing');
   STEMS.forEach(s=>applyVol(s.id));
 }
+
 function pauseAll(){
   pauseOff=actx.currentTime-startTime;
   STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
-  playing=false;dot.classList.remove('playing');
+  playing=false; dot.classList.remove('playing');
 }
 
-// ── Scrub helpers ─────────────────────────────────────────────────────────────
-// Call before any scrub gesture begins
+// ── Scrub ─────────────────────────────────────────────────────────────────────
 function scrubStart(){
   if(scrubbing)return;
-  scrubbing=true;
-  wasPlayingBeforeScrub=playing;
+  scrubbing=true; wasPlayingBeforeScrub=playing;
   if(playing){
-    // Pause silently (don't change pauseOff yet — scrubMove will update it)
     pauseOff=actx.currentTime-startTime;
     STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
-    playing=false;dot.classList.remove('playing');
+    playing=false; dot.classList.remove('playing');
   }
 }
-// Call whenever the scrub position changes — updates UI only
 function scrubMove(newOff){
   pauseOff=Math.max(0,Math.min(duration,newOff));
   if(duration>0){
@@ -333,27 +376,33 @@ function scrubMove(newOff){
     document.getElementById('time').textContent=fmt(pauseOff)+' / '+fmt(duration);
   }
 }
-// Call when the scrub gesture ends
 function scrubEnd(){
   if(!scrubbing)return;
   scrubbing=false;
-  if(wasPlayingBeforeScrub){
-    playAll();
-  }
+  if(wasPlayingBeforeScrub)playAll();
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 function hasAnyStem(){return STEMS.some(s=>buffers[s.id]);}
-function applyVol(id){if(!gainNodes[id])return;gainNodes[id].gain.setTargetAtTime(muted[id]?0:vols[id]/STEPS,actx.currentTime,0.02);}
+function applyVol(id){
+  if(!gainNodes[id]||!actx)return;
+  gainNodes[id].gain.setTargetAtTime(muted[id]?0:vols[id]/STEPS,actx.currentTime,0.02);
+}
 
+// ── Solo hold ─────────────────────────────────────────────────────────────────
 function startHold(id){
   holdTimer=setTimeout(()=>{
-    holdTimer=null;soloStem=id;
+    holdTimer=null; soloStem=id;
     STEMS.forEach(s=>{
       if(s.id!==id){
         soloSnap[s.id]=vols[s.id];
         gainNodes[s.id]?.gain.setTargetAtTime(0,actx.currentTime,0.02);
         document.querySelectorAll('#segs-'+s.id+' .seg').forEach(b=>b.classList.add('muted'));
+      } else {
+        // Keep the soloed stem unmuted and at full volume
+        muted[s.id]=false; vols[s.id]=STEPS;
+        gainNodes[s.id]?.gain.setTargetAtTime(1,actx.currentTime,0.02);
+        document.getElementById('eq-'+s.id)?.classList.remove('muted');
+        refreshCol(s.id);
       }
     });
   },350);
@@ -367,7 +416,7 @@ function endHold(){
       document.querySelectorAll('#segs-'+s.id+' .seg').forEach(b=>b.classList.remove('muted'));
     }
   });
-  soloSnap={};soloStem=null;
+  soloSnap={}; soloStem=null;
 }
 
 function refreshCol(id){
@@ -382,26 +431,44 @@ STEMS.forEach(s=>refreshCol(s.id));
 
 function hexToRgb(hex){return{r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)};}
 
+// ── EQ bar + label scale animation ───────────────────────────────────────────
+const stemEnergy={};
+STEMS.forEach(s=>stemEnergy[s.id]=0);
+
 function updateEqBars(){
   STEMS.forEach(s=>{
-    const an=analyserNodes[s.id];if(!an)return;
+    const an=analyserNodes[s.id]; if(!an)return;
     an.getByteFrequencyData(eqData[s.id]);
+    let total=0;
+    for(let i=0;i<eqData[s.id].length;i++)total+=eqData[s.id][i];
+    const avg=(total/eqData[s.id].length)/255;
+    const target=(!playing||muted[s.id])?0:avg;
+    stemEnergy[s.id]=stemEnergy[s.id]*0.7+target*0.3;
+    const lbl=document.getElementById('lbl-'+s.id);
+    if(lbl){const sc=1+stemEnergy[s.id]*0.55;lbl.style.transform=`scale(${sc.toFixed(3)})`;}
+    const card=document.getElementById('eq-'+s.id);
+    if(card){
+      const e=stemEnergy[s.id];
+      card.style.minHeight=(72+e*18).toFixed(1)+'px';
+    }
     for(let i=0;i<EQ_BARS;i++){
-      const bar=document.getElementById('eqbar-'+s.id+'-'+i);if(!bar)continue;
+      const bar=document.getElementById('eqbar-'+s.id+'-'+i); if(!bar)continue;
       const val=muted[s.id]?0:(eqData[s.id][Math.floor(i/EQ_BARS*eqData[s.id].length)]||0);
       bar.style.height=Math.max(4,Math.round(val/255*100))+'%';
-      bar.style.background=playing&&!muted[s.id]?s.acc+'cc':'#e2e2d5';
+      bar.style.background=(playing&&!muted[s.id])?s.acc+'cc':'#e2e2d5';
     }
   });
 }
+
 function getSegBandEnergy(id,segIdx){
-  const data=eqData[id];if(!data)return 0;
+  const data=eqData[id]; if(!data)return 0;
   const bins=data.length;
   const lo=Math.floor(Math.pow(segIdx/STEPS,1.6)*bins);
   const hi=Math.floor(Math.pow((segIdx+1)/STEPS,1.6)*bins);
-  let sum=0;for(let i=lo;i<hi;i++)sum+=data[i]||0;
+  let sum=0; for(let i=lo;i<hi;i++)sum+=data[i]||0;
   return sum/Math.max(1,hi-lo)/255;
 }
+
 function updateColEq(){
   STEMS.forEach(s=>{
     const an=analyserNodes[s.id];
@@ -424,6 +491,7 @@ function updateColEq(){
     });
   });
 }
+
 function triggerRainbow(id){rainbowState[id]={start:performance.now(),active:true};}
 function rainbowColor(s,idx,elapsed){
   const prog=Math.min(elapsed/RAINBOW_DUR,1);
@@ -434,44 +502,87 @@ function rainbowColor(s,idx,elapsed){
   return`rgb(${Math.min(255,base.r+b)},${Math.min(255,base.g+b)},${Math.min(255,base.b+b)})`;
 }
 
-dot.addEventListener('click',e=>{
-  e.stopPropagation();if(!hasAnyStem())return;
-  initCtx();if(actx.state==='suspended')actx.resume();
-  if(dotClickTimer){clearTimeout(dotClickTimer);dotClickTimer=null;return;}
-  dotClickTimer=setTimeout(()=>{dotClickTimer=null;playing?pauseAll():playAll();},220);
-});
-dot.addEventListener('touchend',e=>{
-  e.preventDefault();e.stopPropagation();if(!hasAnyStem())return;
-  initCtx();if(actx.state==='suspended')actx.resume();
-  if(dotClickTimer){clearTimeout(dotClickTimer);dotClickTimer=null;return;}
-  dotClickTimer=setTimeout(()=>{dotClickTimer=null;playing?pauseAll():playAll();},220);
+// ── Center dot ────────────────────────────────────────────────────────────────
+function handleDotActivate(e){
+  e.stopPropagation();
+  if(!hasAnyStem())return;
+  initCtx(); if(actx.state==='suspended')actx.resume();
+  playing?pauseAll():playAll();
+}
+dot.addEventListener('click',handleDotActivate);
+dot.addEventListener('touchend',e=>{e.preventDefault();handleDotActivate(e);});
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  switch(e.code){
+    case'Space':
+      e.preventDefault();
+      if(!hasAnyStem())return;
+      initCtx(); if(actx.state==='suspended')actx.resume();
+      playing?pauseAll():playAll(); break;
+    case'ArrowRight':
+      e.preventDefault();
+      if(!duration)return;
+      scrubStart(); scrubMove(pauseOff+5); scrubEnd(); break;
+    case'ArrowLeft':
+      e.preventDefault();
+      if(!duration)return;
+      scrubStart(); scrubMove(pauseOff-5); scrubEnd(); break;
+    case'KeyM':
+      if(!hasAnyStem())return;
+      const anyActive=STEMS.some(s=>!muted[s.id]);
+      STEMS.forEach(s=>{
+        muted[s.id]=anyActive; vols[s.id]=anyActive?1:STEPS;
+        document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);
+        refreshCol(s.id); applyVol(s.id);
+      }); break;
+    case'Digit1':case'Numpad1':soloByIndex(0);break;
+    case'Digit2':case'Numpad2':soloByIndex(1);break;
+    case'Digit3':case'Numpad3':soloByIndex(2);break;
+    case'Digit4':case'Numpad4':soloByIndex(3);break;
+  }
 });
 
-// ── Progress bar — click to seek ─────────────────────────────────────────────
-document.getElementById('prog-wrap').addEventListener('click',e=>{
-  if(!duration)return;
-  const rect=e.currentTarget.getBoundingClientRect();
-  const pct=(e.clientX-rect.left)/rect.width;
-  scrubStart();
-  scrubMove(pct*duration);
-  scrubEnd();
-});
-document.getElementById('prog-wrap').addEventListener('touchend',e=>{
-  if(!duration)return;
-  const rect=e.currentTarget.getBoundingClientRect();
-  const pct=(e.changedTouches[0].clientX-rect.left)/rect.width;
-  scrubStart();
-  scrubMove(pct*duration);
-  scrubEnd();
-});
+function soloByIndex(idx){
+  if(!hasAnyStem())return;
+  const id=STEMS[idx]?.id; if(!id||!buffers[id])return;
+  if(kbSolo===id){
+    STEMS.forEach(s=>{muted[s.id]=false;vols[s.id]=STEPS;document.getElementById('eq-'+s.id)?.classList.remove('muted');refreshCol(s.id);applyVol(s.id);});
+    kbSolo=null;
+  }else{
+    kbSolo=id;
+    STEMS.forEach(s=>{muted[s.id]=(s.id!==id);vols[s.id]=muted[s.id]?1:STEPS;document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);refreshCol(s.id);applyVol(s.id);});
+  }
+}
 
-// ── Jog wheel ────────────────────────────────────────────────────────────────
+// ── Progress bar ──────────────────────────────────────────────────────────────
+const progWrap=document.getElementById('prog-wrap');
+progWrap.addEventListener('click',e=>{
+  if(!duration)return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  scrubStart(); scrubMove(((e.clientX-rect.left)/rect.width)*duration); scrubEnd();
+});
+let progDragging=false;
+progWrap.addEventListener('touchstart',e=>{
+  if(!duration)return;
+  progDragging=true; scrubStart();
+  const rect=e.currentTarget.getBoundingClientRect();
+  scrubMove(((e.touches[0].clientX-rect.left)/rect.width)*duration);
+},{passive:true});
+progWrap.addEventListener('touchmove',e=>{
+  if(!progDragging||!duration)return;
+  const rect=progWrap.getBoundingClientRect();
+  scrubMove(((e.touches[0].clientX-rect.left)/rect.width)*duration);
+},{passive:true});
+progWrap.addEventListener('touchend',()=>{if(progDragging){progDragging=false;scrubEnd();}});
+
+// ── Jog wheel ─────────────────────────────────────────────────────────────────
 const jogEl=document.getElementById('jog');
 const disc=document.getElementById('jog-disc');
 let jogDrag={active:false,lastX:0};
-let jogAngle=0;
-let jogVel=0,jogLastT=0;
-const JOG_SENS=0.6; // degrees per pixel
+let jogAngle=0, jogVel=0, jogLastT=0;
+const JOG_SENS=0.6;
 
 function jogApply(dx){
   if(!duration)return;
@@ -479,68 +590,55 @@ function jogApply(dx){
   jogAngle+=deg;
   disc.style.transform=`rotate(${jogAngle}deg)`;
   disc.classList.add('spinning');
-  // map full 360° rotation to full track duration
-  const secPerDeg=duration/360;
-  scrubMove(pauseOff+deg*secPerDeg);
+  scrubMove(pauseOff+deg*(duration/360));
 }
 
-// mouse
 jogEl.addEventListener('mousedown',e=>{
-  if(!hasAnyStem())return;
-  initCtx();
+  if(!hasAnyStem())return; initCtx();
   jogDrag={active:true,lastX:e.clientX};
-  jogLastT=performance.now();jogVel=0;
-  disc.classList.add('spinning');
+  jogLastT=performance.now(); jogVel=0;
   scrubStart();
 });
 window.addEventListener('mousemove',e=>{
   if(!jogDrag.active)return;
   const dx=e.clientX-jogDrag.lastX;
   const now=performance.now();
-  jogVel=dx/Math.max(1,now-jogLastT);
-  jogLastT=now;
-  jogApply(dx);
-  jogDrag.lastX=e.clientX;
+  jogVel=dx/Math.max(1,now-jogLastT); jogLastT=now;
+  jogApply(dx); jogDrag.lastX=e.clientX;
 });
 window.addEventListener('mouseup',()=>{
   if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
-
-// touch
 jogEl.addEventListener('touchstart',e=>{
   e.preventDefault();
-  if(!hasAnyStem())return;
-  initCtx();
+  if(!hasAnyStem())return; initCtx();
   jogDrag={active:true,lastX:e.touches[0].clientX};
-  jogLastT=performance.now();jogVel=0;
-  disc.classList.add('spinning');
+  jogLastT=performance.now(); jogVel=0;
   scrubStart();
 },{passive:false});
 window.addEventListener('touchmove',e=>{
   if(!jogDrag.active)return;
   const dx=e.touches[0].clientX-jogDrag.lastX;
   const now=performance.now();
-  jogVel=dx/Math.max(1,now-jogLastT);
-  jogLastT=now;
-  jogApply(dx);
-  jogDrag.lastX=e.touches[0].clientX;
+  jogVel=dx/Math.max(1,now-jogLastT); jogLastT=now;
+  jogApply(dx); jogDrag.lastX=e.touches[0].clientX;
 },{passive:true});
 window.addEventListener('touchend',()=>{
   if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
-
-// momentum coast — only while actively dragging; stop on release
 function coastJog(){
   if(!jogDrag.active&&Math.abs(jogVel)>0.01){
-    jogApply(jogVel*16);
-    jogVel*=0.82;
+    jogApply(jogVel*16); jogVel*=0.82;
   }
 }
 
+// ── Animate ───────────────────────────────────────────────────────────────────
 function animate(){
   requestAnimationFrame(animate);
   coastJog();
-  updateEqBars();updateColEq();
+  coastFaders();
+  updateEqBars();
+  updateColEq();
   STEMS.forEach(s=>{
     const rs=rainbowState[s.id];
     if(rs?.active){
@@ -548,32 +646,28 @@ function animate(){
       if(el<RAINBOW_DUR){
         document.querySelectorAll('#segs-'+s.id+' .seg').forEach((b,i)=>{
           b.style.background=rainbowColor(s,i,el);
-        });return;
+        }); return;
       }
-      rs.active=false;refreshCol(s.id);
+      rs.active=false; refreshCol(s.id);
     }
   });
   if(playing&&duration>0){
     const el=actx.currentTime-startTime;
     document.getElementById('prog-bar').style.width=Math.min(el/duration*100,100)+'%';
     document.getElementById('time').textContent=fmt(el)+' / '+fmt(duration);
-    if(el>=duration+0.2){pauseOff=0;playing=false;dot.classList.remove('playing');document.getElementById('prog-bar').style.width='0%';}
+    if(el>=duration+0.2){
+      pauseOff=0; playing=false; dot.classList.remove('playing');
+      document.getElementById('prog-bar').style.width='0%';
+    }
   }
 }
+
 function updateTimeDisplay(){if(!playing)document.getElementById('time').textContent='0:00 / '+fmt(duration);}
 function fmt(s){const m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc;}
 function setStatus(msg){document.getElementById('status').textContent=msg;}
-// Pause when tab/window loses focus, resume if it was playing
-document.addEventListener('visibilitychange',()=>{
-  if(!actx)return;
-  if(document.hidden){
-    if(playing)pauseAll();
-  }
-});
-window.addEventListener('blur',()=>{
-  if(!actx)return;
-  if(playing)pauseAll();
-});
+
+document.addEventListener('visibilitychange',()=>{if(!actx)return;if(document.hidden&&playing)pauseAll();});
+window.addEventListener('blur',()=>{if(!actx)return;if(playing)pauseAll();});
 
 animate();
 </script>
