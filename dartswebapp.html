@@ -1,0 +1,231 @@
+<style>
+  #dart-app { display:flex;flex-direction:column;align-items:center;gap:14px;padding:1rem 0;font-family:var(--font-sans); }
+  .top-bar { display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap; }
+  .score-cards { display:flex;gap:10px;justify-content:center;flex-wrap:wrap; }
+  .score-card { background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 18px;text-align:center;min-width:90px; }
+  .score-card .lbl { font-size:12px;color:var(--color-text-secondary);margin-bottom:3px; }
+  .score-card .val { font-size:26px;font-weight:500;color:var(--color-text-primary); }
+  .history-list { max-height:140px;overflow-y:auto;width:100%;max-width:460px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 12px; }
+  .history-item { display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary); }
+  .history-item:last-child { border-bottom:none; }
+  .history-item .hit { color:var(--color-text-primary);font-weight:500; }
+  button { background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 14px;font-size:13px;cursor:pointer;color:var(--color-text-primary); }
+  button:hover { background:var(--color-background-secondary); }
+  button:active { transform:scale(0.98); }
+  button.active { background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info); }
+  select { background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 10px;font-size:13px;color:var(--color-text-primary); }
+  .win-msg { font-size:17px;font-weight:500;color:#1D9E75;text-align:center; }
+  .bust-msg { font-size:15px;font-weight:500;color:#E24B4A;text-align:center; }
+</style>
+
+<div id="dart-app">
+  <div class="top-bar">
+    <label style="font-size:13px;color:var(--color-text-secondary);">Start:</label>
+    <select id="start-select">
+      <option value="301">301</option>
+      <option value="501" selected>501</option>
+      <option value="701">701</option>
+      <option value="1001">1001</option>
+    </select>
+    <div style="display:flex;gap:6px;">
+      <button onclick="setMult(1)" id="m1" class="active">×1</button>
+      <button onclick="setMult(2)" id="m2">×2</button>
+      <button onclick="setMult(3)" id="m3">×3</button>
+    </div>
+    <button onclick="undoThrow()">Undo</button>
+    <button onclick="resetGame()" style="border-color:#A32D2D;color:#A32D2D;">Reset</button>
+  </div>
+
+  <div class="score-cards">
+    <div class="score-card"><div class="lbl">Remaining</div><div class="val" id="score-display">501</div></div>
+    <div class="score-card"><div class="lbl">Darts</div><div class="val" id="darts-display">0</div></div>
+    <div class="score-card"><div class="lbl">Last throw</div><div class="val" id="last-display">—</div></div>
+  </div>
+
+  <div id="msg-area" style="min-height:22px;"></div>
+
+  <canvas id="board" width="460" height="460" style="cursor:crosshair;max-width:100%;"></canvas>
+
+  <div style="font-size:13px;color:var(--color-text-secondary);">Throw history</div>
+  <div class="history-list" id="history"><div style="font-size:13px;color:var(--color-text-secondary);padding:4px 0;">No throws yet</div></div>
+</div>
+
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const SIZE = 460, cx = SIZE/2, cy = SIZE/2;
+
+const segments = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
+
+const R = {
+  dbull:    10,
+  bull:     25,
+  triple_i: 107,
+  triple_o: 122,
+  double_i: 170,
+  double_o: 185,
+  numR:     208,
+};
+
+const BLACK='#1a1a1a', CREAM='#f0e8d0', GREEN='#1a6b3c', RED='#c0281c', WIRE='#999';
+
+let state = { score:501, start:501, darts:0, multiplier:1, history:[] };
+
+function drawBoard() {
+  ctx.clearRect(0,0,SIZE,SIZE);
+
+  ctx.beginPath(); ctx.arc(cx,cy,R.double_o+22,0,Math.PI*2);
+  ctx.fillStyle='#111'; ctx.fill();
+
+  const arc = Math.PI*2/20;
+  const off = -Math.PI/2 - arc/2;
+
+  for (let i=0;i<20;i++) {
+    const a1=off+i*arc, a2=a1+arc;
+    const even=i%2===0;
+    drawAnnularSector(R.bull, R.triple_i, a1, a2, even?BLACK:CREAM);
+    drawAnnularSector(R.triple_i, R.triple_o, a1, a2, even?GREEN:RED);
+    drawAnnularSector(R.triple_o, R.double_i, a1, a2, even?BLACK:CREAM);
+    drawAnnularSector(R.double_i, R.double_o, a1, a2, even?GREEN:RED);
+  }
+
+  ctx.lineWidth=1.2; ctx.strokeStyle=WIRE;
+  [R.bull, R.triple_i, R.triple_o, R.double_i, R.double_o].forEach(r=>{
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+  });
+
+  ctx.lineWidth=0.8;
+  for (let i=0;i<20;i++) {
+    const a=off+i*arc;
+    ctx.beginPath();
+    ctx.moveTo(cx+R.bull*Math.cos(a), cy+R.bull*Math.sin(a));
+    ctx.lineTo(cx+R.double_o*Math.cos(a), cy+R.double_o*Math.sin(a));
+    ctx.stroke();
+  }
+
+  ctx.beginPath(); ctx.arc(cx,cy,R.bull,0,Math.PI*2);
+  ctx.fillStyle=GREEN; ctx.fill();
+  ctx.strokeStyle=WIRE; ctx.lineWidth=1.2; ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(cx,cy,R.dbull,0,Math.PI*2);
+  ctx.fillStyle=RED; ctx.fill();
+  ctx.strokeStyle=WIRE; ctx.lineWidth=1.2; ctx.stroke();
+
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for (let i=0;i<20;i++) {
+    const a = off + i*arc + arc/2;
+    const x = cx + R.numR*Math.cos(a);
+    const y = cy + R.numR*Math.sin(a);
+    const num = segments[i];
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x,y,11,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fill();
+    ctx.restore();
+    ctx.fillStyle='#ffffff';
+    ctx.font=`bold 14px sans-serif`;
+    ctx.fillText(num, x, y);
+  }
+}
+
+function drawAnnularSector(r1,r2,a1,a2,color) {
+  ctx.beginPath();
+  ctx.arc(cx,cy,r2,a1,a2);
+  ctx.arc(cx,cy,r1,a2,a1,true);
+  ctx.closePath();
+  ctx.fillStyle=color; ctx.fill();
+}
+
+function getHit(px,py) {
+  const dx=px-cx, dy=py-cy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  if (dist<=R.dbull) return {pts:50, label:"Bullseye"};
+  if (dist<=R.bull)  return {pts:25, label:"Bull"};
+  if (dist>R.double_o) return {pts:0, label:"Miss"};
+
+  const arc=Math.PI*2/20, off=-Math.PI/2-arc/2;
+  let angle=Math.atan2(dy,dx)-off;
+  angle=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+  const idx=Math.floor(angle/arc)%20;
+  const seg=segments[idx];
+  const m=state.multiplier;
+
+  if (dist>=R.double_i) return {pts:seg*2, label:`D${seg}`};
+  if (dist>=R.triple_i && dist<=R.triple_o) return {pts:seg*3, label:`T${seg}`};
+  return {pts:seg*m, label: m===1?`${seg}`:m===2?`D${seg}`:`T${seg}`};
+}
+
+function setMult(m) {
+  state.multiplier=m;
+  ['m1','m2','m3'].forEach((id,i)=>document.getElementById(id).classList.toggle('active',i+1===m));
+}
+
+canvas.addEventListener('click', e=>{
+  if (state.score===0) return;
+  const rect=canvas.getBoundingClientRect();
+  const sx=SIZE/rect.width, sy=SIZE/rect.height;
+  const x=(e.clientX-rect.left)*sx, y=(e.clientY-rect.top)*sy;
+  const {pts,label}=getHit(x,y);
+  registerThrow(pts,label);
+});
+
+function registerThrow(points,label) {
+  const newScore=state.score-points;
+  state.darts++;
+  const msgArea=document.getElementById('msg-area');
+  if (newScore<0) {
+    msgArea.innerHTML=`<div class="bust-msg">Bust! Score stays at ${state.score}</div>`;
+    state.history.push({label,points,bust:true,scoreBefore:state.score});
+  } else if (newScore===0) {
+    state.history.push({label,points,bust:false,scoreBefore:state.score});
+    state.score=0;
+    msgArea.innerHTML=`<div class="win-msg">Checkout! You won in ${state.darts} dart${state.darts===1?'':'s'}!</div>`;
+  } else {
+    state.history.push({label,points,bust:false,scoreBefore:state.score});
+    state.score=newScore;
+    msgArea.innerHTML='';
+  }
+  document.getElementById('score-display').textContent=state.score;
+  document.getElementById('darts-display').textContent=state.darts;
+  document.getElementById('last-display').textContent=points;
+  renderHistory();
+}
+
+function undoThrow() {
+  if (!state.history.length) return;
+  const last=state.history.pop();
+  state.score=last.scoreBefore;
+  state.darts=Math.max(0,state.darts-1);
+  document.getElementById('score-display').textContent=state.score;
+  document.getElementById('darts-display').textContent=state.darts;
+  document.getElementById('last-display').textContent=state.history.length?state.history[state.history.length-1].points:'—';
+  document.getElementById('msg-area').innerHTML='';
+  renderHistory();
+}
+
+function renderHistory() {
+  const el=document.getElementById('history');
+  if (!state.history.length){el.innerHTML='<div style="font-size:13px;color:var(--color-text-secondary);padding:4px 0;">No throws yet</div>';return;}
+  el.innerHTML=[...state.history].reverse().map((h,i)=>{
+    const n=state.history.length-i;
+    const after=h.bust?h.scoreBefore:h.scoreBefore-h.points;
+    return `<div class="history-item">
+      <span>#${n} — <span class="hit">${h.label}</span>${h.bust?' <span style="color:#E24B4A">(bust)</span>':''}</span>
+      <span>${h.bust?'0':'-'+h.points} → ${after}</span>
+    </div>`;
+  }).join('');
+}
+
+function resetGame() {
+  const s=parseInt(document.getElementById('start-select').value);
+  state={score:s,start:s,darts:0,multiplier:1,history:[]};
+  setMult(1);
+  document.getElementById('score-display').textContent=s;
+  document.getElementById('darts-display').textContent=0;
+  document.getElementById('last-display').textContent='—';
+  document.getElementById('msg-area').innerHTML='';
+  renderHistory();
+}
+
+document.getElementById('start-select').addEventListener('change',resetGame);
+drawBoard();
+</script>
