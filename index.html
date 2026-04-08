@@ -2,200 +2,306 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>STEM MIXER</title>
-<link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>armstroja</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-        background: #f5f5f0; 
-        color: #2a2a2a;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        overflow: hidden;
-        position: relative;
-        user-select: none;
-        -webkit-user-select: none;
-    }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #080808;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.5s;
+  }
+  canvas { cursor: grab; display: block; }
 
-    #art-bg {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        background: radial-gradient(circle at center, #ffffff 0%, #e2e2d5 100%);
-        filter: blur(40px);
-        opacity: 0.6;
-        transition: transform 0.1s ease-out;
-    }
+  #themes {
+    position: fixed;
+    top: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 5;
+  }
+  .theme-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .theme-dot:hover { transform: scale(1.25); }
+  .theme-dot.active { border-color: rgba(255,255,255,0.6); transform: scale(1.2); }
 
-    .container {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        max-width: 400px;
-        width: 100%;
-    }
-
-    /* Single Large Bar Styling */
-    #eq-container {
-        display: flex;
-        justify-content: center;
-        gap: 16px; /* Increased gap for larger bars */
-        margin-bottom: 30px;
-        height: 60px; /* Slightly taller for impact */
-        align-items: flex-end;
-    }
-
-    .eq-bar-large {
-        width: 24px; /* Wider, "huge" bar */
-        border-radius: 4px; /* Smoother corners for larger size */
-        transition: height 0.12s ease-out, background-color 0.2s ease;
-        background: #dcdcd0;
-    }
-
-    h1 {
-        font-size: 10px;
-        letter-spacing: .5em;
-        text-transform: uppercase;
-        color: #4a4a44;
-        margin-bottom: 40px;
-    }
-
-    .hero-box {
-        background: rgba(255, 255, 255, 0.4);
-        border: 1px solid #dcdcd0;
-        border-radius: 12px;
-        padding: 40px 20px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-
-    .enter-btn {
-        display: inline-block;
-        padding: 16px 32px;
-        background: #2a2a2a;
-        color: #f5f5f0;
-        text-decoration: none;
-        font-size: 9px;
-        letter-spacing: .3em;
-        text-transform: uppercase;
-        border-radius: 30px;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-        cursor: pointer;
-        margin-bottom: 20px;
-    }
-
-    .enter-btn:hover {
-        background: #8040ff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(128, 64, 255, 0.2);
-    }
-
-    .features {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-top: 30px;
-    }
-
-    .feat-item {
-        font-size: 8px;
-        letter-spacing: .15em;
-        text-transform: uppercase;
-        color: #8a8a80;
-        padding: 10px;
-        border-top: 1px solid #dcdcd0;
-    }
-
-    .footer-links {
-        margin-top: 40px;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-    }
-
-    .footer-links a {
-        font-size: 8px;
-        letter-spacing: .2em;
-        text-transform: lowercase;
-        color: #a0a090;
-        text-decoration: none;
-    }
+  #modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  #modal.open { display: flex; }
+  #modal-box {
+    background: rgba(255,255,255,0.015);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 32px 36px;
+    max-width: 380px;
+    width: 88%;
+    position: relative;
+    animation: fadeUp 0.18s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  #modal-close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none;
+    color: #444; font-size: 1rem; cursor: pointer;
+    font-family: inherit;
+  }
+  #modal-close:hover { color: #fff; }
+  #modal-type {
+    font-size: 0.58rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  #modal-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  #modal-desc {
+    font-size: 0.78rem;
+    line-height: 1.75;
+    color: #999;
+    margin-bottom: 20px;
+  }
+  #modal-link {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 7px 16px;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.15s, color 0.15s;
+  }
+  #modal-link:hover { background: rgba(255,255,255,0.1); }
 </style>
 </head>
 <body>
 
-<div id="art-bg"></div>
+<div id="themes"></div>
+<canvas id="c"></canvas>
 
-<div class="container">
-    <div id="eq-container">
-        <div class="eq-bar-large" id="bar-0"></div>
-        <div class="eq-bar-large" id="bar-1"></div>
-        <div class="eq-bar-large" id="bar-2"></div>
-        <div class="eq-bar-large" id="bar-3"></div>
-    </div>
-
-    <h1>Stem Mixer</h1>
-
-    <div class="hero-box">
-        <a href="audio" class="enter-btn">Launch Workspace</a>
-        
-        <div class="features">
-            <div class="feat-item">4-Channel Split</div>
-            <div class="feat-item">Jog-Wheel Scrub</div>
-            <div class="feat-item">Visual EQ</div>
-            <div class="feat-item">Client-Side</div>
-        </div>
-    </div>
-
-    <div class="footer-links">
-        <a href="https://github.com/armstroja/armstroja.github.io" target="_blank">Git Repository</a>
-    </div>
+<div id="modal">
+  <div id="modal-box">
+    <button id="modal-close">✕</button>
+    <div id="modal-type"></div>
+    <div id="modal-title"></div>
+    <div id="modal-desc"></div>
+    <a id="modal-link" href="#" target="_blank">View →</a>
+  </div>
 </div>
 
 <script>
-    const STEM_COLORS = ['#ff0066', '#f5a623', '#00b8ff', '#20d67b'];
+const themes = [
+  { name: 'black',   bg: '#080808', dot: '#919191', accent: '#a78bfa' },
+  { name: 'tan',     bg: '#ab977e', dot: '#cfb99b', accent: '#7c5c3a' },
+  { name: 'seafoam', bg: '#659987', dot: '#7ecfb1', accent: '#2d6b55' },
+  { name: 'blue',    bg: '#5c849e', dot: '#6db1de', accent: '#1a4a6e' },
+];
 
-    // Initialize bars with colors
-    STEM_COLORS.forEach((color, i) => {
-        const bar = document.getElementById(`bar-${i}`);
-        bar.style.backgroundColor = color + 'cc'; // Set base color
-    });
+let currentTheme = themes[0];
 
-    function animateBars() {
-        STEM_COLORS.forEach((color, i) => {
-            const bar = document.getElementById(`bar-${i}`);
-            
-            // Generate random height for the huge bar
-            const randomHeight = Math.floor(Math.random() * 50) + 10;
-            bar.style.height = `${randomHeight}px`;
-            
-            // Randomly shift opacity to simulate intensity
-            if (Math.random() > 0.8) {
-                bar.style.backgroundColor = color; // Solid on peak
-            } else {
-                bar.style.backgroundColor = color + 'cc'; // Semi-transparent
-            }
-        });
-        setTimeout(animateBars, 150);
+function applyTheme(t) {
+  currentTheme = t;
+  document.body.style.background = t.bg;
+  document.querySelectorAll('.theme-dot').forEach(el => {
+    el.classList.toggle('active', el.dataset.name === t.name);
+  });
+}
+
+// Build theme switcher
+const themeBar = document.getElementById('themes');
+themes.forEach(t => {
+  const d = document.createElement('div');
+  d.className = 'theme-dot' + (t.name === 'black' ? ' active' : '');
+  d.dataset.name = t.name;
+  d.style.background = t.bg === '#080808' ? '#333' : t.bg;
+  d.title = t.name;
+  d.addEventListener('click', () => applyTheme(t));
+  themeBar.appendChild(d);
+});
+
+const projects = [
+  { type: "project", title: "Audio Mixer",        desc: "A web-based audio mixer for blending and controlling multiple audio sources in the browser.", link: "https://armstroja.github.io/audiomixer" },
+  { type: "project", title: "Dart Score Tracker", desc: "A clean web app for tracking scores across a game of darts — no pencil and paper needed.", link: "https://armstroja.github.io/dartswebapp" },
+];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const SIZE = Math.min(window.innerWidth, window.innerHeight) * 1.0;
+canvas.width = canvas.height = SIZE;
+const cx = SIZE/2, cy = SIZE/2, R = SIZE * 0.42;
+
+const ROWS = 20, COLS = 40;
+let dots = [];
+for (let i = 0; i <= ROWS; i++) {
+  const phi = Math.PI * i / ROWS;
+  for (let j = 0; j < COLS; j++) {
+    const theta = 2 * Math.PI * j / COLS;
+    dots.push({ phi, theta, proj: null, project: null });
+  }
+}
+
+for (let i = 0; i < projects.length; i++) {
+  const idx = Math.floor(dots.length * (i + 1) / (projects.length + 1));
+  dots[idx].project = projects[i];
+}
+
+let rotY = 0, rotX = 0.85, velY = 0.002, velX = 0;
+let dragging = false, lastX = 0, lastY = 0, hoveredDot = null;
+let lastTime = performance.now();
+
+function project3D(phi, theta) {
+  const x0 = Math.sin(phi)*Math.cos(theta);
+  const y0 = Math.sin(phi)*Math.sin(theta);
+  const z0 = Math.cos(phi);
+  const x1 = x0*Math.cos(rotY) - y0*Math.sin(rotY);
+  const y1 = x0*Math.sin(rotY) + y0*Math.cos(rotY);
+  const y2 = y1*Math.cos(rotX) - z0*Math.sin(rotX);
+  const z2 = y1*Math.sin(rotX) + z0*Math.cos(rotX);
+  return { sx: cx + x1*R, sy: cy - y2*R, z: z2 };
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  // globe glow
+  const glowRgb = hexToRgb(currentTheme.dot);
+  const glow = ctx.createRadialGradient(cx, cy, R*0.7, cx, cy, R*1.25);
+  glow.addColorStop(0, `rgba(${glowRgb},0.12)`);
+  glow.addColorStop(1, `rgba(${glowRgb},0)`);
+  ctx.beginPath();
+  ctx.arc(cx, cy, R*1.25, 0, Math.PI*2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  for (const d of dots) d.proj = project3D(d.phi, d.theta);
+  dots.sort((a,b) => a.proj.z - b.proj.z);
+
+  for (const d of dots) {
+    const {sx, sy, z} = d.proj;
+    const vis = z > -0.05;
+
+    if (d.project && vis) {
+      const hov = d === hoveredDot;
+      const col = currentTheme.accent;
+      const rgb = hexToRgb(col);
+      ctx.save();
+      ctx.shadowColor = col;
+      ctx.shadowBlur = hov ? 18 : 10;
+      ctx.beginPath();
+      ctx.arc(sx, sy, hov ? 5 : 3.5, 0, Math.PI*2);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.restore();
+      if (hov) {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 9, 0, Math.PI*2);
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      const dotRgb = hexToRgb(currentTheme.dot);
+      const alpha = vis ? 0.35 + 0.45*((z+1)/2) : 0.06;
+      const r = vis ? 1.2 + z*0.9 : 0.6;
+      ctx.beginPath();
+      ctx.arc(sx, sy, r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${dotRgb},${alpha})`;
+      ctx.fill();
     }
+  }
+}
 
-    animateBars();
+function loop(now) {
+  const dt = Math.min((now - lastTime) / 16.67, 3);
+  lastTime = now;
+  if (!dragging) {
+    velY += (0.002 - velY) * 0.02 * dt;
+    velX *= Math.pow(0.96, dt);
+    rotY += velY * dt;
+    rotX += velX * dt;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
 
-    // Parallax background
-    window.addEventListener('mousemove', (e) => {
-        const moveX = (e.clientX - window.innerWidth / 2) * 0.01;
-        const moveY = (e.clientY - window.innerHeight / 2) * 0.01;
-        document.getElementById('art-bg').style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
-    });
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  if (dragging) {
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    velY = dx * 0.003; velX = dy * 0.003;
+    rotY += velY; rotX += velX;
+    lastX = e.clientX; lastY = e.clientY;
+    return;
+  }
+  hoveredDot = null;
+  for (const d of dots) {
+    if (!d.project || !d.proj || d.proj.z < 0) continue;
+    const dx = d.proj.sx - mx, dy = d.proj.sy - my;
+    if (dx*dx+dy*dy < 100) { hoveredDot = d; break; }
+  }
+  canvas.style.cursor = hoveredDot ? 'pointer' : 'grab';
+});
+
+canvas.addEventListener('mousedown', e => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  canvas.style.cursor = 'grabbing';
+});
+window.addEventListener('mouseup', () => { dragging = false; });
+
+canvas.addEventListener('click', () => {
+  if (!hoveredDot) return;
+  const p = hoveredDot.project;
+  document.getElementById('modal-type').textContent  = p.type;
+  document.getElementById('modal-type').style.color  = currentTheme.accent;
+  document.getElementById('modal-title').textContent = p.title;
+  document.getElementById('modal-desc').textContent  = p.desc;
+  document.getElementById('modal-link').href         = p.link;
+  document.getElementById('modal').classList.add('open');
+});
+
+document.getElementById('modal-close').onclick = () =>
+  document.getElementById('modal').classList.remove('open');
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') document.getElementById('modal').classList.remove('open');
+});
 </script>
-
 </body>
 </html>
