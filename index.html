@@ -138,7 +138,7 @@ async function loadProjects() {
       !file.path.startsWith('private/')
     );
 
-    // For each HTML file, fetch it and extract the title
+    // For each HTML file, fetch it and extract the title and description
     for (const file of htmlFiles) {
       try {
         const fileResponse = await fetch(file.download_url);
@@ -148,11 +148,15 @@ async function loadProjects() {
         const titleMatch = fileContent.match(/<title[^>]*>([^<]+)<\/title>/i);
         const title = titleMatch ? titleMatch[1] : file.name;
         
+        // Extract description from meta tag
+        const descMatch = fileContent.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
+        const description = descMatch ? descMatch[1] : `View the ${title} page`;
+        
         // Create project object
         projects.push({
           type: 'page',
           title: title,
-          desc: `View the ${title} page`,
+          desc: description,
           link: `https://armstroja.github.io/${file.name}`
         });
       } catch (error) {
