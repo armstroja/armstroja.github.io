@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>armstroja globe</title>
+<title>armstroja</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -127,13 +127,15 @@ let projects = [];
 // Function to load projects from repository
 async function loadProjects() {
   try {
-    // Fetch list of files in the repository
+    // Fetch list of files in the repository root
     const contentsResponse = await fetch('https://api.github.com/repos/armstroja/armstroja.github.io/contents');
     const contents = await contentsResponse.json();
 
-    // Filter for .html files (excluding index.html)
+    // Filter for .html files (excluding index.html and files in /private folder)
     const htmlFiles = contents.filter(file => 
-      file.name.endsWith('.html') && file.name !== 'index.html'
+      file.name.endsWith('.html') && 
+      file.name !== 'index.html' &&
+      !file.path.startsWith('private/')
     );
 
     // For each HTML file, fetch it and extract the title
