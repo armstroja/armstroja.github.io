@@ -313,6 +313,7 @@ function initCtx(){
       // Fallback to MediaStream if direct connection fails
       mediaStreamDest=actx.createMediaStreamDestination();
       masterGain.connect(mediaStreamDest);
+      patchIOSOutput();
     }
   } else {
     // All other browsers: connect directly
@@ -321,6 +322,7 @@ function initCtx(){
 
   STEMS.forEach(s=>{
     const g=actx.createGain();
+    g.gain.value=1;
     const an=actx.createAnalyser();
     an.fftSize=512; an.smoothingTimeConstant=0.65;
     g.connect(an); an.connect(masterGain);
@@ -362,10 +364,10 @@ function playAll(){
   if(actx.state==='suspended')actx.resume();
   patchIOSOutput();
   const off=pauseOff;
+  STEMS.forEach(s=>applyVol(s.id));
   STEMS.forEach(s=>spawnSrc(s.id,off));
   startTime=actx.currentTime-off;
   playing=true; dot.classList.add('playing');
-  STEMS.forEach(s=>applyVol(s.id));
 }
 
 function pauseAll(){
