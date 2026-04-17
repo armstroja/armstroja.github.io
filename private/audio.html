@@ -22,17 +22,26 @@ body>*:not(#art-bg){position:relative;z-index:1;}
 h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cursor:default;transition:opacity .25s ease;user-select:none;-webkit-user-select:none;}
 h1.fading{opacity:0;}
 .top-links{display:flex;gap:18px;align-items:center;}
-.top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#8a8a80;background:none;border:none;cursor:pointer;padding:6px 4px;transition:color .2s;text-decoration:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+.top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#8a8a80;background:none;border:none;cursor:pointer;padding:6px 4px;transition:color .2s,transform .3s cubic-bezier(0.2,0,0,1);text-decoration:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;display:inline-block;}
+.top-links a:hover,.top-links button:hover{color:#1a1a1a;transform:translateY(-2px);}
+.top-links a:active,.top-links button:active{transform:translateY(0px);}
 .top-links a:hover,.top-links button:hover{color:#1a1a1a;}
 #art-file{display:none;}
-#stems-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(340px,100%);}
-.drop-zone{border:1px solid #dcdcd0;border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:background .2s;min-height:72px;background:#ffffff66;-webkit-tap-highlight-color:transparent;}
-.drop-zone:hover,.drop-zone.drag-over{background:#ffffffaa;border-color:#8040ff;}
+#stems-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(340px,100%);overflow:visible;}
+.drop-zone{border:1px solid #dcdcd0;border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:background .2s,transform .3s cubic-bezier(0.2,0,0,1),box-shadow .3s ease;min-height:72px;background:#ffffff66;-webkit-tap-highlight-color:transparent;}
+.drop-zone:hover,.drop-zone.drag-over{background:#ffffffaa;border-color:#8040ff;transform:translateY(-3px) scale(1.02);box-shadow:0 10px 32px rgba(0,0,0,0.08);}
+.drop-zone:active{transform:translateY(0px) scale(0.98);box-shadow:none;}
 .drop-zone input[type=file]{display:none;}
 .dz-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px;user-select:none;-webkit-user-select:none;}
 .dz-hint{font-size:9px;color:#a0a090;user-select:none;-webkit-user-select:none;}
-.eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;min-height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:opacity .2s,min-height .06s ease-out;background:#ffffffcc;-webkit-tap-highlight-color:transparent;}
+.eq-card{border:1px solid #dcdcd0;border-radius:8px;padding:10px 12px 8px;height:72px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:opacity .2s,transform .3s cubic-bezier(0.2,0,0,1),box-shadow .3s ease,background .3s ease;background:#ffffffcc;-webkit-tap-highlight-color:transparent;overflow:hidden;}
+.eq-card:hover{transform:translateY(-4px) scale(1.02);box-shadow:0 12px 40px rgba(0,0,0,0.10);background:rgba(255,255,255,0.85);}
+.eq-card:active{transform:translateY(0px) scale(0.98);box-shadow:none;}
 .eq-card.muted{opacity:.35;}
+.eq-card.soloed-out{opacity:.25;filter:saturate(0);transition:opacity .25s ease,filter .25s ease,transform .3s cubic-bezier(0.2,0,0,1),box-shadow .3s ease,background .3s ease;}
+.channel.soloed-out{opacity:.25;filter:saturate(0);transition:opacity .25s ease,filter .25s ease;pointer-events:none;}
+/* Inner wrapper that vibrates via scaleY — card box never moves */
+.eq-inner{display:flex;flex-direction:column;gap:6px;flex:1;transform-origin:bottom center;will-change:transform;}
 .eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold;user-select:none;-webkit-user-select:none;}
 .eq-bars{display:flex;align-items:flex-end;gap:2px;height:32px;flex:1;}
 .eq-bar{flex:1;border-radius:1px;background:#e2e2d5;min-height:2px;}
@@ -40,16 +49,27 @@ h1.fading{opacity:0;}
 #status{font-size:9px;letter-spacing:.16em;color:#a0a090;text-transform:uppercase;height:12px;user-select:none;-webkit-user-select:none;}
 #mixer-panel{display:flex;flex-direction:row;align-items:center;justify-content:space-between;width:min(340px,100%);}
 .channel{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.ch-segs{display:flex;flex-direction:column-reverse;gap:4px;touch-action:none;}
-.seg{width:clamp(28px,8vw,36px);height:clamp(12px,3.5vw,14px);background:#e2e2d5;border:none;cursor:pointer;border-radius:3px;transition:background .06s,transform .1s,opacity .2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;touch-action:none;}
-.seg:active{transform:scale(.92);}
-.seg.muted{opacity:.2;}
+.ch-segs{display:flex;flex-direction:column-reverse;gap:0;touch-action:none;}
+/* Hit wrapper: tall enough for a finger. Negative margin collapses the
+   extra height so pills appear with the original 4px visual gap. */
+.seg-hit{width:clamp(44px,12vw,52px);height:clamp(22px,6vw,26px);display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent;touch-action:none;position:relative;
+  margin-top:calc((clamp(22px,6vw,26px) - clamp(12px,3.5vw,14px) - 4px) / -2);
+  margin-bottom:calc((clamp(22px,6vw,26px) - clamp(12px,3.5vw,14px) - 4px) / -2);
+}
+.ch-segs .seg-hit:first-child{margin-bottom:0;}
+.ch-segs .seg-hit:last-child{margin-top:0;}
+.seg-hit:hover .seg{transform:translateY(-2px) scale(1.08);box-shadow:0 4px 12px rgba(0,0,0,0.12);}
+.seg-hit:active .seg{transform:scale(0.92);box-shadow:none;transition:transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);}
+/* Visual pill — unchanged dimensions */
+.seg{width:clamp(28px,8vw,36px);height:clamp(12px,3.5vw,14px);background:#e2e2d5;border-radius:3px;transition:background .06s,transform .2s cubic-bezier(0.2,0,0,1),box-shadow .2s ease,opacity .2s;position:relative;overflow:hidden;pointer-events:none;}
 .seg-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;border-radius:2px;pointer-events:none;opacity:0;}
 .ch-label{font-size:clamp(6px,2vw,8px);letter-spacing:0.18em;text-transform:uppercase;text-align:center;font-weight:bold;user-select:none;-webkit-user-select:none;display:inline-block;transform-origin:center center;}
 .ch-label.inactive{color:#dcdcd0;}
-#center-dot{width:clamp(36px,10vw,44px);height:clamp(36px,10vw,44px);border-radius:50%;background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;transition:all .2s ease;-webkit-tap-highlight-color:transparent;}
-#center-dot:active{transform:scale(0.9);}
+#center-dot{width:clamp(36px,10vw,44px);height:clamp(36px,10vw,44px);border-radius:50%;background:#ffffff;border:1px solid #dcdcd0;cursor:pointer;transition:transform .3s cubic-bezier(0.2,0,0,1),box-shadow .3s ease,background .2s,border-color .2s;-webkit-tap-highlight-color:transparent;}
+#center-dot:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 10px 28px rgba(0,0,0,0.12);}
+#center-dot:active{transform:translateY(0px) scale(0.9);box-shadow:none;}
 #center-dot.playing{background:#8040ff;border-color:#8040ff;}
+#center-dot.playing:hover{box-shadow:0 10px 28px rgba(128,64,255,0.35);}
 #transport{display:flex;align-items:center;gap:12px;width:min(340px,100%);}
 #prog-wrap{flex:1;height:12px;display:flex;align-items:center;cursor:pointer;position:relative;padding:5px 0;}
 #prog-track{width:100%;height:2px;background:#e2e2d5;position:relative;}
@@ -74,16 +94,11 @@ h1.fading{opacity:0;}
 </style>
 </head>
 <body>
-<!-- iOS needs a real <audio> element fed from a MediaStreamDestination.
-     On all other browsers we connect directly to actx.destination instead,
-     so this element is NEVER used on non-iOS and therefore causes no echo. -->
 <audio id="ios-out" autoplay playsinline></audio>
 <div id="art-bg"></div>
 <h1 id="title">Stem Mixer</h1>
 <div class="top-links">
   <a href="https://bandlab.com/splitter" target="_blank">split songs</a>
-  <button onclick="document.getElementById('art-file').click()">album art</button>
-  <input type="file" id="art-file" accept="image/*">
 </div>
 <div id="stems-grid"></div>
 <div id="status"></div>
@@ -137,7 +152,7 @@ let kbSolo=null;
 
 const iosOut=document.getElementById('ios-out');
 
-// ── iOS audio patch: route through <audio> element only on iOS ────────────────
+// ── iOS audio patch ───────────────────────────────────────────────────────────
 function patchIOSOutput(){
   if(!isIOS||!actx||!mediaStreamDest)return;
   iosOut.srcObject=mediaStreamDest.stream;
@@ -159,13 +174,6 @@ function advanceTitle(){
 titleEl.addEventListener('mouseenter',()=>{advanceTitle();titleInterval=setInterval(advanceTitle,1000);});
 titleEl.addEventListener('mouseleave',()=>{clearInterval(titleInterval);});
 titleEl.addEventListener('touchstart',()=>advanceTitle(),{passive:true});
-
-document.getElementById('art-file').addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f)return;
-  const bg=document.getElementById('art-bg');
-  bg.style.backgroundImage=`url(${URL.createObjectURL(f)})`;
-  bg.classList.add('visible');
-});
 
 // ── Drop zones ────────────────────────────────────────────────────────────────
 const grid=document.getElementById('stems-grid');
@@ -204,20 +212,23 @@ STEMS.forEach(s=>{
   const segsEl=document.createElement('div');
   segsEl.className='ch-segs'; segsEl.id='segs-'+s.id;
   for(let i=0;i<STEPS;i++){
-    const btn=document.createElement('button');
-    btn.className='seg'; btn.dataset.idx=i;
+    const hit=document.createElement('div');
+    hit.className='seg-hit'; hit.dataset.idx=i;
+    const pill=document.createElement('div');
+    pill.className='seg'; pill.id=`seg-${s.id}-${i}`;
     const fill=document.createElement('div');
     fill.className='seg-fill'; fill.id=`sf-${s.id}-${i}`;
     fill.style.background=s.acc;
-    btn.appendChild(fill);
-    btn.addEventListener('click',e=>{
+    pill.appendChild(fill);
+    hit.appendChild(pill);
+    hit.addEventListener('click',e=>{
       if(colDrag.moved){e.preventDefault();return;}
-      if(soloStem===s.id)return; // soloed stem locked on
+      if(soloStem===s.id)return;
       vols[s.id]=i+1; muted[s.id]=(i===0);
       document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);
       refreshCol(s.id); applyVol(s.id);
     });
-    segsEl.appendChild(btn);
+    segsEl.appendChild(hit);
   }
   segsEl.addEventListener('mousedown',e=>{
     e.stopPropagation();
@@ -275,11 +286,11 @@ function buildEqCard(id,name){
   const s=STEMS.find(x=>x.id===id);
   const card=document.createElement('div');
   card.className='eq-card'; card.id='eq-'+id;
-  card.innerHTML=`<div class="eq-label" style="color:${s.acc}">${s.label}</div>
+  card.innerHTML=`<div class="eq-inner" id="eqinner-${id}"><div class="eq-label" style="color:${s.acc}">${s.label}</div>
     <div class="eq-bars" id="eqbars-${id}">${Array.from({length:EQ_BARS},(_,i)=>`<div class="eq-bar" id="eqbar-${id}-${i}"></div>`).join('')}</div>
-    <div class="eq-filename">${name.replace(/\.[^.]+$/,'').toUpperCase()}</div>`;
+    <div class="eq-filename">${name.replace(/\.[^.]+$/,'').toUpperCase()}</div></div>`;
   card.addEventListener('click',()=>{
-    if(soloStem===id)return; // soloed stem locked on
+    if(soloStem===id)return;
     muted[id]=!muted[id];
     card.classList.toggle('muted',muted[id]);
     vols[id]=muted[id]?1:STEPS;
@@ -291,23 +302,32 @@ function buildEqCard(id,name){
 // ── Audio context ─────────────────────────────────────────────────────────────
 function initCtx(){
   if(actx)return;
-  actx=new(window.AudioContext||window.webkitAudioContext)();
+
+  // FIX 1: Request lowest possible output latency from the browser.
+  // 'playback' suits pre-recorded stems; 'interactive' is the default but
+  // carries more buffering on some platforms.  We try 'playback' first; if
+  // the browser ignores it the hint is advisory-only so there is no downside.
+  actx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'playback',sampleRate:44100});
+
   masterGain=actx.createGain();
 
   if(isIOS){
-    // iOS: route through MediaStream → <audio> element (required to unlock audio)
     mediaStreamDest=actx.createMediaStreamDestination();
     masterGain.connect(mediaStreamDest);
-    // Do NOT connect to actx.destination — the <audio> element handles output
   } else {
-    // All other browsers: connect directly; no <audio> element needed
     masterGain.connect(actx.destination);
   }
 
   STEMS.forEach(s=>{
     const g=actx.createGain();
+    // FIX 2: Pre-set gain to 0 immediately (no ramp) so the first applyVol
+    // call snaps to the correct level without any initial burst.
+    g.gain.value=0;
     const an=actx.createAnalyser();
-    an.fftSize=512; an.smoothingTimeConstant=0.65;
+    // FIX 3: Lower FFT size for faster analyser turnaround (256 vs 512).
+    // smoothingTimeConstant only affects visualisation, not audio latency —
+    // kept at 0.65 for smooth meters.
+    an.fftSize=256; an.smoothingTimeConstant=0.65;
     g.connect(an); an.connect(masterGain);
     gainNodes[s.id]=g; analyserNodes[s.id]=an;
     eqData[s.id]=new Uint8Array(an.frequencyBinCount);
@@ -347,8 +367,26 @@ function playAll(){
   if(actx.state==='suspended')actx.resume();
   patchIOSOutput();
   const off=pauseOff;
-  STEMS.forEach(s=>spawnSrc(s.id,off));
-  startTime=actx.currentTime-off;
+
+  // FIX 4: Schedule all stems to start at the same future audio-clock tick
+  // so every buffer is sample-aligned regardless of JS scheduling jitter.
+  // Using a small lookahead (one render quantum ≈ 128 samples / ~3 ms at
+  // 44 100 Hz) guarantees the start command arrives before the deadline.
+  const startAt=actx.currentTime+0.005;
+  STEMS.forEach(s=>{
+    if(!buffers[s.id])return;
+    try{srcNodes[s.id]?.stop(); srcNodes[s.id]?.disconnect();}catch(e){}
+    const src=actx.createBufferSource();
+    src.buffer=buffers[s.id];
+    src.connect(gainNodes[s.id]);
+    const safeOff=Math.max(0,Math.min(off,buffers[s.id].duration-0.01));
+    src.start(startAt,safeOff);
+    srcNodes[s.id]=src;
+  });
+
+  // Align startTime to the scheduled audio-clock start so progress bar
+  // stays perfectly in sync.
+  startTime=startAt-off;
   playing=true; dot.classList.add('playing');
   STEMS.forEach(s=>applyVol(s.id));
 }
@@ -383,9 +421,17 @@ function scrubEnd(){
 }
 
 function hasAnyStem(){return STEMS.some(s=>buffers[s.id]);}
+
 function applyVol(id){
   if(!gainNodes[id]||!actx)return;
-  gainNodes[id].gain.setTargetAtTime(muted[id]?0:vols[id]/STEPS,actx.currentTime,0.02);
+  const target=muted[id]?0:vols[id]/STEPS;
+  const g=gainNodes[id].gain;
+  // FIX 5: Use a shorter time constant (0.004 s ≈ 4 ms) so volume changes
+  // snap nearly instantaneously while still avoiding the click artifact that
+  // a raw .value= assignment would produce.  The original 0.02 s added ~20 ms
+  // of fade-in/fade-out lag on every fader move.
+  g.cancelScheduledValues(actx.currentTime);
+  g.setTargetAtTime(target,actx.currentTime,0.004);
 }
 
 // ── Solo hold ─────────────────────────────────────────────────────────────────
@@ -395,13 +441,18 @@ function startHold(id){
     STEMS.forEach(s=>{
       if(s.id!==id){
         soloSnap[s.id]=vols[s.id];
-        gainNodes[s.id]?.gain.setTargetAtTime(0,actx.currentTime,0.02);
-        document.querySelectorAll('#segs-'+s.id+' .seg').forEach(b=>b.classList.add('muted'));
+        gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+        gainNodes[s.id]?.gain.setTargetAtTime(0,actx.currentTime,0.004);
+        document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.add('muted'));
+        document.getElementById('ch-'+s.id)?.classList.add('soloed-out');
+        document.getElementById('eq-'+s.id)?.classList.add('soloed-out');
       } else {
-        // Keep the soloed stem unmuted and at full volume
         muted[s.id]=false; vols[s.id]=STEPS;
-        gainNodes[s.id]?.gain.setTargetAtTime(1,actx.currentTime,0.02);
+        gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+        gainNodes[s.id]?.gain.setTargetAtTime(1,actx.currentTime,0.004);
         document.getElementById('eq-'+s.id)?.classList.remove('muted');
+        document.getElementById('ch-'+s.id)?.classList.remove('soloed-out');
+        document.getElementById('eq-'+s.id)?.classList.remove('soloed-out');
         refreshCol(s.id);
       }
     });
@@ -412,8 +463,15 @@ function endHold(){
   if(!soloStem)return;
   STEMS.forEach(s=>{
     if(s.id!==soloStem){
-      gainNodes[s.id]?.gain.setTargetAtTime((soloSnap[s.id]??vols[s.id])/STEPS,actx.currentTime,0.05);
-      document.querySelectorAll('#segs-'+s.id+' .seg').forEach(b=>b.classList.remove('muted'));
+      const restoreVol=(soloSnap[s.id]??vols[s.id])<=1 ? STEPS : (soloSnap[s.id]??vols[s.id]);
+      vols[s.id]=restoreVol; muted[s.id]=false;
+      gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+      gainNodes[s.id]?.gain.setTargetAtTime(restoreVol/STEPS,actx.currentTime,0.004);
+      document.getElementById('eq-'+s.id)?.classList.remove('muted');
+      document.getElementById('eq-'+s.id)?.classList.remove('soloed-out');
+      document.getElementById('ch-'+s.id)?.classList.remove('soloed-out');
+      document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.remove('muted'));
+      refreshCol(s.id);
     }
   });
   soloSnap={}; soloStem=null;
@@ -421,10 +479,11 @@ function endHold(){
 
 function refreshCol(id){
   const s=STEMS.find(x=>x.id===id);
-  document.querySelectorAll('#segs-'+id+' .seg').forEach((b,i)=>{
+  document.querySelectorAll('#segs-'+id+' .seg-hit').forEach((hit,i)=>{
+    const pill=hit.querySelector('.seg');
     const on=i<vols[id];
-    b.classList.toggle('muted',muted[id]);
-    b.style.background=on?(muted[id]?s.acc+'33':s.acc+'cc'):'#e2e2d5';
+    hit.classList.toggle('muted',muted[id]);
+    if(pill){pill.style.background=on?(muted[id]?s.acc+'33':s.acc+'cc'):'#e2e2d5';}
   });
 }
 STEMS.forEach(s=>refreshCol(s.id));
@@ -444,12 +503,11 @@ function updateEqBars(){
     const avg=(total/eqData[s.id].length)/255;
     const target=(!playing||muted[s.id])?0:avg;
     stemEnergy[s.id]=stemEnergy[s.id]*0.7+target*0.3;
-    const lbl=document.getElementById('lbl-'+s.id);
-    if(lbl){const sc=1+stemEnergy[s.id]*0.55;lbl.style.transform=`scale(${sc.toFixed(3)})`;}
-    const card=document.getElementById('eq-'+s.id);
-    if(card){
-      const e=stemEnergy[s.id];
-      card.style.minHeight=(72+e*18).toFixed(1)+'px';
+    // Only animate the eq-inner transform — card box stays fixed
+    const inner=document.getElementById('eqinner-'+s.id);
+    if(inner){
+      const sc=1+stemEnergy[s.id]*0.06;
+      inner.style.transform=`scaleY(${sc.toFixed(4)})`;
     }
     for(let i=0;i<EQ_BARS;i++){
       const bar=document.getElementById('eqbar-'+s.id+'-'+i); if(!bar)continue;
@@ -474,7 +532,9 @@ function updateColEq(){
     const an=analyserNodes[s.id];
     if(an)an.getByteFrequencyData(eqData[s.id]);
     const base=hexToRgb(s.acc);
-    document.querySelectorAll('#segs-'+s.id+' .seg').forEach((btn,i)=>{
+    document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach((hit,i)=>{
+      const btn=hit.querySelector('.seg');
+      if(!btn)return;
       const raw=an&&playing&&buffers[s.id]?getSegBandEnergy(s.id,i):0;
       eqSmooth[s.id][i]=raw>eqSmooth[s.id][i]?raw*.7+eqSmooth[s.id][i]*.3:raw*.1+eqSmooth[s.id][i]*.9;
       const level=muted[s.id]?0:eqSmooth[s.id][i];
@@ -644,8 +704,9 @@ function animate(){
     if(rs?.active){
       const el=performance.now()-rs.start;
       if(el<RAINBOW_DUR){
-        document.querySelectorAll('#segs-'+s.id+' .seg').forEach((b,i)=>{
-          b.style.background=rainbowColor(s,i,el);
+        document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach((hit,i)=>{
+          const pill=hit.querySelector('.seg'); if(!pill)return;
+          pill.style.background=rainbowColor(s,i,el);
         }); return;
       }
       rs.active=false; refreshCol(s.id);
@@ -653,6 +714,11 @@ function animate(){
   });
   if(playing&&duration>0){
     const el=actx.currentTime-startTime;
+    // Slowly rotate disc while playing: one full turn every 4 seconds
+    if(!jogDrag.active){
+      jogAngle+=360/4/60; // ~60fps assumed; smooth enough
+      disc.style.transform=`rotate(${jogAngle}deg)`;
+    }
     document.getElementById('prog-bar').style.width=Math.min(el/duration*100,100)+'%';
     document.getElementById('time').textContent=fmt(el)+' / '+fmt(duration);
     if(el>=duration+0.2){
