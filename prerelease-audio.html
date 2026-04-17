@@ -15,15 +15,12 @@ body{
   padding:40px 20px;user-select:none;-webkit-user-select:none;
   gap:20px;overflow:hidden;position:relative;touch-action:pan-x pan-y;
 }
-#art-bg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;filter:blur(36px) brightness(1.1) saturate(1.2);transform:scale(1.1);opacity:0;transition:opacity 1s ease;pointer-events:none;}
-#art-bg.visible{opacity:0.3;}
-body>*:not(#art-bg){position:relative;z-index:1;}
+body>*{position:relative;z-index:1;}
 h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cursor:default;transition:opacity .25s ease;}
 
 .top-links{display:flex;gap:18px;align-items:center;}
 .top-links a,.top-links button{font-size:8px;letter-spacing:.24em;text-transform:lowercase;color:#8a8a80;background:none;border:none;cursor:pointer;padding:6px 4px;transition:color .2s;text-decoration:none;-webkit-tap-highlight-color:transparent;}
 .top-links a:hover,.top-links button:hover{color:#1a1a1a;}
-#art-file{display:none;}
 
 #stems-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(340px,100%);}
 
@@ -107,13 +104,11 @@ h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cur
 <body>
 
 <audio id="ios-out" autoplay playsinline></audio>
-<div id="art-bg"></div>
+
 <h1 id="title">Stem Mixer</h1>
 
 <div class="top-links">
   <a href="https://bandlab.com/splitter" target="_blank">split songs</a>
-  <button onclick="document.getElementById('art-file').click()">album art</button>
-  <input type="file" id="art-file" accept="image/*">
 </div>
 
 <div id="stems-grid"></div>
@@ -131,6 +126,8 @@ h1{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:#4a4a44;cur
   <div id="jog-hint" style="font-size:7px; letter-spacing:.18em; text-transform:uppercase; color:#c0c0b0;">spin to scrub</div>
 </div>
 
+<div id="center-dot"></div>
+
 <script>
 const STEMS=[
   {id:'vocals',label:'Vocals',acc:'#ff0066'},
@@ -139,12 +136,6 @@ const STEMS=[
   {id:'other', label:'Other', acc:'#20d67b'},
 ];
 const STEPS=7, EQ_BARS=12;
-const STEM_KEYWORDS={
-  vocals:['vocal','vox','voice','sing','lead','melody','choir','lyric','harmony'],
-  drums: ['drum','beat','kick','snare','hat','perc','rhythm','trap','loop','bpm','cymbal','clap'],
-  bass:  ['bass','sub','low','808','bassline','groove'],
-  other: ['other','inst','guitar','piano','keys','synth','pad','string','horn','brass','fx','misc'],
-};
 
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent);
 let actx=null, masterGain=null, mediaStreamDest=null;
@@ -157,7 +148,6 @@ let scrubbing=false, wasPlayingBeforeScrub=false;
 let jogAngle=0;
 let jogDrag={active:false, startAngle:0};
 
-// --- Initialization ---
 function initCtx(){
   if(actx) return;
   actx=new(window.AudioContext||window.webkitAudioContext)();
@@ -166,8 +156,9 @@ function initCtx(){
   if(isIOS){
     mediaStreamDest=actx.createMediaStreamDestination();
     masterGain.connect(mediaStreamDest);
-    document.getElementById('ios-out').srcObject=mediaStreamDest.stream;
-    document.getElementById('ios-out').play().catch(()=>{});
+    const iosOut=document.getElementById('ios-out');
+    iosOut.srcObject=mediaStreamDest.stream;
+    iosOut.play().catch(()=>{});
   } else {
     masterGain.connect(actx.destination);
   }
@@ -177,11 +168,11 @@ function initCtx(){
     const pan=actx.createStereoPanner();
     const an=actx.createAnalyser();
     an.fftSize=512;
-    
-    g.connect(pan); 
-    pan.connect(an); 
+
+    g.connect(pan);
+    pan.connect(an);
     an.connect(masterGain);
-    
+
     gainNodes[s.id]=g;
     pannerNodes[s.id]=pan;
     analyserNodes[s.id]=an;
@@ -189,12 +180,11 @@ function initCtx(){
   });
 }
 
-// --- Rotational Jog Wheel Logic ---
 function getJogAngle(e) {
   const jogEl = document.getElementById('jog');
   const rect = jogEl.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height; // Center of the visual disc
+  const centerY = rect.top + rect.height;
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
@@ -216,12 +206,11 @@ function handleJogMove(e) {
   const currentAngle = getJogAngle(e);
   const newAngle = currentAngle - jogDrag.startAngle;
   const diff = newAngle - jogAngle;
-  
+
   jogAngle = newAngle;
   disc.style.transform = `rotate(${jogAngle}deg)`;
-  
-  // 360 deg = 10% of track length for a natural feel
-  const scrubDiff = (diff / 360) * (duration * 0.1); 
+
+  const scrubDiff = (diff / 360) * (duration * 0.1);
   scrubMove(pauseOff + scrubDiff);
 }
 
@@ -239,7 +228,6 @@ jogContainer.addEventListener('touchstart', (e) => { e.preventDefault(); handleJ
 window.addEventListener('touchmove', handleJogMove, {passive:false});
 window.addEventListener('touchend', handleJogEnd);
 
-// --- Audio Handling ---
 async function loadStem(id, file){
   initCtx();
   setStatus('Loading ' + id + '...');
@@ -307,7 +295,6 @@ function applyVol(id){
 function fmt(s){const m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc;}
 function setStatus(msg){document.getElementById('status').textContent=msg;}
 
-// --- UI Construction ---
 function buildEqCard(id, name){
   const s = STEMS.find(x=>x.id===id);
   const card = document.createElement('div');
@@ -319,7 +306,7 @@ function buildEqCard(id, name){
     muted[id] = !muted[id]; card.classList.toggle('muted', muted[id]);
     vols[id] = muted[id] ? 1 : STEPS; refreshCol(id); applyVol(id);
   });
-  const target = document.getElementById('eq-'+id) || document.getElementById('dz-'+id);
+  const target = document.getElementById('dz-'+id) || document.getElementById('eq-'+id);
   target.replaceWith(card);
 }
 
@@ -336,7 +323,7 @@ STEMS.forEach(s => {
 });
 
 const panel = document.getElementById('mixer-panel');
-STEMS.forEach(s => {
+STEMS.forEach((s, si) => {
   const ch = document.createElement('div'); ch.className = 'channel';
   const segsEl = document.createElement('div'); segsEl.className = 'ch-segs';
   for(let i=0; i<STEPS; i++){
@@ -349,7 +336,13 @@ STEMS.forEach(s => {
     segsEl.appendChild(btn);
   }
   const lbl = document.createElement('div'); lbl.className = 'ch-label inactive'; lbl.id = 'lbl-'+s.id; lbl.textContent = s.label;
-  ch.appendChild(segsEl); ch.appendChild(lbl); panel.appendChild(ch);
+  ch.appendChild(segsEl); ch.appendChild(lbl);
+
+  if(si === 2){
+    const dot = document.getElementById('center-dot');
+    panel.appendChild(dot);
+  }
+  panel.appendChild(ch);
 });
 
 document.getElementById('center-dot').addEventListener('click', () => {
@@ -359,7 +352,7 @@ document.getElementById('center-dot').addEventListener('click', () => {
 
 function refreshCol(id){
   const s = STEMS.find(x=>x.id===id);
-  const segs = document.querySelectorAll(`#mixer-panel .channel:nth-child(${STEMS.indexOf(s)+1}) .seg`);
+  const segs = document.querySelectorAll(`#mixer-panel .channel:nth-child(${STEMS.indexOf(s) < 2 ? STEMS.indexOf(s)+1 : STEMS.indexOf(s)+2}) .seg`);
   segs.forEach((b, i) => {
     b.style.background = i < vols[id] ? (muted[id] ? s.acc+'33' : s.acc+'cc') : '#e2e2d5';
   });
