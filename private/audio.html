@@ -26,7 +26,6 @@ h1.fading{opacity:0;}
 .top-links a:hover,.top-links button:hover{color:#1a1a1a;transform:translateY(-2px);}
 .top-links a:active,.top-links button:active{transform:translateY(0px);}
 
-/* ── Magic Clarity Button ─────────────────────────────────────── */
 #clarity-btn{
   position:relative;
   font-size:8px;letter-spacing:.28em;text-transform:uppercase;
@@ -58,7 +57,6 @@ h1.fading{opacity:0;}
   background:#8040ff;
   box-shadow:0 0 6px rgba(128,64,255,0.7);
 }
-/* subtle pulse glow when active */
 @keyframes clarity-pulse{
   0%,100%{box-shadow:0 0 18px rgba(128,64,255,0.18);}
   50%{box-shadow:0 0 28px rgba(128,64,255,0.32);}
@@ -79,6 +77,15 @@ h1.fading{opacity:0;}
 .eq-card.muted{opacity:.35;}
 .eq-card.soloed-out{opacity:.25;filter:saturate(0);transition:opacity .25s ease,filter .25s ease,transform .3s cubic-bezier(0.2,0,0,1),box-shadow .3s ease,background .3s ease;}
 .channel.soloed-out{opacity:.25;filter:saturate(0);transition:opacity .25s ease,filter .25s ease;pointer-events:none;}
+
+/* drag-group-solo highlight */
+.channel.drag-grouped .ch-segs{outline:1px solid rgba(160,136,100,0.4);border-radius:4px;outline-offset:2px;}
+@keyframes group-pulse{
+  0%,100%{outline-color:rgba(160,136,100,0.4);}
+  50%{outline-color:rgba(160,136,100,0.65);}
+}
+.channel.drag-grouped .ch-segs{animation:group-pulse 1.6s ease-in-out infinite;}
+
 .eq-inner{display:flex;flex-direction:column;gap:6px;flex:1;transform-origin:bottom center;will-change:transform;}
 .eq-label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:bold;user-select:none;-webkit-user-select:none;}
 .eq-bars{display:flex;align-items:flex-end;gap:2px;height:32px;flex:1;}
@@ -185,269 +192,207 @@ let scrubbing=false, wasPlayingBeforeScrub=false;
 let dotTapTimer=null, dotTapCount=0;
 let kbSolo=null;
 
-const iosOut=document.getElementById('ios-out');
+// ── Drag-group-solo state ─────────────────────────────────────────────────────
+// When user presses on a fader and slides horizontally onto another stem's column,
+// both stems are brought into a "drag group" — unmuted at full volume.
+// All other stems are silenced for the duration of the drag.
+let dragGroup={
+  active: false,       // true while a group-solo drag is live
+  stems: new Set(),    // stem ids currently in the group
+  preSnap: {},         // vol/muted values before group engage
+};
 
-// ═══════════════════════════════════════════════════════════════════════
-//  MAGIC CLARITY  –  DSP state
-// ═══════════════════════════════════════════════════════════════════════
+// Returns the stem id whose column contains the given clientX, or null.
+function stemIdAtX(clientX){
+  for(const s of STEMS){
+    const el=document.getElementById('segs-'+s.id);
+    if(!el)continue;
+    const r=el.getBoundingClientRect();
+    if(clientX>=r.left-8 && clientX<=r.right+8)return s.id;
+  }
+  return null;
+}
+
+function engageDragGroup(ids){
+  // Save state once on first engage
+  if(!dragGroup.active){
+    dragGroup.active=true;
+    dragGroup.preSnap={};
+    STEMS.forEach(s=>{dragGroup.preSnap[s.id]={vol:vols[s.id],muted:muted[s.id]};});
+  }
+
+  const newSet=new Set(ids);
+
+  // Update each stem's group membership and gain
+  STEMS.forEach(s=>{
+    const inGroup=newSet.has(s.id);
+    dragGroup.stems=newSet;
+
+    if(inGroup){
+      // Unmute and bring to full volume
+      muted[s.id]=false; vols[s.id]=STEPS;
+      gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+      gainNodes[s.id]?.gain.setTargetAtTime(1,actx.currentTime,0.004);
+      document.getElementById('eq-'+s.id)?.classList.remove('muted','soloed-out');
+      document.getElementById('ch-'+s.id)?.classList.remove('soloed-out');
+      document.getElementById('ch-'+s.id)?.classList.add('drag-grouped');
+      document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.remove('muted'));
+      refreshCol(s.id);
+    } else {
+      // Silence non-grouped stems
+      muted[s.id]=true; vols[s.id]=1;
+      gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+      gainNodes[s.id]?.gain.setTargetAtTime(0,actx.currentTime,0.004);
+      document.getElementById('eq-'+s.id)?.classList.add('soloed-out');
+      document.getElementById('ch-'+s.id)?.classList.add('soloed-out');
+      document.getElementById('ch-'+s.id)?.classList.remove('drag-grouped');
+    }
+  });
+}
+
+function releaseDragGroup(){
+  if(!dragGroup.active)return;
+  dragGroup.active=false;
+
+  STEMS.forEach(s=>{
+    const snap=dragGroup.preSnap[s.id];
+    if(snap){
+      // Restore — but if the stem was previously silenced restore to full so
+      // the user hears something (mirrors the existing solo-restore logic)
+      const rv=snap.vol<=1?STEPS:snap.vol;
+      vols[s.id]=rv; muted[s.id]=false;
+      gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
+      gainNodes[s.id]?.gain.setTargetAtTime(rv/STEPS,actx.currentTime,0.004);
+    }
+    document.getElementById('eq-'+s.id)?.classList.remove('muted','soloed-out');
+    document.getElementById('ch-'+s.id)?.classList.remove('soloed-out','drag-grouped');
+    document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.remove('muted'));
+    refreshCol(s.id);
+  });
+
+  dragGroup.stems.clear();
+  dragGroup.preSnap={};
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 let clarityActive=false;
-
-// Per-stem clarity nodes (created once in initCtx)
-// clarityNodes[id] = { hpf, shelf, panner, dryGain, wetGain }
 const clarityNodes={};
-
-// Master clarity nodes (shared across all stems)
 let clarityCompressor=null;
 let claritySoftClipper=null;
-let clarityMasterWet=null;   // GainNode: 0=bypass, 1=clarity chain active
-let clarityMasterDry=null;   // GainNode: 1=bypass, 0=clarity chain active
+let clarityMasterWet=null;
+let clarityMasterDry=null;
 
-/*
-  SIGNAL FLOW (per stem):
-    gainNode  →  analyserNode  →  clarityDryGain  →  masterGain (bypass path)
-                                →  clarityHPF  →  clarityShelf  →  clarityPanner
-                                   →  clarityWetGain  →  masterWet (clarity path)
-
-  Master clarity chain:
-    clarityMasterWet (summing bus)  →  clarityCompressor  →  claritySoftClipper  →  masterGain
-
-  clarityDryGain  and  clarityWetGain  are cross-faded via setTargetAtTime
-  so switching is always click-free.
-*/
-
-// ── Soft-clip curve generator (tanh) ────────────────────────────────────
-// tanh rolls off high-order harmonics faster than x/(1+|x|), producing
-// zero static/fuzz artefacts. No pre-gain: only true peaks are touched.
 function makeSoftClipCurve(numSamples=8192){
   const curve=new Float32Array(numSamples);
   for(let i=0;i<numSamples;i++){
-    const x=(i*2/(numSamples-1))-1; // [-1, +1]
-    curve[i]=Math.tanh(x);           // very gentle knee, no added harmonics
+    const x=(i*2/(numSamples-1))-1;
+    curve[i]=Math.tanh(x);
   }
   return curve;
 }
 
-// ── Build the clarity insert chain for one stem ──────────────────────────
 function buildClarityChain(id){
-  const s=STEMS.find(x=>x.id===id);
-
-  // ── High-pass filter ────────────────────────────────────────────────────
-  // Vocals: 80 Hz Q=1.2  — kills sub-bass rumble / bleed artefacts.
-  // Other:  90 Hz Q=0.707 — eased back from 120 Hz to preserve low-mid body
-  //         (guitar chest, keys warmth) that goes missing without vocals.
-  // Drums/Bass: 20 Hz ≈ transparent bypass.
   const hpf=actx.createBiquadFilter();
   hpf.type='highpass';
-  if(id==='vocals'){
-    hpf.frequency.value=80;  hpf.Q.value=1.2;
-  } else if(id==='other'){
-    hpf.frequency.value=90;  hpf.Q.value=0.707;
-  } else {
-    hpf.frequency.value=20;  hpf.Q.value=0.707;
-  }
+  if(id==='vocals'){hpf.frequency.value=80;hpf.Q.value=1.2;}
+  else if(id==='other'){hpf.frequency.value=90;hpf.Q.value=0.707;}
+  else{hpf.frequency.value=20;hpf.Q.value=0.707;}
 
-  // ── Vocal low-pass (transparent bypass for all stems) ───────────────────
-  // Kept in chain at 20 kHz so the node graph is intact; no filtering occurs.
   const lpf=actx.createBiquadFilter();
-  lpf.type='lowpass';
-  lpf.frequency.value=20000;
-  lpf.Q.value=0.707;
+  lpf.type='lowpass';lpf.frequency.value=20000;lpf.Q.value=0.707;
 
-  // ── Presence bell — "Other" stem only ──────────────────────────────────
-  // Boosts the 2–5 kHz presence band where melodic definition, pick attack,
-  // bow noise, and harmonic overtones live. This restores the sense of
-  // "foreground" that vocals normally provide in the mix.
-  // +2.5 dB at 3200 Hz, Q=1.4 (about one octave wide — musical not surgical).
-  // All other stems: gain=0 (transparent peaking filter at same frequency).
   const presenceBell=actx.createBiquadFilter();
-  presenceBell.type='peaking';
-  presenceBell.frequency.value=3200;
-  presenceBell.Q.value=1.4;
-  presenceBell.gain.value=0; // ramped to +2.5 dB on Clarity ON for 'other' only
+  presenceBell.type='peaking';presenceBell.frequency.value=3200;presenceBell.Q.value=1.4;presenceBell.gain.value=0;
 
-  // ── Mid-Side width expander — "Other" stem only ─────────────────────────
-  // A true MS expander needs a matrix encoder/decoder. We approximate it
-  // with a stereo split: two gain nodes panned to L and R respectively.
-  // widthL pans left (-0.5), widthR pans right (+0.5).
-  // When their gains are equal the image is centred; raising them slightly
-  // above 1.0 exaggerates width perception without phase cancellation.
-  // For non-Other stems these nodes pass at gain=1, pan=0 (mono-compatible).
-  const widthL=actx.createGain();
-  const widthR=actx.createGain();
-  const panL=actx.createStereoPanner();
-  const panR=actx.createStereoPanner();
-  // Each branch starts at 0.5 so L+R always sums to 1.0 at the shelf node.
-  // When Clarity is ON the pans spread but gains stay at 0.5 — no level change.
-  widthL.gain.value=0.5; widthR.gain.value=0.5;
-  panL.pan.value=0;    panR.pan.value=0;
+  const widthL=actx.createGain();const widthR=actx.createGain();
+  const panL=actx.createStereoPanner();const panR=actx.createStereoPanner();
+  widthL.gain.value=0.5;widthR.gain.value=0.5;panL.pan.value=0;panR.pan.value=0;
 
-  // ── High-shelf boost (air) ─────────────────────────────────────────────
   const shelf=actx.createBiquadFilter();
-  shelf.type='highshelf';
-  shelf.frequency.value=10000;
-  shelf.gain.value=0;
+  shelf.type='highshelf';shelf.frequency.value=10000;shelf.gain.value=0;
 
-  // ── Final mono panner (existing stereo-width pan for Other) ────────────
-  const panner=actx.createStereoPanner();
-  panner.pan.value=0;
+  const panner=actx.createStereoPanner();panner.pan.value=0;
 
-  // ── Dry / Wet cross-fade gains ─────────────────────────────────────────
-  const dryGain=actx.createGain();
-  dryGain.gain.value=1;
+  const dryGain=actx.createGain();dryGain.gain.value=1;
+  const wetGain=actx.createGain();wetGain.gain.value=0;
 
-  const wetGain=actx.createGain();
-  wetGain.gain.value=0;
-
-  // ── Wire the per-stem clarity chain ────────────────────────────────────
-  // Dry path (always live, completely unprocessed):
   analyserNodes[id].connect(dryGain);
   dryGain.connect(masterGain);
 
-  // Wet path:
-  //   analyserNode → hpf → lpf → presenceBell → shelf → panner → wetGain
-  //
-  // For the "Other" stem the width L/R nodes sit between presenceBell and
-  // shelf. Each branch carries 0.5× gain so when they re-sum at shelf the
-  // total is unity (0.5 + 0.5 = 1.0). Without this compensation two full-
-  // level copies merge and the signal doubles (+6 dB), bloating the bass.
   analyserNodes[id].connect(hpf);
-  hpf.connect(lpf);
-  lpf.connect(presenceBell);
-  presenceBell.connect(widthL);
-  presenceBell.connect(widthR);
-  widthL.connect(panL);
-  widthR.connect(panR);
-  // Both panned branches re-sum into shelf (unity-compensated via 0.5 gains)
-  panL.connect(shelf);
-  panR.connect(shelf);
-  shelf.connect(panner);
-  panner.connect(wetGain);
+  hpf.connect(lpf);lpf.connect(presenceBell);
+  presenceBell.connect(widthL);presenceBell.connect(widthR);
+  widthL.connect(panL);widthR.connect(panR);
+  panL.connect(shelf);panR.connect(shelf);
+  shelf.connect(panner);panner.connect(wetGain);
   wetGain.connect(clarityMasterWet);
 
   clarityNodes[id]={hpf,lpf,presenceBell,widthL,widthR,panL,panR,shelf,panner,dryGain,wetGain};
 }
 
-// ── Build master clarity bus ─────────────────────────────────────────────
 function buildMasterClarityChain(){
-  // Summing bus (wet stems flow here)
-  clarityMasterWet=actx.createGain();
-  clarityMasterWet.gain.value=1;
+  clarityMasterWet=actx.createGain();clarityMasterWet.gain.value=1;
 
-  // Gentle low-shelf cut to prevent bass accumulation when compressor
-  // applies gain reduction — keeps the low end focused, not bloated
   const masterLowShelf=actx.createBiquadFilter();
-  masterLowShelf.type='lowshelf';
-  masterLowShelf.frequency.value=200;
-  masterLowShelf.gain.value=-2; // -2 dB below 200 Hz on the master wet bus
+  masterLowShelf.type='lowshelf';masterLowShelf.frequency.value=200;masterLowShelf.gain.value=-2;
 
-  // Gentle glue compressor — tuned to avoid bass pumping on loud passages
   clarityCompressor=actx.createDynamicsCompressor();
-  clarityCompressor.threshold.value=-14;   // higher threshold = only catches true peaks
-  clarityCompressor.ratio.value=1.5;       // 1.5:1 – barely audible, just glue
-  clarityCompressor.attack.value=0.025;    // 25 ms – doesn't clamp transients
-  clarityCompressor.release.value=0.100;   // 100 ms – faster release stops bass buildup
-  clarityCompressor.knee.value=18;         // very wide knee = near-transparent onset
+  clarityCompressor.threshold.value=-14;clarityCompressor.ratio.value=1.5;
+  clarityCompressor.attack.value=0.025;clarityCompressor.release.value=0.100;clarityCompressor.knee.value=18;
 
-  // Soft-clip wave shaper (peak protection)
   claritySoftClipper=actx.createWaveShaper();
-  claritySoftClipper.curve=makeSoftClipCurve();
-  claritySoftClipper.oversample='4x'; // reduces aliasing artefacts
+  claritySoftClipper.curve=makeSoftClipCurve();claritySoftClipper.oversample='4x';
 
-  // Wire master clarity chain:  wet bus → low-shelf → compressor → soft-clipper → masterGain
   clarityMasterWet.connect(masterLowShelf);
   masterLowShelf.connect(clarityCompressor);
   clarityCompressor.connect(claritySoftClipper);
   claritySoftClipper.connect(masterGain);
 }
 
-// ── setMagicClarity: the smooth toggle ──────────────────────────────────
-// Uses setTargetAtTime (τ = 0.1 s) for all parameter transitions,
-// guaranteeing zero click/pop artefacts regardless of signal level.
 function setMagicClarity(active){
   clarityActive=active;
   if(!actx)return;
-
-  const now=actx.currentTime;
-  const TC=0.1; // time constant 0.1 s
-
+  const now=actx.currentTime;const TC=0.1;
   STEMS.forEach(s=>{
-    const n=clarityNodes[s.id];
-    if(!n)return;
-
+    const n=clarityNodes[s.id];if(!n)return;
     if(active){
-      // ── ENGAGE clarity chain ─────────────────────────────────────────
-      n.dryGain.gain.setTargetAtTime(0, now, TC);
-      n.wetGain.gain.setTargetAtTime(1, now, TC);
-
-      // HPF: tighter cut for Vocals (80 Hz), eased for Other (90 Hz)
-      if(s.id==='vocals'){
-        n.hpf.frequency.setTargetAtTime(80, now, TC);
-      } else if(s.id==='other'){
-        n.hpf.frequency.setTargetAtTime(90, now, TC);
-      }
-
-      // Presence bell: +2.5 dB at 3.2 kHz for Other only — restores
-      // melodic foreground definition lost when vocals are separated out
+      n.dryGain.gain.setTargetAtTime(0,now,TC);n.wetGain.gain.setTargetAtTime(1,now,TC);
+      if(s.id==='vocals'){n.hpf.frequency.setTargetAtTime(80,now,TC);}
+      else if(s.id==='other'){n.hpf.frequency.setTargetAtTime(90,now,TC);}
+      if(s.id==='other'){n.presenceBell.gain.setTargetAtTime(2.5,now,TC);}
+      else{n.presenceBell.gain.setTargetAtTime(0,now,TC);}
       if(s.id==='other'){
-        n.presenceBell.gain.setTargetAtTime(2.5, now, TC);
-      } else {
-        n.presenceBell.gain.setTargetAtTime(0, now, TC);
+        n.widthL.gain.setTargetAtTime(0.5,now,TC);n.widthR.gain.setTargetAtTime(0.5,now,TC);
+        n.panL.pan.setTargetAtTime(-0.4,now,TC);n.panR.pan.setTargetAtTime(0.4,now,TC);
+        n.panner.pan.setTargetAtTime(0,now,TC);
+      }else{
+        n.widthL.gain.setTargetAtTime(0.5,now,TC);n.widthR.gain.setTargetAtTime(0.5,now,TC);
+        n.panL.pan.setTargetAtTime(0,now,TC);n.panR.pan.setTargetAtTime(0,now,TC);
+        n.panner.pan.setTargetAtTime(0,now,TC);
       }
-
-      // MS width expander: pans spread to ±0.4 to fill the stereo space
-      // vocals normally occupy. Gains stay at 0.5 each so L+R = 1.0 at
-      // the summing point — no level increase, just image widening.
-      if(s.id==='other'){
-        n.widthL.gain.setTargetAtTime(0.5, now, TC);
-        n.widthR.gain.setTargetAtTime(0.5, now, TC);
-        n.panL.pan.setTargetAtTime(-0.4, now, TC);
-        n.panR.pan.setTargetAtTime( 0.4, now, TC);
-        n.panner.pan.setTargetAtTime(0, now, TC);
-      } else {
-        n.widthL.gain.setTargetAtTime(0.5, now, TC);
-        n.widthR.gain.setTargetAtTime(0.5, now, TC);
-        n.panL.pan.setTargetAtTime(0, now, TC);
-        n.panR.pan.setTargetAtTime(0, now, TC);
-        n.panner.pan.setTargetAtTime(0, now, TC);
-      }
-
-      // High-shelf: +1.5 dB air for everything except Bass
-      if(s.id!=='bass'){
-        n.shelf.gain.setTargetAtTime(1.5, now, TC);
-      } else {
-        n.shelf.gain.setTargetAtTime(0, now, TC);
-      }
-
-    } else {
-      // ── BYPASS clarity chain ──────────────────────────────────────────
-      n.dryGain.gain.setTargetAtTime(1, now, TC);
-      n.wetGain.gain.setTargetAtTime(0, now, TC);
-
-      // Ramp everything back to transparent bypass values
-      n.hpf.frequency.setTargetAtTime(20, now, TC);
-      n.presenceBell.gain.setTargetAtTime(0, now, TC);
-      n.widthL.gain.setTargetAtTime(0.5, now, TC);
-      n.widthR.gain.setTargetAtTime(0.5, now, TC);
-      n.panL.pan.setTargetAtTime(0, now, TC);
-      n.panR.pan.setTargetAtTime(0, now, TC);
-      n.shelf.gain.setTargetAtTime(0, now, TC);
-      n.panner.pan.setTargetAtTime(0, now, TC);
+      if(s.id!=='bass'){n.shelf.gain.setTargetAtTime(1.5,now,TC);}
+      else{n.shelf.gain.setTargetAtTime(0,now,TC);}
+    }else{
+      n.dryGain.gain.setTargetAtTime(1,now,TC);n.wetGain.gain.setTargetAtTime(0,now,TC);
+      n.hpf.frequency.setTargetAtTime(20,now,TC);n.presenceBell.gain.setTargetAtTime(0,now,TC);
+      n.widthL.gain.setTargetAtTime(0.5,now,TC);n.widthR.gain.setTargetAtTime(0.5,now,TC);
+      n.panL.pan.setTargetAtTime(0,now,TC);n.panR.pan.setTargetAtTime(0,now,TC);
+      n.shelf.gain.setTargetAtTime(0,now,TC);n.panner.pan.setTargetAtTime(0,now,TC);
     }
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  END OF MAGIC CLARITY DSP
-// ─────────────────────────────────────────────────────────────────────────────
-
 function patchIOSOutput(){
   if(!isIOS||!actx||!mediaStreamDest)return;
   iosOut.srcObject=mediaStreamDest.stream;
-  const p=iosOut.play(); if(p&&p.catch)p.catch(()=>{});
+  const p=iosOut.play();if(p&&p.catch)p.catch(()=>{});
 }
 
+const iosOut=document.getElementById('ios-out');
+
 const titleEl=document.getElementById('title');
-let titleIdx=0, titleInterval=null;
+let titleIdx=0,titleInterval=null;
 function advanceTitle(){
   titleEl.classList.add('fading');
   setTimeout(()=>{
@@ -464,7 +409,7 @@ titleEl.addEventListener('touchstart',()=>advanceTitle(),{passive:true});
 const grid=document.getElementById('stems-grid');
 STEMS.forEach(s=>{
   const dz=document.createElement('div');
-  dz.className='drop-zone'; dz.id='dz-'+s.id;
+  dz.className='drop-zone';dz.id='dz-'+s.id;
   dz.innerHTML=`<div class="dz-label" style="color:${s.acc}">${s.label}</div><div class="dz-hint">tap / drop</div><input type="file" id="fi-${s.id}" accept="audio/mpeg,audio/wav,audio/x-wav,audio/aiff,audio/x-aiff,audio/flac,audio/x-flac,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.aif,.aiff,.flac,.ogg,.m4a,.mp4" multiple>`;
   dz.addEventListener('click',()=>document.getElementById('fi-'+s.id).click());
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
@@ -484,7 +429,7 @@ function detectStem(name){
 function handleFiles(files,fallback){
   if(files.length===1){loadStem(fallback,files[0]);return;}
   const unmatched=[];
-  files.forEach(f=>{const id=detectStem(f.name); id?loadStem(id,f):unmatched.push(f);});
+  files.forEach(f=>{const id=detectStem(f.name);id?loadStem(id,f):unmatched.push(f);});
   const empty=STEMS.map(s=>s.id).filter(id=>!buffers[id]);
   unmatched.forEach((f,i)=>loadStem(empty[i]||fallback,f));
 }
@@ -492,67 +437,120 @@ function handleFiles(files,fallback){
 const panel=document.getElementById('mixer-panel');
 STEMS.forEach(s=>{
   const ch=document.createElement('div');
-  ch.className='channel'; ch.id='ch-'+s.id;
+  ch.className='channel';ch.id='ch-'+s.id;
   const segsEl=document.createElement('div');
-  segsEl.className='ch-segs'; segsEl.id='segs-'+s.id;
+  segsEl.className='ch-segs';segsEl.id='segs-'+s.id;
   for(let i=0;i<STEPS;i++){
     const hit=document.createElement('div');
-    hit.className='seg-hit'; hit.dataset.idx=i;
+    hit.className='seg-hit';hit.dataset.idx=i;
     const pill=document.createElement('div');
-    pill.className='seg'; pill.id=`seg-${s.id}-${i}`;
+    pill.className='seg';pill.id=`seg-${s.id}-${i}`;
     const fill=document.createElement('div');
-    fill.className='seg-fill'; fill.id=`sf-${s.id}-${i}`;
+    fill.className='seg-fill';fill.id=`sf-${s.id}-${i}`;
     fill.style.background=s.acc;
     pill.appendChild(fill);
     hit.appendChild(pill);
     hit.addEventListener('click',e=>{
       if(colDrag.moved){e.preventDefault();return;}
       if(soloStem===s.id)return;
-      vols[s.id]=i+1; muted[s.id]=(i===0);
+      vols[s.id]=i+1;muted[s.id]=(i===0);
       document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);
-      refreshCol(s.id); applyVol(s.id);
+      refreshCol(s.id);applyVol(s.id);
     });
     segsEl.appendChild(hit);
   }
-  segsEl.addEventListener('mousedown',e=>{
-    e.stopPropagation();
-    colDrag={active:true,id:s.id,startY:e.clientY,startVol:vols[s.id],moved:false};
-    faderLastY[s.id]=e.clientY; faderLastT[s.id]=performance.now(); faderVel[s.id]=0;
+
+  // ── Pointer/touch down on a fader column ──────────────────────────────
+  function onFaderDown(clientX, clientY){
+    colDrag={active:true,id:s.id,startX:clientX,startY:clientY,startVol:vols[s.id],moved:false};
+    faderLastY[s.id]=clientY;faderLastT[s.id]=performance.now();faderVel[s.id]=0;
     startHold(s.id);
-  });
+  }
+
+  segsEl.addEventListener('mousedown',e=>{e.stopPropagation();onFaderDown(e.clientX,e.clientY);});
   segsEl.addEventListener('touchstart',e=>{
     e.stopPropagation();
-    colDrag={active:true,id:s.id,startY:e.touches[0].clientY,startVol:vols[s.id],moved:false};
-    faderLastY[s.id]=e.touches[0].clientY; faderLastT[s.id]=performance.now(); faderVel[s.id]=0;
-    startHold(s.id);
+    onFaderDown(e.touches[0].clientX,e.touches[0].clientY);
   },{passive:true});
+
   const lbl=document.createElement('div');
-  lbl.className='ch-label inactive'; lbl.id='lbl-'+s.id; lbl.textContent=s.label;
+  lbl.className='ch-label inactive';lbl.id='lbl-'+s.id;lbl.textContent=s.label;
   lbl.style.color='#dcdcd0';
-  ch.appendChild(segsEl); ch.appendChild(lbl);
+  ch.appendChild(segsEl);ch.appendChild(lbl);
   panel.appendChild(ch);
 });
 
-const dotCh=document.createElement('div'); dotCh.className='channel';
-const dot=document.createElement('div'); dot.id='center-dot';
-dotCh.appendChild(dot); panel.appendChild(dotCh);
+const dotCh=document.createElement('div');dotCh.className='channel';
+const dot=document.createElement('div');dot.id='center-dot';
+dotCh.appendChild(dot);panel.appendChild(dotCh);
 
-function applyFaderDrag(clientY){
+// Threshold (px) of horizontal movement before we switch to group-drag mode
+const GROUP_DRAG_X_THRESH=18;
+
+function applyFaderDrag(clientX, clientY){
   const dy=clientY-colDrag.startY;
+  const dx=clientX-(colDrag.startX||0);
   const now=performance.now();
-  if(Math.abs(dy)>4)colDrag.moved=true;
+
+  // Mark as moved if past threshold in either axis
+  if(Math.abs(dy)>4||Math.abs(dx)>4)colDrag.moved=true;
   if(!colDrag.moved)return;
+
+  // Cancel hold-solo timer once we actually start moving
   if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+
   const id=colDrag.id;
+
+  // ── Horizontal sweep → group-drag-solo mode ───────────────────────────
+  if(actx && Math.abs(dx)>GROUP_DRAG_X_THRESH){
+    const hoveredId=stemIdAtX(clientX);
+    if(hoveredId && hoveredId!==id){
+      // Sweep onto a new stem — add it to the group (or keep existing group)
+      const groupIds=[id, hoveredId];
+      engageDragGroup(groupIds);
+      return; // don't do vertical volume while group-dragging
+    }
+    if(hoveredId===id && dragGroup.active){
+      // Swept back to the origin column — collapse to just the origin stem
+      engageDragGroup([id]);
+      return;
+    }
+  }
+
+  // ── If still in an active group drag (cursor between columns), hold state
+  if(dragGroup.active)return;
+
+  // ── Vertical drag → volume adjust (original behaviour) ───────────────
   faderVel[id]=(clientY-faderLastY[id])/Math.max(1,now-faderLastT[id]);
-  faderLastY[id]=clientY; faderLastT[id]=now;
+  faderLastY[id]=clientY;faderLastT[id]=now;
   const nv=Math.max(1,Math.min(STEPS,colDrag.startVol+Math.round(-dy/100*STEPS)));
-  if(nv!==vols[id]){vols[id]=nv; muted[id]=(nv===1); document.getElementById('eq-'+id)?.classList.toggle('muted',muted[id]); refreshCol(id); applyVol(id);}
+  if(nv!==vols[id]){
+    vols[id]=nv;muted[id]=(nv===1);
+    document.getElementById('eq-'+id)?.classList.toggle('muted',muted[id]);
+    refreshCol(id);applyVol(id);
+  }
 }
-window.addEventListener('mousemove',e=>{if(colDrag.active)applyFaderDrag(e.clientY);});
-window.addEventListener('touchmove',e=>{if(colDrag.active)applyFaderDrag(e.touches[0].clientY);},{passive:false});
-window.addEventListener('mouseup',()=>{if(colDrag.active){colDrag.active=false;endHold();}});
-window.addEventListener('touchend',()=>{if(colDrag.active){colDrag.active=false;endHold();}});
+
+window.addEventListener('mousemove',e=>{
+  if(colDrag.active)applyFaderDrag(e.clientX, e.clientY);
+});
+window.addEventListener('touchmove',e=>{
+  if(colDrag.active)applyFaderDrag(e.touches[0].clientX, e.touches[0].clientY);
+},{passive:false});
+window.addEventListener('mouseup',()=>{
+  if(colDrag.active){
+    colDrag.active=false;
+    if(dragGroup.active){releaseDragGroup();}
+    else{endHold();}
+  }
+});
+window.addEventListener('touchend',()=>{
+  if(colDrag.active){
+    colDrag.active=false;
+    if(dragGroup.active){releaseDragGroup();}
+    else{endHold();}
+  }
+});
 
 function coastFaders(){
   STEMS.forEach(s=>{
@@ -567,7 +565,7 @@ function coastFaders(){
 function buildEqCard(id,name){
   const s=STEMS.find(x=>x.id===id);
   const card=document.createElement('div');
-  card.className='eq-card'; card.id='eq-'+id;
+  card.className='eq-card';card.id='eq-'+id;
   card.innerHTML=`<div class="eq-inner" id="eqinner-${id}"><div class="eq-label" style="color:${s.acc}">${s.label}</div>
     <div class="eq-bars" id="eqbars-${id}">${Array.from({length:EQ_BARS},(_,i)=>`<div class="eq-bar" id="eqbar-${id}-${i}"></div>`).join('')}</div>
     <div class="eq-filename">${name.replace(/\.[^.]+$/,'').toUpperCase()}</div></div>`;
@@ -576,51 +574,32 @@ function buildEqCard(id,name){
     muted[id]=!muted[id];
     card.classList.toggle('muted',muted[id]);
     vols[id]=muted[id]?1:STEPS;
-    refreshCol(id); applyVol(id);
+    refreshCol(id);applyVol(id);
   });
   (document.getElementById('eq-'+id)||document.getElementById('dz-'+id)).replaceWith(card);
 }
 
-// ── Audio context ─────────────────────────────────────────────────────────────
 function initCtx(){
   if(actx)return;
   actx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'playback',sampleRate:44100});
   masterGain=actx.createGain();
-
-  if(isIOS){
-    mediaStreamDest=actx.createMediaStreamDestination();
-    masterGain.connect(mediaStreamDest);
-  } else {
-    masterGain.connect(actx.destination);
-  }
-
-  // Build master clarity chain FIRST (clarityMasterWet must exist before per-stem chains)
+  if(isIOS){mediaStreamDest=actx.createMediaStreamDestination();masterGain.connect(mediaStreamDest);}
+  else{masterGain.connect(actx.destination);}
   buildMasterClarityChain();
-
   STEMS.forEach(s=>{
-    const g=actx.createGain();
-    g.gain.value=0;
-    const an=actx.createAnalyser();
-    an.fftSize=256; an.smoothingTimeConstant=0.65;
-
-    // Original routing: gainNode → analyserNode
+    const g=actx.createGain();g.gain.value=0;
+    const an=actx.createAnalyser();an.fftSize=256;an.smoothingTimeConstant=0.65;
     g.connect(an);
-    // NOTE: analyserNode is NOT directly connected to masterGain here —
-    // that connection now lives inside buildClarityChain (dryGain path).
-    gainNodes[s.id]=g; analyserNodes[s.id]=an;
+    gainNodes[s.id]=g;analyserNodes[s.id]=an;
     eqData[s.id]=new Uint8Array(an.frequencyBinCount);
-
-    // Build the clarity insert (also wires analyserNode → dryGain → masterGain)
     buildClarityChain(s.id);
   });
-
-  // Apply current clarity state (default: OFF, dry path fully open)
   setMagicClarity(clarityActive);
   patchIOSOutput();
 }
 
 async function loadStem(id,file){
-  initCtx(); setStatus('Loading '+id+'…');
+  initCtx();setStatus('Loading '+id+'…');
   try{
     const buf=await file.arrayBuffer();
     const decoded=await actx.decodeAudioData(buf);
@@ -628,22 +607,19 @@ async function loadStem(id,file){
     if(decoded.duration>duration)duration=decoded.duration;
     buildEqCard(id,file.name);
     const lbl=document.getElementById('lbl-'+id);
-    lbl.classList.remove('inactive');
-    lbl.style.color=STEMS.find(s=>s.id===id).acc;
-    triggerRainbow(id); updateTimeDisplay(); setStatus('');
+    lbl.classList.remove('inactive');lbl.style.color=STEMS.find(s=>s.id===id).acc;
+    triggerRainbow(id);updateTimeDisplay();setStatus('');
     if(playing)spawnSrc(id,actx.currentTime-startTime);
-  }catch(err){setStatus('Error decoding '+id); console.error(err);}
+  }catch(err){setStatus('Error decoding '+id);console.error(err);}
 }
 
 function spawnSrc(id,offset=0){
   if(!buffers[id])return;
-  try{srcNodes[id]?.stop(); srcNodes[id]?.disconnect();}catch(e){}
+  try{srcNodes[id]?.stop();srcNodes[id]?.disconnect();}catch(e){}
   const src=actx.createBufferSource();
-  src.buffer=buffers[id];
-  src.connect(gainNodes[id]);
+  src.buffer=buffers[id];src.connect(gainNodes[id]);
   const safeOff=Math.max(0,Math.min(offset,buffers[id].duration-0.01));
-  src.start(0,safeOff);
-  srcNodes[id]=src;
+  src.start(0,safeOff);srcNodes[id]=src;
 }
 
 function playAll(){
@@ -654,32 +630,29 @@ function playAll(){
   const startAt=actx.currentTime+0.005;
   STEMS.forEach(s=>{
     if(!buffers[s.id])return;
-    try{srcNodes[s.id]?.stop(); srcNodes[s.id]?.disconnect();}catch(e){}
+    try{srcNodes[s.id]?.stop();srcNodes[s.id]?.disconnect();}catch(e){}
     const src=actx.createBufferSource();
-    src.buffer=buffers[s.id];
-    src.connect(gainNodes[s.id]);
+    src.buffer=buffers[s.id];src.connect(gainNodes[s.id]);
     const safeOff=Math.max(0,Math.min(off,buffers[s.id].duration-0.01));
-    src.start(startAt,safeOff);
-    srcNodes[s.id]=src;
+    src.start(startAt,safeOff);srcNodes[s.id]=src;
   });
-  startTime=startAt-off;
-  playing=true; dot.classList.add('playing');
+  startTime=startAt-off;playing=true;dot.classList.add('playing');
   STEMS.forEach(s=>applyVol(s.id));
 }
 
 function pauseAll(){
   pauseOff=actx.currentTime-startTime;
   STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
-  playing=false; dot.classList.remove('playing');
+  playing=false;dot.classList.remove('playing');
 }
 
 function scrubStart(){
   if(scrubbing)return;
-  scrubbing=true; wasPlayingBeforeScrub=playing;
+  scrubbing=true;wasPlayingBeforeScrub=playing;
   if(playing){
     pauseOff=actx.currentTime-startTime;
     STEMS.forEach(s=>{try{srcNodes[s.id]?.stop();}catch(e){}});
-    playing=false; dot.classList.remove('playing');
+    playing=false;dot.classList.remove('playing');
   }
 }
 function scrubMove(newOff){
@@ -707,7 +680,7 @@ function applyVol(id){
 
 function startHold(id){
   holdTimer=setTimeout(()=>{
-    holdTimer=null; soloStem=id;
+    holdTimer=null;soloStem=id;
     STEMS.forEach(s=>{
       if(s.id!==id){
         soloSnap[s.id]=vols[s.id];
@@ -716,8 +689,8 @@ function startHold(id){
         document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.add('muted'));
         document.getElementById('ch-'+s.id)?.classList.add('soloed-out');
         document.getElementById('eq-'+s.id)?.classList.add('soloed-out');
-      } else {
-        muted[s.id]=false; vols[s.id]=STEPS;
+      }else{
+        muted[s.id]=false;vols[s.id]=STEPS;
         gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
         gainNodes[s.id]?.gain.setTargetAtTime(1,actx.currentTime,0.004);
         document.getElementById('eq-'+s.id)?.classList.remove('muted');
@@ -733,18 +706,17 @@ function endHold(){
   if(!soloStem)return;
   STEMS.forEach(s=>{
     if(s.id!==soloStem){
-      const restoreVol=(soloSnap[s.id]??vols[s.id])<=1 ? STEPS : (soloSnap[s.id]??vols[s.id]);
-      vols[s.id]=restoreVol; muted[s.id]=false;
+      const restoreVol=(soloSnap[s.id]??vols[s.id])<=1?STEPS:(soloSnap[s.id]??vols[s.id]);
+      vols[s.id]=restoreVol;muted[s.id]=false;
       gainNodes[s.id]?.gain.cancelScheduledValues(actx.currentTime);
       gainNodes[s.id]?.gain.setTargetAtTime(restoreVol/STEPS,actx.currentTime,0.004);
-      document.getElementById('eq-'+s.id)?.classList.remove('muted');
-      document.getElementById('eq-'+s.id)?.classList.remove('soloed-out');
+      document.getElementById('eq-'+s.id)?.classList.remove('muted','soloed-out');
       document.getElementById('ch-'+s.id)?.classList.remove('soloed-out');
       document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach(b=>b.classList.remove('muted'));
       refreshCol(s.id);
     }
   });
-  soloSnap={}; soloStem=null;
+  soloSnap={};soloStem=null;
 }
 
 function refreshCol(id){
@@ -765,7 +737,7 @@ STEMS.forEach(s=>stemEnergy[s.id]=0);
 
 function updateEqBars(){
   STEMS.forEach(s=>{
-    const an=analyserNodes[s.id]; if(!an)return;
+    const an=analyserNodes[s.id];if(!an)return;
     an.getByteFrequencyData(eqData[s.id]);
     let total=0;
     for(let i=0;i<eqData[s.id].length;i++)total+=eqData[s.id][i];
@@ -773,23 +745,17 @@ function updateEqBars(){
     const target=(!playing||muted[s.id])?0:avg;
     stemEnergy[s.id]=stemEnergy[s.id]*0.7+target*0.3;
     const inner=document.getElementById('eqinner-'+s.id);
-    if(inner){
-      const sc=1+stemEnergy[s.id]*0.06;
-      inner.style.transform=`scaleY(${sc.toFixed(4)})`;
-    }
+    if(inner){const sc=1+stemEnergy[s.id]*0.06;inner.style.transform=`scaleY(${sc.toFixed(4)})`;}
     const card=document.getElementById('eq-'+s.id);
     if(card){
       const e=stemEnergy[s.id];
       if(playing&&!muted[s.id]&&e>0.01){
         card.style.boxShadow=`0 4px 24px rgba(0,0,0,0.04), 0 0 ${(20*e).toFixed(1)}px ${s.acc}44`;
         card.style.borderColor=e>0.5?s.acc+'99':'rgba(255,255,255,0.2)';
-      } else {
-        card.style.boxShadow='0 4px 24px rgba(0,0,0,0.04)';
-        card.style.borderColor='rgba(255,255,255,0.2)';
-      }
+      }else{card.style.boxShadow='0 4px 24px rgba(0,0,0,0.04)';card.style.borderColor='rgba(255,255,255,0.2)';}
     }
     for(let i=0;i<EQ_BARS;i++){
-      const bar=document.getElementById('eqbar-'+s.id+'-'+i); if(!bar)continue;
+      const bar=document.getElementById('eqbar-'+s.id+'-'+i);if(!bar)continue;
       const val=muted[s.id]?0:(eqData[s.id][Math.floor(i/EQ_BARS*eqData[s.id].length)]||0);
       bar.style.height=Math.max(4,Math.round(val/255*100))+'%';
       bar.style.background=(playing&&!muted[s.id])?s.acc+'cc':'#e2e2d5';
@@ -798,11 +764,11 @@ function updateEqBars(){
 }
 
 function getSegBandEnergy(id,segIdx){
-  const data=eqData[id]; if(!data)return 0;
+  const data=eqData[id];if(!data)return 0;
   const bins=data.length;
   const lo=Math.floor(Math.pow(segIdx/STEPS,1.6)*bins);
   const hi=Math.floor(Math.pow((segIdx+1)/STEPS,1.6)*bins);
-  let sum=0; for(let i=lo;i<hi;i++)sum+=data[i]||0;
+  let sum=0;for(let i=lo;i<hi;i++)sum+=data[i]||0;
   return sum/Math.max(1,hi-lo)/255;
 }
 
@@ -812,8 +778,7 @@ function updateColEq(){
     if(an)an.getByteFrequencyData(eqData[s.id]);
     const base=hexToRgb(s.acc);
     document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach((hit,i)=>{
-      const btn=hit.querySelector('.seg');
-      if(!btn)return;
+      const btn=hit.querySelector('.seg');if(!btn)return;
       const raw=an&&playing&&buffers[s.id]?getSegBandEnergy(s.id,i):0;
       eqSmooth[s.id][i]=raw>eqSmooth[s.id][i]?raw*.7+eqSmooth[s.id][i]*.3:raw*.1+eqSmooth[s.id][i]*.9;
       const level=muted[s.id]?0:eqSmooth[s.id][i];
@@ -824,9 +789,7 @@ function updateColEq(){
       if(on&&!muted[s.id]){
         const boost=Math.round(level*40);
         btn.style.background=`rgba(${Math.min(255,base.r+boost)},${Math.min(255,base.g+boost)},${Math.min(255,base.b+boost)},0.9)`;
-      }else{
-        btn.style.background=on?s.acc+'33':'#e2e2d5';
-      }
+      }else{btn.style.background=on?s.acc+'33':'#e2e2d5';}
     });
   });
 }
@@ -841,57 +804,50 @@ function rainbowColor(s,idx,elapsed){
   return`rgb(${Math.min(255,base.r+b)},${Math.min(255,base.g+b)},${Math.min(255,base.b+b)})`;
 }
 
-// ── Center dot ────────────────────────────────────────────────────────────────
 function handleDotActivate(e){
   e.stopPropagation();
   if(!hasAnyStem())return;
-  initCtx(); if(actx.state==='suspended')actx.resume();
+  initCtx();if(actx.state==='suspended')actx.resume();
   playing?pauseAll():playAll();
 }
 dot.addEventListener('click',handleDotActivate);
 dot.addEventListener('touchend',e=>{e.preventDefault();handleDotActivate(e);});
 
-// ── Magic Clarity button ──────────────────────────────────────────────────────
 const clarityBtn=document.getElementById('clarity-btn');
 clarityBtn.addEventListener('click',()=>{
-  // initCtx on first interaction if not yet initialised
   if(!actx)initCtx();
   clarityActive=!clarityActive;
   clarityBtn.classList.toggle('active',clarityActive);
   setMagicClarity(clarityActive);
 });
 
-// ── Keyboard shortcuts ────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   switch(e.code){
     case'Space':
       e.preventDefault();
       if(!hasAnyStem())return;
-      initCtx(); if(actx.state==='suspended')actx.resume();
-      playing?pauseAll():playAll(); break;
+      initCtx();if(actx.state==='suspended')actx.resume();
+      playing?pauseAll():playAll();break;
     case'ArrowRight':
-      e.preventDefault();
-      if(!duration)return;
-      scrubStart(); scrubMove(pauseOff+5); scrubEnd(); break;
+      e.preventDefault();if(!duration)return;
+      scrubStart();scrubMove(pauseOff+5);scrubEnd();break;
     case'ArrowLeft':
-      e.preventDefault();
-      if(!duration)return;
-      scrubStart(); scrubMove(pauseOff-5); scrubEnd(); break;
+      e.preventDefault();if(!duration)return;
+      scrubStart();scrubMove(pauseOff-5);scrubEnd();break;
     case'KeyM':
       if(!hasAnyStem())return;
       const anyActive=STEMS.some(s=>!muted[s.id]);
       STEMS.forEach(s=>{
-        muted[s.id]=anyActive; vols[s.id]=anyActive?1:STEPS;
+        muted[s.id]=anyActive;vols[s.id]=anyActive?1:STEPS;
         document.getElementById('eq-'+s.id)?.classList.toggle('muted',muted[s.id]);
-        refreshCol(s.id); applyVol(s.id);
-      }); break;
+        refreshCol(s.id);applyVol(s.id);
+      });break;
     case'KeyC':
-      // C key toggles Magic Clarity
       if(!actx)initCtx();
       clarityActive=!clarityActive;
       clarityBtn.classList.toggle('active',clarityActive);
-      setMagicClarity(clarityActive); break;
+      setMagicClarity(clarityActive);break;
     case'Digit1':case'Numpad1':soloByIndex(0);break;
     case'Digit2':case'Numpad2':soloByIndex(1);break;
     case'Digit3':case'Numpad3':soloByIndex(2);break;
@@ -901,7 +857,7 @@ document.addEventListener('keydown',e=>{
 
 function soloByIndex(idx){
   if(!hasAnyStem())return;
-  const id=STEMS[idx]?.id; if(!id||!buffers[id])return;
+  const id=STEMS[idx]?.id;if(!id||!buffers[id])return;
   if(kbSolo===id){
     STEMS.forEach(s=>{muted[s.id]=false;vols[s.id]=STEPS;document.getElementById('eq-'+s.id)?.classList.remove('muted');refreshCol(s.id);applyVol(s.id);});
     kbSolo=null;
@@ -911,17 +867,16 @@ function soloByIndex(idx){
   }
 }
 
-// ── Progress bar ──────────────────────────────────────────────────────────────
 const progWrap=document.getElementById('prog-wrap');
 progWrap.addEventListener('click',e=>{
   if(!duration)return;
   const rect=e.currentTarget.getBoundingClientRect();
-  scrubStart(); scrubMove(((e.clientX-rect.left)/rect.width)*duration); scrubEnd();
+  scrubStart();scrubMove(((e.clientX-rect.left)/rect.width)*duration);scrubEnd();
 });
 let progDragging=false;
 progWrap.addEventListener('touchstart',e=>{
   if(!duration)return;
-  progDragging=true; scrubStart();
+  progDragging=true;scrubStart();
   const rect=e.currentTarget.getBoundingClientRect();
   scrubMove(((e.touches[0].clientX-rect.left)/rect.width)*duration);
 },{passive:true});
@@ -932,11 +887,10 @@ progWrap.addEventListener('touchmove',e=>{
 },{passive:true});
 progWrap.addEventListener('touchend',()=>{if(progDragging){progDragging=false;scrubEnd();}});
 
-// ── Jog wheel ─────────────────────────────────────────────────────────────────
 const jogEl=document.getElementById('jog');
 const disc=document.getElementById('jog-disc');
 let jogDrag={active:false,lastX:0};
-let jogAngle=0, jogVel=0, jogLastT=0;
+let jogAngle=0,jogVel=0,jogLastT=0;
 const JOG_SENS=0.6;
 
 function jogApply(dx){
@@ -949,74 +903,64 @@ function jogApply(dx){
 }
 
 jogEl.addEventListener('mousedown',e=>{
-  if(!hasAnyStem())return; initCtx();
+  if(!hasAnyStem())return;initCtx();
   jogDrag={active:true,lastX:e.clientX};
-  jogLastT=performance.now(); jogVel=0;
-  scrubStart();
+  jogLastT=performance.now();jogVel=0;scrubStart();
 });
 window.addEventListener('mousemove',e=>{
   if(!jogDrag.active)return;
   const dx=e.clientX-jogDrag.lastX;
   const now=performance.now();
-  jogVel=dx/Math.max(1,now-jogLastT); jogLastT=now;
-  jogApply(dx); jogDrag.lastX=e.clientX;
+  jogVel=dx/Math.max(1,now-jogLastT);jogLastT=now;
+  jogApply(dx);jogDrag.lastX=e.clientX;
 });
 window.addEventListener('mouseup',()=>{
   if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
 jogEl.addEventListener('touchstart',e=>{
   e.preventDefault();
-  if(!hasAnyStem())return; initCtx();
+  if(!hasAnyStem())return;initCtx();
   jogDrag={active:true,lastX:e.touches[0].clientX};
-  jogLastT=performance.now(); jogVel=0;
-  scrubStart();
+  jogLastT=performance.now();jogVel=0;scrubStart();
 },{passive:false});
 window.addEventListener('touchmove',e=>{
   if(!jogDrag.active)return;
   const dx=e.touches[0].clientX-jogDrag.lastX;
   const now=performance.now();
-  jogVel=dx/Math.max(1,now-jogLastT); jogLastT=now;
-  jogApply(dx); jogDrag.lastX=e.touches[0].clientX;
+  jogVel=dx/Math.max(1,now-jogLastT);jogLastT=now;
+  jogApply(dx);jogDrag.lastX=e.touches[0].clientX;
 },{passive:true});
 window.addEventListener('touchend',()=>{
   if(jogDrag.active){jogDrag.active=false;disc.classList.remove('spinning');scrubEnd();}
 });
 function coastJog(){
-  if(!jogDrag.active&&Math.abs(jogVel)>0.01){
-    jogApply(jogVel*16); jogVel*=0.82;
-  }
+  if(!jogDrag.active&&Math.abs(jogVel)>0.01){jogApply(jogVel*16);jogVel*=0.82;}
 }
 
-// ── Animate ───────────────────────────────────────────────────────────────────
 function animate(){
   requestAnimationFrame(animate);
-  coastJog();
-  coastFaders();
-  updateEqBars();
-  updateColEq();
+  coastJog();coastFaders();
+  updateEqBars();updateColEq();
   STEMS.forEach(s=>{
     const rs=rainbowState[s.id];
     if(rs?.active){
       const el=performance.now()-rs.start;
       if(el<RAINBOW_DUR){
         document.querySelectorAll('#segs-'+s.id+' .seg-hit').forEach((hit,i)=>{
-          const pill=hit.querySelector('.seg'); if(!pill)return;
+          const pill=hit.querySelector('.seg');if(!pill)return;
           pill.style.background=rainbowColor(s,i,el);
-        }); return;
+        });return;
       }
-      rs.active=false; refreshCol(s.id);
+      rs.active=false;refreshCol(s.id);
     }
   });
   if(playing&&duration>0){
     const el=actx.currentTime-startTime;
-    if(!jogDrag.active){
-      jogAngle+=360/4/60;
-      disc.style.transform=`rotate(${jogAngle}deg)`;
-    }
+    if(!jogDrag.active){jogAngle+=360/4/60;disc.style.transform=`rotate(${jogAngle}deg)`;}
     document.getElementById('prog-bar').style.width=Math.min(el/duration*100,100)+'%';
     document.getElementById('time').textContent=fmt(el)+' / '+fmt(duration);
     if(el>=duration+0.2){
-      pauseOff=0; playing=false; dot.classList.remove('playing');
+      pauseOff=0;playing=false;dot.classList.remove('playing');
       document.getElementById('prog-bar').style.width='0%';
     }
   }
