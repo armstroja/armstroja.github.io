@@ -46,15 +46,15 @@
     #eq-container {
         display: flex;
         justify-content: center;
-        gap: 16px;
+        gap: 10px;
         margin-bottom: 30px;
-        height: 60px;
+        height: 100px;
         align-items: flex-end;
     }
 
     .eq-bar-large {
-        width: 24px;
-        border-radius: 4px;
+        width: 28px;
+        border-radius: 4px 4px 2px 2px;
         transition: height 0.12s ease-out, background-color 0.2s ease;
         background: #dcdcd0;
     }
@@ -210,15 +210,15 @@
 
     STEM_COLORS.forEach((color, i) => {
         const bar = document.getElementById(`bar-${i}`);
-        bar.style.backgroundColor = color + 'cc';
+        bar.style.backgroundColor = 'rgba(255,255,255,0.75)';
     });
 
     function animateBars() {
         STEM_COLORS.forEach((color, i) => {
             const bar = document.getElementById(`bar-${i}`);
-            const randomHeight = Math.floor(Math.random() * 50) + 10;
+            const randomHeight = Math.floor(Math.random() * 80) + 20;
             bar.style.height = `${randomHeight}px`;
-            bar.style.backgroundColor = Math.random() > 0.8 ? color : color + 'cc';
+            bar.style.backgroundColor = Math.random() > 0.8 ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.75)';
         });
         setTimeout(animateBars, 150);
     }
