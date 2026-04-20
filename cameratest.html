@@ -175,9 +175,9 @@ function drawPinch(landmarks, color, label) {
   [{ x: tx, y: ty }, { x: ix, y: iy }].forEach(pt => {
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = color + 'cc';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fill();
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.stroke();
   });
@@ -216,7 +216,7 @@ function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
   if (dist < 2) return;
   const ux = dx / dist, uy = dy / dist;
   const nx = -uy, ny = ux; // fixed: normal vector restored
-  const amplitude = Math.min(40, dist * 0.18);
+  const amplitude = Math.min(70, dist * 0.28);
   const samples = Math.min(bufLen, 128);
 
   ctx.save();
@@ -230,10 +230,7 @@ function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
     const py = by + ny * v * amplitude;
     i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
   }
-  const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-  grad.addColorStop(0, L_COLOR + 'ee');
-  grad.addColorStop(1, R_COLOR + 'ee');
-  ctx.strokeStyle = grad;
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
@@ -247,8 +244,8 @@ function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
     const py = by + ny * v * amplitude;
     i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
   }
-  ctx.strokeStyle = '#ffffff33';
-  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 8;
   ctx.stroke();
   ctx.restore();
 }
@@ -502,8 +499,8 @@ function stopAudio() {
   document.getElementById('btn-pause').disabled = true;
   cancelAnimationFrame(vizAnimFrame);
   const w = vizCanvas.offsetWidth || 600;
-  vizCanvas.width = w; vizCanvas.height = 160;
-  vizCtx.clearRect(0, 0, w, 160);
+  vizCanvas.width = w; vizCanvas.height = 200;
+  vizCtx.clearRect(0, 0, w, 200);
   document.getElementById('playhead').style.width = '0%';
   updateTimeDisplay();
 }
@@ -539,7 +536,7 @@ function updateTimeDisplay() {
 function startVizLoop() {
   const W = vizCanvas.offsetWidth || 600;
   vizCanvas.width = W;
-  vizCanvas.height = 160;
+  vizCanvas.height = 200;
   const bufLen = analyser.frequencyBinCount;
   const timeBuf = new Uint8Array(bufLen);
   const freqBuf = new Uint8Array(analyser.fftSize / 2);
@@ -548,19 +545,18 @@ function startVizLoop() {
     vizAnimFrame = requestAnimationFrame(frame);
     try {
       updateTimeDisplay();
-      const color = getVizColor();
-      vizCtx.clearRect(0, 0, W, 160);
+      vizCtx.clearRect(0, 0, W, 200);
 
     if (vizMode === 'waveform') {
       analyser.getByteTimeDomainData(timeBuf);
       vizCtx.beginPath();
-      vizCtx.strokeStyle = color;
-      vizCtx.lineWidth = 2;
+      vizCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+      vizCtx.lineWidth = 2.5;
       const sliceW = W / bufLen;
       let x = 0;
       for (let i = 0; i < bufLen; i++) {
         const v = timeBuf[i] / 128;
-        const y = (v * 160) / 2;
+        const y = (v * 200) / 2;
         i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
         x += sliceW;
       }
@@ -568,36 +564,37 @@ function startVizLoop() {
 
     } else if (vizMode === 'bars') {
       analyser.getByteFrequencyData(freqBuf);
-      const barW = W / 80;
-      const gap = 1;
-      for (let i = 0; i < 80; i++) {
-        const val = freqBuf[Math.floor(i * freqBuf.length / 80)] / 255;
-        const bh = val * 150;
-        const alpha = 0.5 + val * 0.5;
-        vizCtx.fillStyle = color + Math.round(alpha * 255).toString(16).padStart(2,'0');
+      const numBars = 48;
+      const gap = 3;
+      const barW = (W - gap * (numBars - 1)) / numBars;
+      for (let i = 0; i < numBars; i++) {
+        const val = freqBuf[Math.floor(i * freqBuf.length / numBars)] / 255;
+        const bh = Math.max(3, val * 196);
+        const alpha = 0.55 + val * 0.45;
+        vizCtx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
         vizCtx.beginPath();
-        vizCtx.roundRect(i * (barW + gap), 160 - bh, barW, bh, 2);
+        vizCtx.roundRect(i * (barW + gap), 200 - bh, barW, bh, 4);
         vizCtx.fill();
       }
 
     } else if (vizMode === 'radial') {
       analyser.getByteFrequencyData(freqBuf);
-      const cx = W / 2, cy = 80, r = 50;
+      const cx = W / 2, cy = 100, r = 50;
       const slices = 128;
       vizCtx.beginPath();
       for (let i = 0; i <= slices; i++) {
         const angle = (i / slices) * Math.PI * 2 - Math.PI / 2;
         const val = freqBuf[Math.floor(i * freqBuf.length / slices)] / 255;
-        const radius = r + val * 60;
+        const radius = r + val * 80;
         const x = cx + Math.cos(angle) * radius;
         const y = cy + Math.sin(angle) * radius;
         i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
       }
       vizCtx.closePath();
-      vizCtx.strokeStyle = color;
+      vizCtx.strokeStyle = 'rgba(255,255,255,0.95)';
       vizCtx.lineWidth = 2;
       vizCtx.stroke();
-      vizCtx.fillStyle = color + '22';
+      vizCtx.fillStyle = 'rgba(255,255,255,0.08)';
       vizCtx.fill();
     }
 
