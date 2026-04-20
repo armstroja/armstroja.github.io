@@ -321,7 +321,9 @@ function onResults(results) {
   }
 
   if (leftCenterPos && rightCenterPos && vizPlaying && analyser) {
-    drawInterfingerWaveform(leftCenterPos.x, leftCenterPos.y, rightCenterPos.x, rightCenterPos.y, analyser);
+    try {
+      drawInterfingerWaveform(leftCenterPos.x, leftCenterPos.y, rightCenterPos.x, rightCenterPos.y, analyser);
+    } catch (e) { console.warn('Waveform rendering error:', e); }
   }
 }
 
@@ -350,7 +352,9 @@ async function startAll() {
 
     async function loop() {
       if (!running) return;
-      if (video.readyState >= 2) await hands.send({ image: video });
+      try {
+        if (video.readyState >= 2) await hands.send({ image: video });
+      } catch (e) { console.warn('Frame send error:', e); }
       animFrame = requestAnimationFrame(loop);
     }
     loop();
@@ -538,9 +542,10 @@ function startVizLoop() {
 
   function frame() {
     vizAnimFrame = requestAnimationFrame(frame);
-    updateTimeDisplay();
-    const color = getVizColor();
-    vizCtx.clearRect(0, 0, W, 160);
+    try {
+      updateTimeDisplay();
+      const color = getVizColor();
+      vizCtx.clearRect(0, 0, W, 160);
 
     if (vizMode === 'waveform') {
       analyser.getByteTimeDomainData(timeBuf);
@@ -593,6 +598,7 @@ function startVizLoop() {
     }
 
     if (!vizPlaying) cancelAnimationFrame(vizAnimFrame);
+    } catch (e) { console.warn('Visualization rendering error:', e); }
   }
   frame();
 }
