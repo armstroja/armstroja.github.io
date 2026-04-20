@@ -335,9 +335,13 @@ async function startAll() {
   btnStart.disabled = true;
   setStatus('Requesting camera…', '#EF9F27');
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
     video.srcObject = stream;
-    await new Promise(r => video.onloadedmetadata = r);
+    await new Promise(r => {
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) { r(); return; }
+      video.onloadedmetadata = r;
+    });
+    await video.play();
     resizeCanvas();
 
     setStatus('Loading hand model…', '#EF9F27');
