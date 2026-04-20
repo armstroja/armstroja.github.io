@@ -206,7 +206,7 @@ function drawSkeleton(landmarks) {
 }
 
 function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
-  if (!analyserNode) return;
+  if (!analyserNode || !canvas.width || !canvas.height) return;
   const bufLen = analyserNode.frequencyBinCount;
   const timeBuf = new Uint8Array(bufLen);
   analyserNode.getByteTimeDomainData(timeBuf);
@@ -215,6 +215,7 @@ function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
   const dist = Math.hypot(dx, dy);
   if (dist < 2) return;
   const ux = dx / dist, uy = dy / dist;
+  const nx = -uy, ny = ux; // fixed: normal vector restored
   const amplitude = Math.min(40, dist * 0.18);
   const samples = Math.min(bufLen, 128);
 
@@ -325,7 +326,7 @@ function onResults(results) {
 }
 
 waveSelect.addEventListener('change', () => {
-  // Kept for UI compatibility; no standalone theremin oscillator is generated now.
+  // Kept for UI compatibility; no standalone oscillator is generated.
 });
 
 async function startAll() {
