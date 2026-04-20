@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fingertip Theremin with Audio Visualizer</title>
+  <style>
+    body { font-family: sans-serif; background: #fff; color: #111; margin: 0; padding: 1rem; }
+    button { cursor: pointer; padding: 6px 14px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; font-size: 13px; }
+    button:hover { background: #f0f0f0; }
+    button:disabled { opacity: 0.4; cursor: default; }
+    select { cursor: pointer; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  </style>
+</head>
+<body>
+
+<h2 class="sr-only">Fingertip theremin with audio upload — left hand controls volume, right hand controls frequency, uploaded audio shows animated waveform</h2>
+
+<div style="padding: 1rem 0; max-width: 700px; margin: 0 auto;">
+
+  <h1 style="font-size: 18px; font-weight: 500; margin: 0 0 16px;">Fingertip Theremin</h1>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:12px;margin-bottom:14px;">
+    <div style="background:#f5f5f3;border-radius:8px;padding:12px 14px;">
+      <div style="font-size:12px;color:#666;margin-bottom:4px;">Left hand — volume</div>
+      <div style="font-size:22px;font-weight:500;" id="vol-display">—</div>
+      <div style="height:6px;background:#ddd;border-radius:3px;margin-top:8px;overflow:hidden;">
+        <div id="vol-bar" style="height:100%;width:0%;background:#1D9E75;border-radius:3px;transition:width 0.05s;"></div>
+      </div>
+    </div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:12px 14px;">
+      <div style="font-size:12px;color:#666;margin-bottom:4px;">Right hand — frequency</div>
+      <div style="font-size:22px;font-weight:500;" id="freq-display">—</div>
+      <div style="height:6px;background:#ddd;border-radius:3px;margin-top:8px;overflow:hidden;">
+        <div id="freq-bar" style="height:100%;width:0%;background:#378ADD;border-radius:3px;transition:width 0.05s;"></div>
+      </div>
+    </div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:12px 14px;">
+      <div style="font-size:12px;color:#666;margin-bottom:4px;">Waveform</div>
+      <select id="wave-select" style="margin-top:4px;font-size:14px;width:100%;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:4px 8px;color:#111;">
+        <option value="sine">Sine</option>
+        <option value="triangle">Triangle</option>
+        <option value="sawtooth">Sawtooth</option>
+        <option value="square">Square</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="status-bar" style="font-size:13px;color:#666;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+    <span id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#aaa;display:inline-block;flex-shrink:0;"></span>
+    <span id="status-text">Ready</span>
+  </div>
+
+  <div style="position:relative;display:inline-block;width:100%;max-width:640px;">
+    <video id="video" autoplay playsinline muted style="width:100%;border-radius:12px;display:block;transform:scaleX(-1);background:#000;"></video>
+    <canvas id="overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:12px;transform:scaleX(-1);pointer-events:none;"></canvas>
+  </div>
+
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <button id="btn-start" onclick="startAll()">Start</button>
+    <button id="btn-stop" onclick="stopAll()" disabled>Stop</button>
+    <div style="font-size:12px;color:#666;margin-left:4px;">Freq range:</div>
+    <select id="freq-range" style="font-size:13px;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:3px 8px;color:#111;">
+      <option value="80,800">Bass (80–800 Hz)</option>
+      <option value="200,2000" selected>Mid (200–2000 Hz)</option>
+      <option value="500,5000">High (500–5000 Hz)</option>
+    </select>
+  </div>
+
+  <div style="margin-top:20px;border-top:0.5px solid #ddd;padding-top:16px;">
+    <div style="font-size:13px;font-weight:500;color:#111;margin-bottom:10px;">Audio visualizer</div>
+
+    <div id="upload-area" style="border:0.5px dashed #bbb;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#f5f5f3;transition:background 0.15s;" onclick="document.getElementById('audio-upload').click()" ondragover="event.preventDefault();this.style.background='#e8f0fb'" ondragleave="this.style.background='#f5f5f3'" ondrop="handleDrop(event)">
+      <div style="font-size:13px;color:#666;">Drop an audio file here, or click to upload</div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">MP3, WAV, OGG, M4A supported</div>
+      <input type="file" id="audio-upload" accept="audio/*" style="display:none;" onchange="loadAudioFile(this.files[0])">
+    </div>
+
+    <div id="audio-controls" style="display:none;margin-top:10px;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <button id="btn-play" onclick="playAudio()">Play</button>
+        <button id="btn-pause" onclick="pauseAudio()" disabled>Pause</button>
+        <button id="btn-stop-audio" onclick="stopAudio()">Stop</button>
+        <span id="audio-filename" style="font-size:12px;color:#666;margin-left:4px;"></span>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;color:#666;white-space:nowrap;">Viz mode:</span>
+        <select id="viz-mode" style="font-size:13px;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:3px 8px;color:#111;" onchange="setVizMode(this.value)">
+          <option value="waveform">Waveform</option>
+          <option value="bars">Frequency bars</option>
+          <option value="radial">Radial</option>
+        </select>
+        <span style="font-size:12px;color:#666;white-space:nowrap;margin-left:8px;">Color:</span>
+        <select id="viz-color" style="font-size:13px;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:3px 8px;color:#111;">
+          <option value="#378ADD">Blue</option>
+          <option value="#1D9E75">Teal</option>
+          <option value="#D4537E">Pink</option>
+          <option value="#EF9F27">Amber</option>
+          <option value="#E24B4A">Red</option>
+          <option value="#7F77DD">Purple</option>
+        </select>
+      </div>
+
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#f5f5f3;">
+        <canvas id="viz-canvas" style="width:100%;display:block;border-radius:12px;"></canvas>
+        <div id="playhead-overlay" style="position:absolute;bottom:6px;left:10px;right:10px;height:3px;background:#ddd;border-radius:2px;cursor:pointer;" onclick="seekAudio(event)">
+          <div id="playhead" style="height:100%;width:0%;background:#888;border-radius:2px;transition:width 0.1s;"></div>
+        </div>
+        <div style="position:absolute;bottom:14px;right:10px;font-size:11px;color:#666;" id="time-display">0:00 / 0:00</div>
+      </div>
+
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:#666;">Waveform overview:</span>
+      </div>
+      <canvas id="overview-canvas" style="width:100%;border-radius:8px;margin-top:4px;cursor:pointer;display:block;" height="48" onclick="seekFromOverview(event)"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('overlay');
+const ctx = canvas.getContext('2d');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const volDisplay = document.getElementById('vol-display');
+const freqDisplay = document.getElementById('freq-display');
+const volBar = document.getElementById('vol-bar');
+const freqBar = document.getElementById('freq-bar');
+const waveSelect = document.getElementById('wave-select');
+const freqRangeSelect = document.getElementById('freq-range');
+const btnStart = document.getElementById('btn-start');
+const btnStop = document.getElementById('btn-stop');
+
+let hands = null, stream = null, animFrame = null;
+let audioCtx = null, osc = null, gainNode = null;
+let running = false;
+
+const THUMB = 4, INDEX = 8;
+const L_COLOR = '#1D9E75', R_COLOR = '#378ADD';
+
+function setStatus(msg, color) {
+  statusText.textContent = msg;
+  statusDot.style.background = color || '#aaa';
+}
+
+function resizeCanvas() {
+  canvas.width = video.videoWidth || video.offsetWidth;
+  canvas.height = video.videoHeight || video.offsetHeight;
+}
+
+function drawPinch(landmarks, color, label) {
+  const w = canvas.width, h = canvas.height;
+  const thumb = landmarks[THUMB], index = landmarks[INDEX];
+  const tx = thumb.x * w, ty = thumb.y * h;
+  const ix = index.x * w, iy = index.y * h;
+  const d = Math.hypot(tx - ix, ty - iy);
+
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(ix, iy);
+  ctx.strokeStyle = color + 'bb';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  [{ x: tx, y: ty }, { x: ix, y: iy }].forEach(pt => {
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+    ctx.fillStyle = color + 'cc';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  const mx = (tx + ix) / 2, my = (ty + iy) / 2;
+  ctx.fillStyle = '#fff';
+  ctx.font = '500 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(label + ' ' + Math.round(d) + 'px', mx, my - 4);
+
+  return d;
+}
+
+function drawSkeleton(landmarks) {
+  const w = canvas.width, h = canvas.height;
+  const conns = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  conns.forEach(([a,b]) => {
+    ctx.beginPath();
+    ctx.moveTo(landmarks[a].x*w, landmarks[a].y*h);
+    ctx.lineTo(landmarks[b].x*w, landmarks[b].y*h);
+    ctx.stroke();
+  });
+}
+
+function onResults(results) {
+  resizeCanvas();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!results.multiHandLandmarks || !results.multiHandedness) return;
+
+  let leftLm = null, rightLm = null;
+  results.multiHandedness.forEach((hand, i) => {
+    const lm = results.multiHandLandmarks[i];
+    drawSkeleton(lm);
+    if (hand.label === 'Right') leftLm = lm;
+    else if (hand.label === 'Left') rightLm = lm;
+  });
+
+  const w = canvas.width, h = canvas.height;
+  const maxDist = Math.hypot(w * 0.4, h * 0.4);
+
+  if (leftLm) {
+    const d = drawPinch(leftLm, L_COLOR, 'Vol');
+    const vol = Math.min(1, Math.max(0, d / maxDist));
+    volDisplay.textContent = Math.round(vol * 100) + '%';
+    volBar.style.width = Math.round(vol * 100) + '%';
+    if (gainNode) gainNode.gain.setTargetAtTime(vol * 0.8, audioCtx.currentTime, 0.05);
+  } else {
+    volDisplay.textContent = '—'; volBar.style.width = '0%';
+    if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+  }
+
+  if (rightLm) {
+    const d = drawPinch(rightLm, R_COLOR, 'Freq');
+    const parts = freqRangeSelect.value.split(',');
+    const fMin = parseFloat(parts[0]), fMax = parseFloat(parts[1]);
+    const t = Math.min(1, Math.max(0, d / maxDist));
+    const freq = fMin * Math.pow(fMax / fMin, t);
+    freqDisplay.textContent = Math.round(freq) + ' Hz';
+    freqBar.style.width = Math.round(t * 100) + '%';
+    if (osc) osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+  } else {
+    freqDisplay.textContent = '—'; freqBar.style.width = '0%';
+  }
+}
+
+waveSelect.addEventListener('change', () => { if (osc) osc.type = waveSelect.value; });
+
+async function startAll() {
+  btnStart.disabled = true;
+  setStatus('Requesting camera…', '#EF9F27');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    resizeCanvas();
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    osc = audioCtx.createOscillator();
+    osc.type = waveSelect.value;
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+
+    setStatus('Loading hand model…', '#EF9F27');
+    hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}` });
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+    hands.onResults(onResults);
+    await hands.initialize();
+
+    setStatus('Running — pinch with each hand!', '#1D9E75');
+    btnStop.disabled = false;
+    running = true;
+
+    async function loop() {
+      if (!running) return;
+      if (video.readyState >= 2) await hands.send({ image: video });
+      animFrame = requestAnimationFrame(loop);
+    }
+    loop();
+  } catch (e) {
+    setStatus('Error: ' + e.message, '#E24B4A');
+    btnStart.disabled = false;
+  }
+}
+
+function stopAll() {
+  running = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  if (osc) { osc.stop(); osc = null; }
+  if (gainNode) { gainNode.disconnect(); gainNode = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (hands) { hands.close(); hands = null; }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  volDisplay.textContent = '—'; freqDisplay.textContent = '—';
+  volBar.style.width = '0%'; freqBar.style.width = '0%';
+  setStatus('Stopped', '#aaa');
+  btnStart.disabled = false;
+  btnStop.disabled = true;
+}
+
+// ── Audio visualizer ──────────────────────────────────────────────────────────
+
+let vizAudioCtx = null, analyser = null, audioSource = null;
+let audioBuffer = null, audioStartTime = 0, audioOffset = 0;
+let vizAnimFrame = null, vizPlaying = false;
+let vizMode = 'waveform';
+const vizCanvas = document.getElementById('viz-canvas');
+const vizCtx = vizCanvas.getContext('2d');
+const overviewCanvas = document.getElementById('overview-canvas');
+const overviewCtx = overviewCanvas.getContext('2d');
+
+function getVizColor() { return document.getElementById('viz-color').value; }
+function setVizMode(v) { vizMode = v; }
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').style.background = '#f5f5f3';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('audio/')) loadAudioFile(file);
+}
+
+async function loadAudioFile(file) {
+  if (!file) return;
+  if (vizAudioCtx) vizAudioCtx.close();
+  vizAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = vizAudioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.connect(vizAudioCtx.destination);
+
+  const arrayBuffer = await file.arrayBuffer();
+  audioBuffer = await vizAudioCtx.decodeAudioData(arrayBuffer);
+
+  document.getElementById('audio-filename').textContent = file.name;
+  document.getElementById('audio-controls').style.display = 'block';
+  document.getElementById('upload-area').style.display = 'none';
+
+  drawOverview();
+  audioOffset = 0;
+  updateTimeDisplay();
+}
+
+function drawOverview() {
+  if (!audioBuffer) return;
+  const w = overviewCanvas.offsetWidth || 600;
+  overviewCanvas.width = w;
+  overviewCanvas.height = 48;
+  const data = audioBuffer.getChannelData(0);
+  const step = Math.ceil(data.length / w);
+  const h = 48;
+  const color = getVizColor();
+  overviewCtx.clearRect(0, 0, w, h);
+  overviewCtx.fillStyle = '#f5f5f3';
+  overviewCtx.fillRect(0, 0, w, h);
+  overviewCtx.strokeStyle = color + '99';
+  overviewCtx.lineWidth = 1;
+  for (let i = 0; i < w; i++) {
+    let min = 1, max = -1;
+    for (let j = 0; j < step; j++) {
+      const v = data[i * step + j] || 0;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+    overviewCtx.beginPath();
+    overviewCtx.moveTo(i, (1 + min) / 2 * h);
+    overviewCtx.lineTo(i, (1 + max) / 2 * h);
+    overviewCtx.stroke();
+  }
+}
+
+function playAudio() {
+  if (!audioBuffer || !vizAudioCtx) return;
+  if (audioSource) { audioSource.disconnect(); audioSource = null; }
+  audioSource = vizAudioCtx.createBufferSource();
+  audioSource.buffer = audioBuffer;
+  audioSource.connect(analyser);
+  audioSource.start(0, audioOffset);
+  audioStartTime = vizAudioCtx.currentTime - audioOffset;
+  vizPlaying = true;
+  document.getElementById('btn-play').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  audioSource.onended = () => {
+    if (vizPlaying) {
+      vizPlaying = false;
+      audioOffset = 0;
+      document.getElementById('btn-play').disabled = false;
+      document.getElementById('btn-pause').disabled = true;
+    }
+  };
+  startVizLoop();
+}
+
+function pauseAudio() {
+  if (!vizPlaying || !vizAudioCtx) return;
+  audioOffset = vizAudioCtx.currentTime - audioStartTime;
+  if (audioSource) { audioSource.stop(); audioSource.disconnect(); audioSource = null; }
+  vizPlaying = false;
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+}
+
+function stopAudio() {
+  if (audioSource) { try { audioSource.stop(); } catch(e){} audioSource.disconnect(); audioSource = null; }
+  vizPlaying = false;
+  audioOffset = 0;
+  document.getElementById('btn-play').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+  cancelAnimationFrame(vizAnimFrame);
+  const w = vizCanvas.offsetWidth || 600;
+  vizCanvas.width = w; vizCanvas.height = 160;
+  vizCtx.clearRect(0, 0, w, 160);
+  document.getElementById('playhead').style.width = '0%';
+  updateTimeDisplay();
+}
+
+function seekAudio(e) {
+  const bar = document.getElementById('playhead-overlay');
+  const rect = bar.getBoundingClientRect();
+  const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  audioOffset = t * audioBuffer.duration;
+  if (vizPlaying) { pauseAudio(); playAudio(); }
+  else updateTimeDisplay();
+}
+
+function seekFromOverview(e) {
+  if (!audioBuffer) return;
+  const rect = overviewCanvas.getBoundingClientRect();
+  const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  audioOffset = t * audioBuffer.duration;
+  if (vizPlaying) { pauseAudio(); playAudio(); }
+  else updateTimeDisplay();
+}
+
+function updateTimeDisplay() {
+  const cur = vizPlaying ? (vizAudioCtx.currentTime - audioStartTime) : audioOffset;
+  const dur = audioBuffer ? audioBuffer.duration : 0;
+  const fmt = s => Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+  document.getElementById('time-display').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
+  const pct = dur > 0 ? Math.min(100, (Math.min(cur, dur) / dur) * 100) : 0;
+  document.getElementById('playhead').style.width = Math.round(pct) + '%';
+}
+
+function startVizLoop() {
+  const W = vizCanvas.offsetWidth || 600;
+  vizCanvas.width = W;
+  vizCanvas.height = 160;
+  const bufLen = analyser.frequencyBinCount;
+  const timeBuf = new Uint8Array(bufLen);
+  const freqBuf = new Uint8Array(analyser.fftSize / 2);
+
+  function frame() {
+    vizAnimFrame = requestAnimationFrame(frame);
+    updateTimeDisplay();
+    const color = getVizColor();
+    vizCtx.clearRect(0, 0, W, 160);
+
+    if (vizMode === 'waveform') {
+      analyser.getByteTimeDomainData(timeBuf);
+      vizCtx.beginPath();
+      vizCtx.strokeStyle = color;
+      vizCtx.lineWidth = 2;
+      const sliceW = W / bufLen;
+      let x = 0;
+      for (let i = 0; i < bufLen; i++) {
+        const v = timeBuf[i] / 128;
+        const y = (v * 160) / 2;
+        i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
+        x += sliceW;
+      }
+      vizCtx.stroke();
+
+    } else if (vizMode === 'bars') {
+      analyser.getByteFrequencyData(freqBuf);
+      const barW = W / 80;
+      const gap = 1;
+      for (let i = 0; i < 80; i++) {
+        const val = freqBuf[Math.floor(i * freqBuf.length / 80)] / 255;
+        const bh = val * 150;
+        const alpha = 0.5 + val * 0.5;
+        vizCtx.fillStyle = color + Math.round(alpha * 255).toString(16).padStart(2,'0');
+        vizCtx.beginPath();
+        vizCtx.roundRect(i * (barW + gap), 160 - bh, barW, bh, 2);
+        vizCtx.fill();
+      }
+
+    } else if (vizMode === 'radial') {
+      analyser.getByteFrequencyData(freqBuf);
+      const cx = W / 2, cy = 80, r = 50;
+      const slices = 128;
+      vizCtx.beginPath();
+      for (let i = 0; i <= slices; i++) {
+        const angle = (i / slices) * Math.PI * 2 - Math.PI / 2;
+        const val = freqBuf[Math.floor(i * freqBuf.length / slices)] / 255;
+        const radius = r + val * 60;
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
+        i === 0 ? vizCtx.moveTo(x, y) : vizCtx.lineTo(x, y);
+      }
+      vizCtx.closePath();
+      vizCtx.strokeStyle = color;
+      vizCtx.lineWidth = 2;
+      vizCtx.stroke();
+      vizCtx.fillStyle = color + '22';
+      vizCtx.fill();
+    }
+
+    if (!vizPlaying) cancelAnimationFrame(vizAnimFrame);
+  }
+  frame();
+}
+</script>
+</body>
+</html>
