@@ -15,7 +15,7 @@
 </head>
 <body>
 
-<h2 class="sr-only">Fingertip theremin — left hand controls volume of uploaded audio, right hand controls filter frequency, a live waveform stretches between both index fingers</h2>
+<h2 class="sr-only">Fingertip theremin — left hand controls volume of uploaded audio, right hand controls filter frequency, a live waveform stretches between both pinch centers</h2>
 
 <div style="padding: 1rem 0; max-width: 700px; margin: 0 auto;">
 
@@ -37,7 +37,7 @@
       </div>
     </div>
     <div style="background:#f5f5f3;border-radius:8px;padding:12px 14px;">
-      <div style="font-size:12px;color:#666;margin-bottom:4px;">Theremin waveform</div>
+      <div style="font-size:12px;color:#666;margin-bottom:4px;">Waveform style</div>
       <select id="wave-select" style="margin-top:4px;font-size:14px;width:100%;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:4px 8px;color:#111;">
         <option value="sine">Sine</option>
         <option value="triangle">Triangle</option>
@@ -60,7 +60,7 @@
   <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
     <button id="btn-start" onclick="startAll()">Start</button>
     <button id="btn-stop" onclick="stopAll()" disabled>Stop</button>
-    <div style="font-size:12px;color:#666;margin-left:4px;">Theremin freq range:</div>
+    <div style="font-size:12px;color:#666;margin-left:4px;">Audio filter range:</div>
     <select id="freq-range" style="font-size:13px;background:transparent;border:0.5px solid #ccc;border-radius:8px;padding:3px 8px;color:#111;">
       <option value="80,800">Bass (80–800 Hz)</option>
       <option value="200,2000" selected>Mid (200–2000 Hz)</option>
@@ -140,14 +140,13 @@ const btnStart = document.getElementById('btn-start');
 const btnStop = document.getElementById('btn-stop');
 
 let hands = null, stream = null, animFrame = null;
-let audioCtx = null, osc = null, gainNode = null;
 let running = false;
 
 const THUMB = 4, INDEX = 8;
 const L_COLOR = '#1D9E75', R_COLOR = '#378ADD';
 
 let leftHandVol = 0, rightHandFreq = 0;
-let leftIndexPos = null, rightIndexPos = null;
+let leftCenterPos = null, rightCenterPos = null;
 
 function setStatus(msg, color) {
   statusText.textContent = msg;
@@ -216,7 +215,6 @@ function drawInterfingerWaveform(x1, y1, x2, y2, analyserNode) {
   const dist = Math.hypot(dx, dy);
   if (dist < 2) return;
   const ux = dx / dist, uy = dy / dist;
-  const nx = -uy, ny = ux;
   const amplitude = Math.min(40, dist * 0.18);
   const samples = Math.min(bufLen, 128);
 
@@ -270,8 +268,8 @@ function onResults(results) {
   const w = canvas.width, h = canvas.height;
   const maxDist = Math.hypot(w * 0.4, h * 0.4);
 
-  leftIndexPos = null;
-  rightIndexPos = null;
+  leftCenterPos = null;
+  rightCenterPos = null;
 
   if (leftLm) {
     const d = drawPinch(leftLm, L_COLOR, 'Vol');
@@ -279,15 +277,18 @@ function onResults(results) {
     leftHandVol = vol;
     volDisplay.textContent = Math.round(vol * 100) + '%';
     volBar.style.width = Math.round(vol * 100) + '%';
-    if (gainNode) gainNode.gain.setTargetAtTime(vol * 0.8, audioCtx.currentTime, 0.05);
     if (audioGainNode && vizAudioCtx) {
       audioGainNode.gain.setTargetAtTime(vol, vizAudioCtx.currentTime, 0.05);
     }
-    leftIndexPos = { x: leftLm[INDEX].x * w, y: leftLm[INDEX].y * h };
+
+    const lThumb = leftLm[THUMB], lIndex = leftLm[INDEX];
+    leftCenterPos = {
+      x: ((lThumb.x + lIndex.x) / 2) * w,
+      y: ((lThumb.y + lIndex.y) / 2) * h
+    };
   } else {
     leftHandVol = 0;
     volDisplay.textContent = '—'; volBar.style.width = '0%';
-    if (gainNode) gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
   }
 
   if (rightLm) {
@@ -299,12 +300,17 @@ function onResults(results) {
     rightHandFreq = freq;
     freqDisplay.textContent = Math.round(freq) + ' Hz';
     freqBar.style.width = Math.round(t * 100) + '%';
-    if (osc) osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+
     if (audioFilter && vizAudioCtx) {
       const filterFreq = 200 * Math.pow(18000 / 200, t);
       audioFilter.frequency.setTargetAtTime(filterFreq, vizAudioCtx.currentTime, 0.05);
     }
-    rightIndexPos = { x: rightLm[INDEX].x * w, y: rightLm[INDEX].y * h };
+
+    const rThumb = rightLm[THUMB], rIndex = rightLm[INDEX];
+    rightCenterPos = {
+      x: ((rThumb.x + rIndex.x) / 2) * w,
+      y: ((rThumb.y + rIndex.y) / 2) * h
+    };
   } else {
     rightHandFreq = 0;
     freqDisplay.textContent = '—'; freqBar.style.width = '0%';
@@ -313,12 +319,14 @@ function onResults(results) {
     }
   }
 
-  if (leftIndexPos && rightIndexPos && vizPlaying && analyser) {
-    drawInterfingerWaveform(leftIndexPos.x, leftIndexPos.y, rightIndexPos.x, rightIndexPos.y, analyser);
+  if (leftCenterPos && rightCenterPos && vizPlaying && analyser) {
+    drawInterfingerWaveform(leftCenterPos.x, leftCenterPos.y, rightCenterPos.x, rightCenterPos.y, analyser);
   }
 }
 
-waveSelect.addEventListener('change', () => { if (osc) osc.type = waveSelect.value; });
+waveSelect.addEventListener('change', () => {
+  // Kept for UI compatibility; no standalone theremin oscillator is generated now.
+});
 
 async function startAll() {
   btnStart.disabled = true;
@@ -329,23 +337,13 @@ async function startAll() {
     await new Promise(r => video.onloadedmetadata = r);
     resizeCanvas();
 
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    osc = audioCtx.createOscillator();
-    osc.type = waveSelect.value;
-    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-    osc.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    osc.start();
-
     setStatus('Loading hand model…', '#EF9F27');
     hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}` });
     hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
     hands.onResults(onResults);
     await hands.initialize();
 
-    setStatus('Running — pinch with each hand!', '#1D9E75');
+    setStatus('Running — hands control uploaded audio!', '#1D9E75');
     btnStop.disabled = false;
     running = true;
 
@@ -364,9 +362,6 @@ async function startAll() {
 function stopAll() {
   running = false;
   if (animFrame) cancelAnimationFrame(animFrame);
-  if (osc) { osc.stop(); osc = null; }
-  if (gainNode) { gainNode.disconnect(); gainNode = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
   if (stream) stream.getTracks().forEach(t => t.stop());
   if (hands) { hands.close(); hands = null; }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -505,6 +500,7 @@ function stopAudio() {
 }
 
 function seekAudio(e) {
+  if (!audioBuffer) return;
   const bar = document.getElementById('playhead-overlay');
   const rect = bar.getBoundingClientRect();
   const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -523,7 +519,7 @@ function seekFromOverview(e) {
 }
 
 function updateTimeDisplay() {
-  const cur = vizPlaying ? (vizAudioCtx.currentTime - audioStartTime) : audioOffset;
+  const cur = (vizPlaying && vizAudioCtx) ? (vizAudioCtx.currentTime - audioStartTime) : audioOffset;
   const dur = audioBuffer ? audioBuffer.duration : 0;
   const fmt = s => Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
   document.getElementById('time-display').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
