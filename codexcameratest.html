@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gesture Audio Sculptor</title>
+
+<style>
+body {
+  margin: 0;
+  background: #fff;
+  font-family: sans-serif;
+}
+video, canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" autoplay playsinline muted style="transform:scaleX(-1)"></video>
+<canvas id="canvas" style="transform:scaleX(-1)"></canvas>
+
+<input type="file" id="upload" accept="audio/*" style="position:fixed;top:10px;left:10px">
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const THUMB = 4, INDEX = 8;
+
+let analyser, audioCtx, gainNode, filterNode;
+let audioBuffer, source;
+let playing = false;
+
+let leftPos = null;
+let rightPos = null;
+
+navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+  video.srcObject = stream;
+});
+
+function resize() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+}
+
+function midpoint(lm, w, h) {
+  const t = lm[THUMB];
+  const i = lm[INDEX];
+  return {
+    x: ((t.x + i.x) / 2) * w,
+    y: ((t.y + i.y) / 2) * h
+  };
+}
+
+function pinchDistance(lm, w, h) {
+  const t = lm[THUMB];
+  const i = lm[INDEX];
+  return Math.hypot((t.x - i.x) * w, (t.y - i.y) * h);
+}
+
+function drawWave(x1, y1, x2, y2) {
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteTimeDomainData(data);
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 5) return;
+
+  const ux = dx / dist;
+  const uy = dy / dist;
+  const nx = -uy;
+  const ny = ux;
+
+  const amp = Math.min(50, dist * 0.2);
+
+  ctx.beginPath();
+
+  for (let i = 0; i < data.length; i++) {
+    const t = i / data.length;
+
+    const bx = x1 + ux * dist * t;
+    const by = y1 + uy * dist * t;
+
+    const v = (data[i] / 128 - 1);
+
+    const px = bx + nx * v * amp;
+    const py = by + ny * v * amp;
+
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+
+  ctx.strokeStyle = "cyan";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+async function loadAudio(file) {
+  audioCtx = new AudioContext();
+
+  const buffer = await file.arrayBuffer();
+  audioBuffer = await audioCtx.decodeAudioData(buffer);
+
+  analyser = audioCtx.createAnalyser();
+  gainNode = audioCtx.createGain();
+  filterNode = audioCtx.createBiquadFilter();
+
+  filterNode.type = "lowpass";
+  filterNode.frequency.value = 18000;
+
+  gainNode.connect(filterNode);
+  filterNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+
+  play();
+}
+
+function play() {
+  source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(gainNode);
+  source.start();
+
+  playing = true;
+}
+
+document.getElementById("upload").onchange = e => {
+  loadAudio(e.target.files[0]);
+};
+
+const hands = new Hands({
+  locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.6
+});
+
+hands.onResults(results => {
+  resize();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  leftPos = null;
+  rightPos = null;
+
+  if (!results.multiHandLandmarks) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+
+  results.multiHandedness.forEach((hand, i) => {
+    const lm = results.multiHandLandmarks[i];
+
+    const mid = midpoint(lm, w, h);
+    const dist = pinchDistance(lm, w, h);
+
+    if (hand.label === "Right") {
+      // LEFT SIDE (mirrored)
+      leftPos = mid;
+
+      if (gainNode) {
+        const vol = Math.min(1, dist / 200);
+        gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.05);
+      }
+
+    } else {
+      // RIGHT SIDE
+      rightPos = mid;
+
+      if (filterNode) {
+        const t = Math.min(1, dist / 200);
+        const freq = 200 * Math.pow(18000 / 200, t);
+        filterNode.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+      }
+    }
+
+    // draw pinch
+    ctx.beginPath();
+    ctx.arc(mid.x, mid.y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+  });
+
+  if (leftPos && rightPos && analyser && playing) {
+    drawWave(leftPos.x, leftPos.y, rightPos.x, rightPos.y);
+  }
+});
+
+async function loop() {
+  if (video.readyState >= 2) {
+    await hands.send({ image: video });
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+</script>
+</body>
+</html>
