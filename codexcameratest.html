@@ -22,7 +22,7 @@ video, canvas {
 
 <body>
 
-<video id="video" autoplay playsinline muted style="transform:scaleX(-1)"></video>
+<video id="video" autoplay playsinline muted style="transform:scaleX(-1);background:#000;"></video>
 <canvas id="canvas" style="transform:scaleX(-1)"></canvas>
 
 <input type="file" id="upload" accept="audio/*" style="position:fixed;top:10px;left:10px">
@@ -45,6 +45,7 @@ let rightPos = null;
 
 navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
   video.srcObject = stream;
+  video.play();
 });
 
 function resize() {
