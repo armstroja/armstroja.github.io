@@ -55,14 +55,14 @@ select.pill option{background:#111}
       </div>
 
       <div id="audio-panel">
-        <div style="position:relative;pointer-events:all">
-          <canvas id="waveform" height="48" onclick="seekWave(event)" style="display:block;width:100%;border-radius:8px;cursor:pointer"></canvas>
-          <div id="pos-line" style="position:absolute;top:0;bottom:0;left:0;width:2px;background:rgba(255,255,255,0.75);border-radius:1px;pointer-events:none"></div>
-          <span id="ptime" style="position:absolute;top:4px;right:8px;font-size:11px;color:rgba(255,255,255,0.5);pointer-events:none">0:00 / 0:00</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;pointer-events:all">
+          <span id="fname" class="pill" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;font-size:11px"></span>
+          <span id="ptime" class="pill" style="font-size:11px">0:00 / 0:00</span>
         </div>
-        <input type="range" id="seek-slider" min="0" max="1000" value="0"
-          style="width:100%;margin-top:6px;pointer-events:all;cursor:pointer"
-          oninput="seekSlider(this.value)">
+        <div style="position:relative;pointer-events:all">
+          <canvas id="waveform" height="40" onclick="seekWave(event)" style="display:block;width:100%;border-radius:8px;cursor:pointer"></canvas>
+          <div id="pos-line" style="position:absolute;top:0;bottom:0;left:0;width:2px;background:rgba(255,255,255,0.75);border-radius:1px;pointer-events:none"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -73,7 +73,7 @@ select.pill option{background:#111}
 const video = document.getElementById('video');
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
-const TH = 4, IX = 8, NUM = 48;
+const TH = 4, IX = 8, NUM = 20;
 const FREQ_LO = 20, FREQ_HI = 20000;
 const TEAL = '#1D9E75', BLUE = '#378ADD';
 const SPREAD_RATIO = 1.15;
@@ -305,6 +305,7 @@ async function loadFile(file) {
   analyser.connect(actx.destination);
   lastGainSet = 1; lastFiltSet = 20000;
   abuf = await actx.decodeAudioData(await file.arrayBuffer());
+  document.getElementById('fname').textContent = file.name;
   document.getElementById('drop').style.display = 'none';
   document.getElementById('audio-panel').style.display = 'block';
   drawWave();
@@ -378,17 +379,10 @@ function updateTime() {
   const pct = dur > 0 ? Math.min(cur, dur) / dur : 0;
   const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
   document.getElementById('ptime').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
-  const sl = document.getElementById('seek-slider');
-  if (sl && document.activeElement !== sl) sl.value = Math.round(pct * 1000);
   const waveW = wc.offsetWidth || 600;
   document.getElementById('pos-line').style.left = Math.round(pct * waveW) + 'px';
 }
 
-function seekSlider(val) {
-  if (!abuf) return;
-  offset = (val / 1000) * abuf.duration;
-  if (playing) { pauseA(); playA(); } else updateTime();
-}
 
 </script>
 </body>
