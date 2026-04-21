@@ -83,7 +83,12 @@ select.pill option{background:#111}
   window.onStart = async () => {
     document.getElementById('btn-go').disabled   = true;
     document.getElementById('btn-stop').disabled = false;
-    await startCam();
+    try {
+      await startCam();
+    } catch (e) {
+      document.getElementById('btn-go').disabled   = false;
+      document.getElementById('btn-stop').disabled = true;
+    }
   };
 
   window.onStop = () => {
