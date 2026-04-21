@@ -104,6 +104,21 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+// Returns a scale factor based on the distance between wrist (0) and
+// middle-finger MCP (9) — a stable "hand ruler" that shrinks naturally
+// as the hand moves away from the camera, keeping pinch ratios consistent.
+function handScale(lm) {
+  const dx = (lm[9].x - lm[0].x) * cvW;
+  const dy = (lm[9].y - lm[0].y) * cvH;
+  return Math.hypot(dx, dy);
+}
+
+// Pinch distance normalised to hand size.
+// Returns a 0–1 value where 1 = fingers fully spread (relative to hand size).
+// SPREAD_RATIO: how many "hand rulers" apart = 100%. Tuned so a comfortable
+// open-finger spread reliably hits full range regardless of camera distance.
+const SPREAD_RATIO = 1.15;
+
 function pinch(lm, color, tag) {
   const tx = lm[TH].x * cvW, ty = lm[TH].y * cvH;
   const ix = lm[IX].x * cvW, iy = lm[IX].y * cvH;
@@ -115,10 +130,15 @@ function pinch(lm, color, tag) {
     ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill();
     ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
   });
+
+  const scale = handScale(lm);
+  const norm = scale > 0 ? Math.min(1, Math.max(0, d / (scale * SPREAD_RATIO))) : 0;
+  const pct = Math.round(norm * 100);
+
   ctx.fillStyle = '#fff'; ctx.font = '500 11px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-  ctx.fillText(tag + ' ' + Math.round(d) + 'px', (tx + ix) / 2, (ty + iy) / 2 - 5);
-  return d;
+  ctx.fillText(tag + ' ' + pct + '%', (tx + ix) / 2, (ty + iy) / 2 - 5);
+  return norm;
 }
 
 function skeleton(lm) {
@@ -174,12 +194,11 @@ function onResults(res) {
     if (h.label === 'Right') lLm = res.multiHandLandmarks[i];
     else rLm = res.multiHandLandmarks[i];
   });
-  const maxD = Math.hypot(cvW * 0.10, cvH * 0.10);
-  lPos = null; rPos = null
+  lPos = null; rPos = null;
 
   if (lLm) {
-    const d = pinch(lLm, TEAL, 'vol');
-    volT = Math.min(1, Math.max(0, d / maxD));
+    // pinch() now returns a 0-1 normalised value
+    volT = pinch(lLm, TEAL, 'vol');
     document.getElementById('p-vol').innerHTML = 'vol <b>' + Math.round(volT * 100) + '%</b>';
     if (gainN && actx) gainN.gain.setTargetAtTime(volT, actx.currentTime, 0.04);
     lPos = { x: ((lLm[TH].x + lLm[IX].x) / 2) * cvW, y: ((lLm[TH].y + lLm[IX].y) / 2) * cvH };
@@ -190,8 +209,7 @@ function onResults(res) {
   }
 
   if (rLm) {
-    const d = pinch(rLm, BLUE, 'freq');
-    filtT = Math.min(1, Math.max(0, d / maxD));
+    filtT = pinch(rLm, BLUE, 'freq');
     const [flo, fhi] = document.getElementById('frange').value.split(',').map(Number);
     document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';
     if (filt && actx) filt.frequency.setTargetAtTime(200 * Math.pow(18000 / 200, filtT), actx.currentTime, 0.05);
