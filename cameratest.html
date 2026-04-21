@@ -84,12 +84,18 @@ const video = document.getElementById('video');
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const TH = 4, IX = 8, NUM = 48;
-// Full audible spectrum for log-frequency mapping (Hz)
 const FREQ_LO = 20, FREQ_HI = 20000;
 const TEAL = '#1D9E75', BLUE = '#378ADD';
+const SPREAD_RATIO = 1.15;
+
 let hands = null, stream = null, raf = null, running = false;
 let lPos = null, rPos = null, volT = 1, filtT = 1;
 let cvW = 0, cvH = 0;
+
+// Smoothed targets — we lerp toward these each frame instead of
+// scheduling Web Audio automation every 33ms (which causes zipper noise)
+let gainTarget = 1, filtTarget = 20000;
+let lastGainSet = 1, lastFiltSet = 20000;
 
 function setStatus(msg, col) {
   const el = document.getElementById('p-status');
@@ -106,20 +112,11 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Returns a scale factor based on the distance between wrist (0) and
-// middle-finger MCP (9) — a stable "hand ruler" that shrinks naturally
-// as the hand moves away from the camera, keeping pinch ratios consistent.
 function handScale(lm) {
   const dx = (lm[9].x - lm[0].x) * cvW;
   const dy = (lm[9].y - lm[0].y) * cvH;
   return Math.hypot(dx, dy);
 }
-
-// Pinch distance normalised to hand size.
-// Returns a 0–1 value where 1 = fingers fully spread (relative to hand size).
-// SPREAD_RATIO: how many "hand rulers" apart = 100%. Tuned so a comfortable
-// open-finger spread reliably hits full range regardless of camera distance.
-const SPREAD_RATIO = 1.15;
 
 function pinch(lm, color, tag) {
   const tx = lm[TH].x * cvW, ty = lm[TH].y * cvH;
@@ -132,25 +129,37 @@ function pinch(lm, color, tag) {
     ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fill();
     ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
   });
-
   const scale = handScale(lm);
   const norm = scale > 0 ? Math.min(1, Math.max(0, d / (scale * SPREAD_RATIO))) : 0;
-  const pct = Math.round(norm * 100);
-
   ctx.fillStyle = '#fff'; ctx.font = '500 11px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-  ctx.fillText(tag + ' ' + pct + '%', (tx + ix) / 2, (ty + iy) / 2 - 5);
+  ctx.fillText(tag + ' ' + Math.round(norm * 100) + '%', (tx + ix) / 2, (ty + iy) / 2 - 5);
   return norm;
 }
 
 function skeleton(lm) {
   [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
-   [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a, b]) => {
+   [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]].forEach(([a,b]) => {
     ctx.beginPath();
     ctx.moveTo(lm[a].x * cvW, lm[a].y * cvH);
     ctx.lineTo(lm[b].x * cvW, lm[b].y * cvH);
     ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
   });
+}
+
+// Apply smoothed audio param changes — called from vizLoop (audio thread timing)
+// Only calls setTargetAtTime when the value has shifted enough to matter,
+// preventing the zipper noise from per-frame scheduling
+function applyAudioParams() {
+  if (!actx || !gainN || !filt) return;
+  if (Math.abs(gainTarget - lastGainSet) > 0.005) {
+    gainN.gain.setTargetAtTime(gainTarget, actx.currentTime, 0.15);
+    lastGainSet = gainTarget;
+  }
+  if (Math.abs(filtTarget - lastFiltSet) > 10) {
+    filt.frequency.setTargetAtTime(filtTarget, actx.currentTime, 0.08);
+    lastFiltSet = filtTarget;
+  }
 }
 
 function drawBars(x1, y1, x2, y2) {
@@ -160,7 +169,8 @@ function drawBars(x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1, dist = Math.hypot(dx, dy);
   if (dist < 10) return;
   const ux = dx / dist, uy = dy / dist;
-  const gap = dist * 0.025, bw = (dist - gap * (NUM - 1)) / NUM;
+  const gap = Math.max(1, dist * 0.012);
+  const bw = (dist - gap * (NUM - 1)) / NUM;
   if (bw < 1) return;
   const maxA = Math.min(dist * 0.5, 180);
   const nyquist = actx ? actx.sampleRate / 2 : 22050;
@@ -179,14 +189,14 @@ function drawBars(x1, y1, x2, y2) {
     const hw = bw / 2, r = Math.min(3, hw * 0.4);
     ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
     if (ctx.roundRect) {
-      ctx.beginPath(); ctx.roundRect(-hw, -amp, bw, amp, [r, r, 0, 0]); ctx.fill();
-      ctx.beginPath(); ctx.roundRect(-hw, 0, bw, amp, [0, 0, r, r]); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-hw, -amp, bw, amp, [r,r,0,0]); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-hw, 0, bw, amp, [0,0,r,r]); ctx.fill();
     } else {
       ctx.fillRect(-hw, -amp, bw, amp); ctx.fillRect(-hw, 0, bw, amp);
     }
     ctx.restore();
   }
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1; ctx.setLineDash([3,5]);
   ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
   ctx.setLineDash([]);
 }
@@ -203,38 +213,36 @@ function onResults(res) {
   lPos = null; rPos = null;
 
   if (lLm) {
-    // pinch() now returns a 0-1 normalised value
     volT = pinch(lLm, TEAL, 'vol');
     document.getElementById('p-vol').innerHTML = 'vol <b>' + Math.round(volT * 100) + '%</b>';
-    if (gainN && actx) gainN.gain.setTargetAtTime(volT, actx.currentTime, 0.12);
+    gainTarget = volT;
     lPos = { x: ((lLm[TH].x + lLm[IX].x) / 2) * cvW, y: ((lLm[TH].y + lLm[IX].y) / 2) * cvH };
   } else {
-    volT = 1;
+    volT = 1; gainTarget = 1;
     document.getElementById('p-vol').innerHTML = 'vol —';
-    if (gainN && actx) gainN.gain.setTargetAtTime(1, actx.currentTime, 0.25);
   }
 
   if (rLm) {
     filtT = pinch(rLm, BLUE, 'freq');
     const [flo, fhi] = document.getElementById('frange').value.split(',').map(Number);
-    document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';    if (filt && actx) {
-      const targetFreq = 20 * Math.pow(20000 / 20, filtT);
-      filt.frequency.cancelScheduledValues(actx.currentTime);
-      filt.frequency.setValueAtTime(filt.frequency.value, actx.currentTime);
-      filt.frequency.linearRampToValueAtTime(targetFreq, actx.currentTime + 0.08);
-    }
+    document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';
+    filtTarget = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, filtT);
     rPos = { x: ((rLm[TH].x + rLm[IX].x) / 2) * cvW, y: ((rLm[TH].y + rLm[IX].y) / 2) * cvH };
   } else {
-    filtT = 1;
+    filtT = 1; filtTarget = 20000;
     document.getElementById('p-freq').innerHTML = 'freq —';
-    if (filt && actx) {
-      filt.frequency.cancelScheduledValues(actx.currentTime);
-      filt.frequency.setValueAtTime(filt.frequency.value, actx.currentTime);
-      filt.frequency.linearRampToValueAtTime(20000, actx.currentTime + 0.3);
-    }
   }
 
-  if (lPos && rPos && playing && analyser) drawBars(lPos.x, lPos.y, rPos.x, rPos.y);
+  // Draw bars between hands if both visible, otherwise from left-hand pinch midpoint
+  if (analyser && playing) {
+    if (lPos && rPos) {
+      drawBars(lPos.x, lPos.y, rPos.x, rPos.y);
+    } else if (lPos) {
+      // Single hand: draw bars horizontally from pinch centre across screen
+      const barLen = cvW * 0.6;
+      drawBars(lPos.x - barLen / 2, lPos.y, lPos.x + barLen / 2, lPos.y);
+    }
+  }
 }
 
 async function startCam() {
@@ -293,25 +301,20 @@ function onDrop(e) {
 async function loadFile(file) {
   if (!file) return;
   if (actx) try { actx.close(); } catch (e) {}
-
   actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
-
   analyser = actx.createAnalyser();
   analyser.fftSize = 4096;
   analyser.smoothingTimeConstant = 0.85;
-
   gainN = actx.createGain();
   gainN.gain.setValueAtTime(1, actx.currentTime);
-
   filt = actx.createBiquadFilter();
   filt.type = 'lowpass';
-  filt.frequency.setValueAtTime(18000, actx.currentTime);
+  filt.frequency.setValueAtTime(20000, actx.currentTime);
   filt.Q.setValueAtTime(0.8, actx.currentTime);
-
   gainN.connect(filt);
   filt.connect(analyser);
   analyser.connect(actx.destination);
-
+  lastGainSet = 1; lastFiltSet = 20000;
   abuf = await actx.decodeAudioData(await file.arrayBuffer());
   document.getElementById('fname').textContent = file.name;
   document.getElementById('drop').style.display = 'none';
@@ -331,11 +334,7 @@ function drawWave() {
   wctx.lineWidth = 1;
   for (let i = 0; i < W; i++) {
     let mn = 1, mx = -1;
-    for (let j = 0; j < step; j++) {
-      const v = data[i * step + j] || 0;
-      if (v < mn) mn = v;
-      if (v > mx) mx = v;
-    }
+    for (let j = 0; j < step; j++) { const v = data[i * step + j] || 0; if (v < mn) mn = v; if (v > mx) mx = v; }
     wctx.beginPath();
     wctx.moveTo(i, (1 + mn) / 2 * 32);
     wctx.lineTo(i, (1 + mx) / 2 * 32);
@@ -356,11 +355,7 @@ function playA() {
   document.getElementById('btn-play').disabled = true;
   document.getElementById('btn-pause').disabled = false;
   src.onended = () => {
-    if (playing) {
-      playing = false; offset = 0;
-      document.getElementById('btn-play').disabled = false;
-      document.getElementById('btn-pause').disabled = true;
-    }
+    if (playing) { playing = false; offset = 0; document.getElementById('btn-play').disabled = false; document.getElementById('btn-pause').disabled = true; }
   };
   vizLoop();
 }
@@ -418,6 +413,7 @@ function vizLoop() {
   function frame() {
     rafV = requestAnimationFrame(frame);
     updateTime();
+    applyAudioParams(); // throttled — only fires when value meaningfully changed
     vc.clearRect(0, 0, W, H);
     analyser.getByteFrequencyData(buf);
     const n = 64, gap = 2, bw = (W - gap * (n - 1)) / n;
