@@ -21,10 +21,13 @@ html,body{width:100%;height:100%;background:#000;font-family:sans-serif;overflow
 #drop{background:rgba(0,0,0,0.6);border:0.5px dashed rgba(255,255,255,0.25);border-radius:12px;padding:14px 20px;text-align:center;cursor:pointer;pointer-events:all;font-size:12px;color:rgba(255,255,255,0.5)}
 #drop:hover{background:rgba(0,0,0,0.75)}
 #audio-panel{display:none}
-#audio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-
 select.pill{border:0.5px solid rgba(255,255,255,0.2)}
 select.pill option{background:#111}
+/* sensitivity slider */
+#sens-wrap{display:flex;align-items:center;gap:6px;pointer-events:all}
+#sens-wrap label{font-size:11px;color:rgba(255,255,255,0.45);white-space:nowrap}
+#sens{-webkit-appearance:none;appearance:none;width:70px;height:3px;border-radius:2px;background:rgba(255,255,255,0.2);outline:none;cursor:pointer}
+#sens::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;cursor:pointer}
 </style>
 </head>
 <body>
@@ -41,6 +44,10 @@ select.pill option{background:#111}
         <option value="200,2000" selected>mid</option>
         <option value="500,5000">high</option>
       </select>
+      <div id="sens-wrap">
+        <label>sens</label>
+        <input type="range" id="sens" min="0.3" max="0.85" step="0.05" value="0.55">
+      </div>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn" id="btn-go" onclick="startCam()">Start</button>
         <button class="btn" id="btn-stop" onclick="stopCam()" disabled>Stop</button>
@@ -53,11 +60,13 @@ select.pill option{background:#111}
         drop audio here or tap to upload · mp3 wav ogg m4a
         <input type="file" id="finput" accept="audio/*" style="display:none" onchange="loadFile(this.files[0])">
       </div>
-
       <div id="audio-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;pointer-events:all">
-          <span id="fname" class="pill" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;font-size:11px"></span>
-          <span id="ptime" class="pill" style="font-size:11px">0:00 / 0:00</span>
+          <span id="fname" class="pill" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:11px"></span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn" id="btn-play" onclick="togglePlay()" style="padding:5px 13px;font-size:12px">▶</button>
+            <span id="ptime" class="pill" style="font-size:11px">0:00 / 0:00</span>
+          </div>
         </div>
         <div style="position:relative;pointer-events:all">
           <canvas id="waveform" height="40" onclick="seekWave(event)" style="display:block;width:100%;border-radius:8px;cursor:pointer"></canvas>
@@ -71,21 +80,49 @@ select.pill option{background:#111}
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
 <script>
 const video = document.getElementById('video');
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
+const cv    = document.getElementById('cv');
+const ctx   = cv.getContext('2d');
 const TH = 4, IX = 8, NUM = 20;
 const FREQ_LO = 20, FREQ_HI = 20000;
 const TEAL = '#1D9E75', BLUE = '#378ADD';
 const SPREAD_RATIO = 1.15;
 
+// ── Exponential smoothing for landmark positions ──────────────
+// Reduces jitter by blending new detections with the previous frame.
+const SMOOTH_ALPHA = 0.55; // higher = more responsive, lower = smoother
+let smoothL = null, smoothR = null; // smoothed landmark arrays
+
+function smoothLandmarks(prev, next, alpha) {
+  if (!prev) return next.map(p => ({...p}));
+  return next.map((p, i) => ({
+    x: prev[i].x * (1 - alpha) + p.x * alpha,
+    y: prev[i].y * (1 - alpha) + p.y * alpha,
+    z: prev[i].z * (1 - alpha) + p.z * alpha,
+  }));
+}
+
+// ── Visibility / confidence guard ────────────────────────────
+// MediaPipe sometimes returns low-confidence detections at the
+// frame edges. We reject landmarks where the wrist–middle-base
+// distance is implausibly small (hand too far / partially out).
+function isHandPlausible(lm) {
+  const dx = (lm[9].x - lm[0].x) * cvW;
+  const dy = (lm[9].y - lm[0].y) * cvH;
+  return Math.hypot(dx, dy) > 25; // px — ignore tiny / far hands
+}
+
 let hands = null, stream = null, raf = null, running = false;
 let lPos = null, rPos = null, volT = 1, filtT = 1;
 let cvW = 0, cvH = 0;
-
-// Smoothed targets — we lerp toward these each frame instead of
-// scheduling Web Audio automation every 33ms (which causes zipper noise)
 let gainTarget = 1, filtTarget = 20000;
 let lastGainSet = 1, lastFiltSet = 20000;
+
+// ── Missed-frame counter: don't snap to "no hand" immediately ─
+// If MediaPipe misses a hand for ≤ GHOST_FRAMES frames, we keep
+// the last smoothed position instead of zeroing out the control.
+const GHOST_FRAMES = 6;
+let ghostL = 0, ghostR = 0;
+let lastSmoothL = null, lastSmoothR = null;
 
 function setStatus(msg, col) {
   const el = document.getElementById('p-status');
@@ -111,7 +148,7 @@ function handScale(lm) {
 function pinch(lm, color, tag) {
   const tx = lm[TH].x * cvW, ty = lm[TH].y * cvH;
   const ix = lm[IX].x * cvW, iy = lm[IX].y * cvH;
-  const d = Math.hypot(tx - ix, ty - iy);
+  const d  = Math.hypot(tx - ix, ty - iy);
   ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(ix, iy);
   ctx.strokeStyle = color + '99'; ctx.lineWidth = 1.5; ctx.stroke();
   [[tx, ty], [ix, iy]].forEach(([px, py]) => {
@@ -120,7 +157,7 @@ function pinch(lm, color, tag) {
     ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
   });
   const scale = handScale(lm);
-  const norm = scale > 0 ? Math.min(1, Math.max(0, d / (scale * SPREAD_RATIO))) : 0;
+  const norm  = scale > 0 ? Math.min(1, Math.max(0, d / (scale * SPREAD_RATIO))) : 0;
   ctx.fillStyle = '#fff'; ctx.font = '500 11px sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
   ctx.fillText(tag + ' ' + Math.round(norm * 100) + '%', (tx + ix) / 2, (ty + iy) / 2 - 5);
@@ -133,13 +170,10 @@ function skeleton(lm) {
     ctx.beginPath();
     ctx.moveTo(lm[a].x * cvW, lm[a].y * cvH);
     ctx.lineTo(lm[b].x * cvW, lm[b].y * cvH);
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1; ctx.stroke();
   });
 }
 
-// Apply smoothed audio param changes — only fires when value meaningfully changed
-// Only calls setTargetAtTime when the value has shifted enough to matter,
-// preventing the zipper noise from per-frame scheduling
 function applyAudioParams() {
   if (!actx || !gainN || !filt) return;
   if (Math.abs(gainTarget - lastGainSet) > 0.005) {
@@ -160,18 +194,18 @@ function drawBars(x1, y1, x2, y2) {
   if (dist < 10) return;
   const ux = dx / dist, uy = dy / dist;
   const gap = Math.max(1, dist * 0.012);
-  const bw = (dist - gap * (NUM - 1)) / NUM;
+  const bw  = (dist - gap * (NUM - 1)) / NUM;
   if (bw < 1) return;
-  const maxA = Math.min(dist * 0.5, 180);
+  const maxA   = Math.min(dist * 0.5, 180);
   const nyquist = actx ? actx.sampleRate / 2 : 22050;
   for (let i = 0; i < NUM; i++) {
-    const t = i / (NUM - 1);
+    const t  = i / (NUM - 1);
     const hz = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, t);
     const binIndex = Math.round((hz / nyquist) * (buf.length - 1));
-    const raw = buf[Math.min(binIndex, buf.length - 1)] / 255;
+    const raw  = buf[Math.min(binIndex, buf.length - 1)] / 255;
     const fade = t <= filtT ? 1 : Math.max(0, 1 - (t - filtT) * 8);
-    const val = raw * volT * fade;
-    const amp = Math.max(2, val * maxA);
+    const val  = raw * volT * fade;
+    const amp  = Math.max(2, val * maxA);
     const alpha = 0.25 + val * 0.75;
     const cx = x1 + ux * (i * (bw + gap) + bw / 2);
     const cy = y1 + uy * (i * (bw + gap) + bw / 2);
@@ -180,7 +214,7 @@ function drawBars(x1, y1, x2, y2) {
     ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
     if (ctx.roundRect) {
       ctx.beginPath(); ctx.roundRect(-hw, -amp, bw, amp, [r,r,0,0]); ctx.fill();
-      ctx.beginPath(); ctx.roundRect(-hw, 0, bw, amp, [0,0,r,r]); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-hw, 0,    bw, amp, [0,0,r,r]); ctx.fill();
     } else {
       ctx.fillRect(-hw, -amp, bw, amp); ctx.fillRect(-hw, 0, bw, amp);
     }
@@ -193,42 +227,56 @@ function drawBars(x1, y1, x2, y2) {
 
 function onResults(res) {
   ctx.clearRect(0, 0, cvW, cvH);
-  if (!res.multiHandLandmarks || !res.multiHandedness) return;
-  let lLm = null, rLm = null;
-  res.multiHandedness.forEach((h, i) => {
-    skeleton(res.multiHandLandmarks[i]);
-    if (h.label === 'Right') lLm = res.multiHandLandmarks[i];
-    else rLm = res.multiHandLandmarks[i];
-  });
+
+  // Map detected hands to left/right
+  let rawL = null, rawR = null;
+  if (res.multiHandLandmarks && res.multiHandedness) {
+    res.multiHandedness.forEach((h, i) => {
+      const lm = res.multiHandLandmarks[i];
+      if (!isHandPlausible(lm)) return; // skip implausible detections
+      if (h.label === 'Right') rawL = lm;
+      else rawR = lm;
+    });
+  }
+
+  // Ghost-frame holdover: keep last known position briefly on missed frames
+  if (rawL) { smoothL = smoothLandmarks(smoothL, rawL, SMOOTH_ALPHA); lastSmoothL = smoothL; ghostL = 0; }
+  else if (lastSmoothL && ghostL < GHOST_FRAMES) { smoothL = lastSmoothL; ghostL++; }
+  else { smoothL = null; lastSmoothL = null; ghostL = 0; }
+
+  if (rawR) { smoothR = smoothLandmarks(smoothR, rawR, SMOOTH_ALPHA); lastSmoothR = smoothR; ghostR = 0; }
+  else if (lastSmoothR && ghostR < GHOST_FRAMES) { smoothR = lastSmoothR; ghostR++; }
+  else { smoothR = null; lastSmoothR = null; ghostR = 0; }
+
   lPos = null; rPos = null;
 
-  if (lLm) {
-    volT = pinch(lLm, TEAL, 'vol');
+  if (smoothL) {
+    skeleton(smoothL);
+    volT = pinch(smoothL, TEAL, 'vol');
     document.getElementById('p-vol').innerHTML = 'vol <b>' + Math.round(volT * 100) + '%</b>';
     gainTarget = volT;
-    lPos = { x: ((lLm[TH].x + lLm[IX].x) / 2) * cvW, y: ((lLm[TH].y + lLm[IX].y) / 2) * cvH };
+    lPos = { x: ((smoothL[TH].x + smoothL[IX].x) / 2) * cvW, y: ((smoothL[TH].y + smoothL[IX].y) / 2) * cvH };
   } else {
     volT = 1; gainTarget = 1;
     document.getElementById('p-vol').innerHTML = 'vol —';
   }
 
-  if (rLm) {
-    filtT = pinch(rLm, BLUE, 'freq');
+  if (smoothR) {
+    skeleton(smoothR);
+    filtT = pinch(smoothR, BLUE, 'freq');
     const [flo, fhi] = document.getElementById('frange').value.split(',').map(Number);
     document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';
     filtTarget = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, filtT);
-    rPos = { x: ((rLm[TH].x + rLm[IX].x) / 2) * cvW, y: ((rLm[TH].y + rLm[IX].y) / 2) * cvH };
+    rPos = { x: ((smoothR[TH].x + smoothR[IX].x) / 2) * cvW, y: ((smoothR[TH].y + smoothR[IX].y) / 2) * cvH };
   } else {
     filtT = 1; filtTarget = 20000;
     document.getElementById('p-freq').innerHTML = 'freq —';
   }
 
-  // Draw bars between hands if both visible, otherwise from left-hand pinch midpoint
   if (analyser && playing) {
     if (lPos && rPos) {
       drawBars(lPos.x, lPos.y, rPos.x, rPos.y);
     } else if (lPos) {
-      // Single hand: draw bars horizontally from pinch centre across screen
       const barLen = cvW * 0.6;
       drawBars(lPos.x - barLen / 2, lPos.y, lPos.x + barLen / 2, lPos.y);
     }
@@ -239,24 +287,56 @@ async function startCam() {
   document.getElementById('btn-go').disabled = true;
   setStatus('opening camera…', '#EF9F27');
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } });
+    // Request highest feasible resolution for better landmark accuracy
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, min: 20 },
+      }
+    });
     video.srcObject = stream;
     await new Promise(r => { video.readyState >= 2 ? r() : (video.onloadedmetadata = r); });
     await video.play();
     setStatus('loading model…', '#EF9F27');
+
     hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}` });
-    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,          // full model (was already 1, kept)
+      minDetectionConfidence: 0.65, // slightly higher = fewer false positives
+      minTrackingConfidence: 0.6,   // higher = model re-detects sooner after wobble
+      selfieMode: false,            // we mirror in CSS; keep coords un-flipped
+    });
     hands.onResults(onResults);
     await hands.initialize();
+
+    // Update sensitivity slider → re-configure tracking threshold live
+    document.getElementById('sens').addEventListener('input', function() {
+      const v = parseFloat(this.value);
+      hands.setOptions({ minDetectionConfidence: v, minTrackingConfidence: Math.max(0.3, v - 0.05) });
+    });
+
     setStatus('live', '#1D9E75');
     running = true;
     document.getElementById('btn-stop').disabled = false;
-    (async function loop() {
+
+    // ── Frame loop: use setTimeout fallback for tabs in background ──
+    // rAF pauses in hidden tabs; setTimeout keeps audio params ticking.
+    let lastT = 0;
+    const TARGET_MS = 1000 / 30;
+    async function loop(ts) {
       if (!running) return;
-      try { if (video.readyState >= 2) await hands.send({ image: video }); } catch (e) {}
+      if (ts - lastT >= TARGET_MS - 2) {
+        lastT = ts;
+        try { if (video.readyState >= 2) await hands.send({ image: video }); } catch(e) {}
+      }
       raf = requestAnimationFrame(loop);
-    })();
-  } catch (e) {
+    }
+    raf = requestAnimationFrame(loop);
+
+  } catch(e) {
     setStatus('error: ' + e.message, '#E24B4A');
     document.getElementById('btn-go').disabled = false;
   }
@@ -264,6 +344,7 @@ async function startCam() {
 
 function stopCam() {
   running = false;
+  smoothL = null; smoothR = null; lastSmoothL = null; lastSmoothR = null;
   if (raf) cancelAnimationFrame(raf);
   if (stream) stream.getTracks().forEach(t => t.stop());
   if (hands) { hands.close(); hands = null; }
@@ -275,9 +356,10 @@ function stopCam() {
   document.getElementById('btn-stop').disabled = true;
 }
 
+// ── Audio ──────────────────────────────────────────────────────
 let actx = null, analyser = null, gainN = null, filt = null, abuf = null;
 let src = null, startT = 0, offset = 0, playing = false, rafT = null;
-const wc = document.getElementById('waveform');
+const wc   = document.getElementById('waveform');
 const wctx = wc.getContext('2d');
 
 function onDrop(e) {
@@ -286,27 +368,20 @@ function onDrop(e) {
   if (f && f.type.startsWith('audio/')) loadFile(f);
 }
 
-// iOS suspends the AudioContext when the audio route changes (e.g. AirPods → speaker).
-// Auto-resume whenever the context becomes suspended or interrupted.
 function setupActxListeners() {
   if (!actx) return;
   actx.onstatechange = () => {
-    if (actx.state === 'suspended' || actx.state === 'interrupted') {
-      actx.resume();
-    }
+    if (actx.state === 'suspended' || actx.state === 'interrupted') actx.resume();
   };
 }
-
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && actx && actx.state !== 'running') {
-    actx.resume();
-  }
+  if (!document.hidden && actx && actx.state !== 'running') actx.resume();
 });
 
 async function loadFile(file) {
   if (!file) return;
   if (playing) pauseA();
-  if (actx) try { actx.close(); } catch (e) {}
+  if (actx) try { actx.close(); } catch(e) {}
   actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
   setupActxListeners();
   analyser = actx.createAnalyser();
@@ -318,17 +393,13 @@ async function loadFile(file) {
   filt.type = 'lowpass';
   filt.frequency.setValueAtTime(20000, actx.currentTime);
   filt.Q.setValueAtTime(0.8, actx.currentTime);
-  gainN.connect(filt);
-  filt.connect(analyser);
-  analyser.connect(actx.destination);
+  gainN.connect(filt); filt.connect(analyser); analyser.connect(actx.destination);
   lastGainSet = 1; lastFiltSet = 20000;
   abuf = await actx.decodeAudioData(await file.arrayBuffer());
   document.getElementById('fname').textContent = file.name;
   document.getElementById('drop').style.display = 'none';
   document.getElementById('audio-panel').style.display = 'block';
-  drawWave();
-  offset = 0;
-  playA();
+  drawWave(); offset = 0; playA();
 }
 
 function drawWave() {
@@ -337,28 +408,22 @@ function drawWave() {
   const data = abuf.getChannelData(0);
   const step = Math.ceil(data.length / W);
   wctx.clearRect(0, 0, W, 48);
-  wctx.strokeStyle = 'rgba(55,138,221,0.55)';
-  wctx.lineWidth = 1;
+  wctx.strokeStyle = 'rgba(55,138,221,0.55)'; wctx.lineWidth = 1;
   for (let i = 0; i < W; i++) {
     let mn = 1, mx = -1;
-    for (let j = 0; j < step; j++) { const v = data[i * step + j] || 0; if (v < mn) mn = v; if (v > mx) mx = v; }
-    wctx.beginPath();
-    wctx.moveTo(i, (1 + mn) / 2 * 48);
-    wctx.lineTo(i, (1 + mx) / 2 * 48);
-    wctx.stroke();
+    for (let j = 0; j < step; j++) { const v = data[i*step+j]||0; if(v<mn)mn=v; if(v>mx)mx=v; }
+    wctx.beginPath(); wctx.moveTo(i,(1+mn)/2*48); wctx.lineTo(i,(1+mx)/2*48); wctx.stroke();
   }
 }
 
 function playA() {
   if (!abuf || !actx) return;
   if (actx.state === 'suspended') actx.resume();
-  if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
+  if (src) { try { src.stop(); } catch(e) {} src.disconnect(); src = null; }
   src = actx.createBufferSource();
-  src.buffer = abuf;
-  src.connect(gainN);
+  src.buffer = abuf; src.connect(gainN);
   src.start(0, offset);
-  startT = actx.currentTime - offset;
-  playing = true;
+  startT = actx.currentTime - offset; playing = true;
   src.onended = () => { if (playing) { playing = false; offset = 0; updateTime(); } };
   tickLoop();
 }
@@ -366,21 +431,17 @@ function playA() {
 function pauseA() {
   if (!playing) return;
   offset = actx.currentTime - startT;
-  if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
-  playing = false;
-  cancelAnimationFrame(rafT); rafT = null;
-  updateTime();
+  if (src) { try { src.stop(); } catch(e) {} src.disconnect(); src = null; }
+  playing = false; cancelAnimationFrame(rafT); rafT = null; updateTime();
 }
 
-function togglePlay() {
-  if (!abuf) return;
-  if (playing) pauseA(); else playA();
+function updatePlayBtn() {
+  const btn = document.getElementById('btn-play');
+  if (btn) btn.textContent = playing ? '⏸' : '▶';
 }
 
-// rAF loop just for updating the position UI while playing
 function tickLoop() {
-  applyAudioParams();
-  updateTime();
+  applyAudioParams(); updateTime(); updatePlayBtn();
   if (playing) rafT = requestAnimationFrame(tickLoop);
 }
 
@@ -395,13 +456,10 @@ function updateTime() {
   const cur = playing && actx ? actx.currentTime - startT : offset;
   const dur = abuf ? abuf.duration : 0;
   const pct = dur > 0 ? Math.min(cur, dur) / dur : 0;
-  const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-  document.getElementById('ptime').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
-  const waveW = wc.offsetWidth || 600;
-  document.getElementById('pos-line').style.left = Math.round(pct * waveW) + 'px';
+  const fmt = s => Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+  document.getElementById('ptime').textContent = fmt(Math.min(cur,dur)) + ' / ' + fmt(dur);
+  document.getElementById('pos-line').style.left = Math.round(pct * (wc.offsetWidth||600)) + 'px';
 }
-
-
 </script>
 </body>
 </html>
