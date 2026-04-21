@@ -280,7 +280,7 @@ async function loadFile(file) {
   if (!file) return;
   if (actx) try { actx.close(); } catch (e) {}
 
-  actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
+  actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
 
   analyser = actx.createAnalyser();
   analyser.fftSize = 2048;
@@ -292,7 +292,7 @@ async function loadFile(file) {
   filt = actx.createBiquadFilter();
   filt.type = 'lowpass';
   filt.frequency.setValueAtTime(18000, actx.currentTime);
-  filt.Q.setValueAtTime(0.5, actx.currentTime);
+  filt.Q.setValueAtTime(0.707, actx.currentTime);
 
   gainN.connect(filt);
   filt.connect(analyser);
