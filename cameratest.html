@@ -286,11 +286,29 @@ function onDrop(e) {
   if (f && f.type.startsWith('audio/')) loadFile(f);
 }
 
+// iOS suspends the AudioContext when the audio route changes (e.g. AirPods → speaker).
+// Auto-resume whenever the context becomes suspended or interrupted.
+function setupActxListeners() {
+  if (!actx) return;
+  actx.onstatechange = () => {
+    if (actx.state === 'suspended' || actx.state === 'interrupted') {
+      actx.resume();
+    }
+  };
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && actx && actx.state !== 'running') {
+    actx.resume();
+  }
+});
+
 async function loadFile(file) {
   if (!file) return;
   if (playing) pauseA();
   if (actx) try { actx.close(); } catch (e) {}
   actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
+  setupActxListeners();
   analyser = actx.createAnalyser();
   analyser.fftSize = 4096;
   analyser.smoothingTimeConstant = 0.85;
