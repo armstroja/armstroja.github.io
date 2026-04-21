@@ -242,13 +242,24 @@ function processHand(lm, handIdx, color) {
     const tx = lm[TIPS[fi]].x * cvW;
     const ty = lm[TIPS[fi]].y * cvH;
 
+    const r = curled ? 12 : 8;
     ctx.beginPath();
-    ctx.arc(tx, ty, curled ? 12 : 8, 0, Math.PI * 2);
+    ctx.arc(tx, ty, r, 0, Math.PI * 2);
     ctx.fillStyle = curled ? color : 'rgba(255,255,255,0.25)';
     ctx.fill();
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Draw note name on the fingertip circle
+    if (pills[si]) {
+      const noteName = pills[si].textContent;
+      ctx.fillStyle = curled ? '#000' : '#fff';
+      ctx.font = `bold ${r < 10 ? 7 : 8}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(noteName, tx, ty);
+    }
 
     if (curled) {
       const freq = noteFreq(si);
