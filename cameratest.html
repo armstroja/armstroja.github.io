@@ -22,12 +22,7 @@ html,body{width:100%;height:100%;background:#000;font-family:sans-serif;overflow
 #drop:hover{background:rgba(0,0,0,0.75)}
 #audio-panel{display:none}
 #audio-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-#viz-box{background:rgba(0,0,0,0.55);border-radius:10px;overflow:hidden;position:relative;pointer-events:all}
-#vizc{display:block;width:100%}
-#ph-track{position:absolute;bottom:5px;left:10px;right:10px;height:2px;background:rgba(255,255,255,0.12);border-radius:1px;cursor:pointer}
-#ph{height:100%;width:0%;background:rgba(255,255,255,0.55);border-radius:1px;transition:width 0.1s}
-#ptime-label{position:absolute;bottom:10px;right:10px;font-size:10px;color:rgba(255,255,255,0.4);pointer-events:none}
-#waveform{display:block;width:100%;cursor:pointer;border-radius:6px;margin-top:6px}
+
 select.pill{border:0.5px solid rgba(255,255,255,0.2)}
 select.pill option{background:#111}
 </style>
@@ -60,19 +55,14 @@ select.pill option{background:#111}
       </div>
 
       <div id="audio-panel">
-        <div id="audio-row">
-          <button class="btn" id="btn-play" onclick="playA()">play</button>
-          <button class="btn" id="btn-pause" onclick="pauseA()" disabled>pause</button>
-          <button class="btn" onclick="stopA()">stop</button>
-          <span class="pill" id="fname" style="max-width:200px;overflow:hidden;text-overflow:ellipsis"></span>
-          <span class="pill" id="ptime" style="margin-left:auto">0:00 / 0:00</span>
+        <div style="position:relative;pointer-events:all">
+          <canvas id="waveform" height="48" onclick="seekWave(event)" style="display:block;width:100%;border-radius:8px;cursor:pointer"></canvas>
+          <div id="pos-line" style="position:absolute;top:0;bottom:0;left:0;width:2px;background:rgba(255,255,255,0.75);border-radius:1px;pointer-events:none"></div>
+          <span id="ptime" style="position:absolute;top:4px;right:8px;font-size:11px;color:rgba(255,255,255,0.5);pointer-events:none">0:00 / 0:00</span>
         </div>
-        <div id="viz-box">
-          <canvas id="vizc" height="56"></canvas>
-          <div id="ph-track" onclick="seekBar(event)"><div id="ph"></div></div>
-          <div id="ptime-label"></div>
-        </div>
-        <canvas id="waveform" height="32" onclick="seekWave(event)"></canvas>
+        <input type="range" id="seek-slider" min="0" max="1000" value="0"
+          style="width:100%;margin-top:6px;pointer-events:all;cursor:pointer"
+          oninput="seekSlider(this.value)">
       </div>
     </div>
   </div>
@@ -83,7 +73,7 @@ select.pill option{background:#111}
 const video = document.getElementById('video');
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
-const TH = 4, IX = 8, NUM = 20;
+const TH = 4, IX = 8, NUM = 48;
 const FREQ_LO = 20, FREQ_HI = 20000;
 const TEAL = '#1D9E75', BLUE = '#378ADD';
 const SPREAD_RATIO = 1.15;
@@ -147,7 +137,7 @@ function skeleton(lm) {
   });
 }
 
-// Apply smoothed audio param changes — called from vizLoop (audio thread timing)
+// Apply smoothed audio param changes — only fires when value meaningfully changed
 // Only calls setTargetAtTime when the value has shifted enough to matter,
 // preventing the zipper noise from per-frame scheduling
 function applyAudioParams() {
@@ -286,9 +276,7 @@ function stopCam() {
 }
 
 let actx = null, analyser = null, gainN = null, filt = null, abuf = null;
-let src = null, startT = 0, offset = 0, rafV = null, playing = false;
-const vizc = document.getElementById('vizc');
-const vc = vizc.getContext('2d');
+let src = null, startT = 0, offset = 0, playing = false;
 const wc = document.getElementById('waveform');
 const wctx = wc.getContext('2d');
 
@@ -351,42 +339,23 @@ function playA() {
   src.connect(gainN);
   src.start(0, offset);
   startT = actx.currentTime - offset;
-  playing = true;
-  document.getElementById('btn-play').disabled = true;
-  document.getElementById('btn-pause').disabled = false;
-  src.onended = () => {
-    if (playing) { playing = false; offset = 0; document.getElementById('btn-play').disabled = false; document.getElementById('btn-pause').disabled = true; }
+  playing = true;  src.onended = () => {
+    if (playing) { playing = false; offset = 0; }
   };
-  vizLoop();
 }
 
 function pauseA() {
   if (!playing) return;
   offset = actx.currentTime - startT;
   if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
-  playing = false;
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-pause').disabled = true;
-}
+  playing = false;}
 
 function stopA() {
   if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
-  playing = false; offset = 0;
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-pause').disabled = true;
-  cancelAnimationFrame(rafV);
-  vizc.width = vizc.offsetWidth || 600;
-  vc.clearRect(0, 0, vizc.width, 56);
-  document.getElementById('ph').style.width = '0%';
+  playing = false; offset = 0;  cancelAnimationFrame(rafV);
   updateTime();
 }
 
-function seekBar(e) {
-  if (!abuf) return;
-  const r = document.getElementById('ph-track').getBoundingClientRect();
-  offset = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * abuf.duration;
-  if (playing) { pauseA(); playA(); } else updateTime();
-}
 
 function seekWave(e) {
   if (!abuf) return;
@@ -398,42 +367,20 @@ function seekWave(e) {
 function updateTime() {
   const cur = playing && actx ? actx.currentTime - startT : offset;
   const dur = abuf ? abuf.duration : 0;
+  const pct = dur > 0 ? Math.min(cur, dur) / dur : 0;
   const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-  const display = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
-  document.getElementById('ptime').textContent = display;
-  document.getElementById('ptime-label').textContent = display;
-  document.getElementById('ph').style.width = Math.round(dur > 0 ? Math.min(cur, dur) / dur * 100 : 0) + '%';
+  document.getElementById('ptime').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
+  document.getElementById('seek-slider').value = Math.round(pct * 1000);
+  const waveW = wc.offsetWidth || 600;
+  document.getElementById('pos-line').style.left = Math.round(pct * waveW) + 'px';
 }
 
-function vizLoop() {
-  const W = vizc.offsetWidth || 600;
-  vizc.width = W;
-  const H = 56;
-  const buf = new Uint8Array(analyser.frequencyBinCount);
-  function frame() {
-    rafV = requestAnimationFrame(frame);
-    updateTime();
-    applyAudioParams(); // throttled — only fires when value meaningfully changed
-    vc.clearRect(0, 0, W, H);
-    analyser.getByteFrequencyData(buf);
-    const n = 64, gap = 2, bw = (W - gap * (n - 1)) / n;
-    const nyquist = actx ? actx.sampleRate / 2 : 22050;
-    for (let i = 0; i < n; i++) {
-      const t = i / (n - 1);
-      const hz = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, t);
-      const binIndex = Math.round((hz / nyquist) * (buf.length - 1));
-      const raw = buf[Math.min(binIndex, buf.length - 1)] / 255;
-      const fade = t <= filtT ? 1 : Math.max(0, 1 - (t - filtT) * 8);
-      const val = raw * volT * fade;
-      const bh = Math.max(2, val * (H - 4));
-      vc.fillStyle = `rgba(255,255,255,${(0.3 + val * 0.7).toFixed(2)})`;
-      if (vc.roundRect) { vc.beginPath(); vc.roundRect(i * (bw + gap), H - bh - 2, bw, bh, 2); vc.fill(); }
-      else vc.fillRect(i * (bw + gap), H - bh - 2, bw, bh);
-    }
-    if (!playing) cancelAnimationFrame(rafV);
-  }
-  frame();
+function seekSlider(val) {
+  if (!abuf) return;
+  offset = (val / 1000) * abuf.duration;
+  if (playing) { pauseA(); playA(); } else updateTime();
 }
+
 </script>
 </body>
 </html>
