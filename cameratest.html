@@ -174,8 +174,8 @@ function onResults(res) {
     if (h.label === 'Right') lLm = res.multiHandLandmarks[i];
     else rLm = res.multiHandLandmarks[i];
   });
-  const maxD = Math.hypot(cvW * 0.5, cvH * 0.5);
-  lPos = null; rPos = null;
+  const maxD = Math.hypot(cvW * 0.10, cvH * 0.10);
+  lPos = null; rPos = null
 
   if (lLm) {
     const d = pinch(lLm, TEAL, 'vol');
