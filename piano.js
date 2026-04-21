@@ -45,6 +45,9 @@ export function init(refs) {
 }
 
 export async function startCam() {
+  navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
+  navigator.mediaDevices.addEventListener('devicechange', onDeviceChange);
+
   setStatus('opening camera…', '#EF9F27');
   stream = await navigator.mediaDevices.getUserMedia({
     video: {
@@ -87,6 +90,7 @@ export async function startCam() {
 }
 
 export function stopCam() {
+  navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
   running = false;
   smoothL = null; smoothR = null; lastSmoothL = null; lastSmoothR = null;
   if (raf) { cancelAnimationFrame(raf); raf = null; }
@@ -135,20 +139,47 @@ function noteFreq(scaleIdx) {
   return 261.6255653 * Math.pow(2, total / 12); // C4 = 261.63 Hz
 }
 
+function ensureAudioContext() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    actx.onstatechange = () => {
+      if (actx && (actx.state === 'suspended' || actx.state === 'interrupted')) {
+        actx.resume().catch(() => {});
+      }
+    };
+  }
+  if (actx.state === 'suspended' || actx.state === 'interrupted') {
+    actx.resume().catch(() => {});
+  }
+  return actx;
+}
+
+function onDeviceChange() {
+  // When the audio output changes (e.g. AirPods connected/disconnected on Safari),
+  // the existing AudioContext may stop producing sound. Stop all notes, close the
+  // context and let it be recreated fresh on the next note play.
+  for (const key of [...active.keys()]) stopNote(key);
+  if (actx) {
+    actx.onstatechange = null;
+    actx.close().catch(() => {});
+    actx = null;
+  }
+  pills.forEach(p => p.classList.remove('on'));
+}
+
 function playNote(key, freq) {
   if (active.has(key)) return;
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === 'suspended') actx.resume();
-  const now  = actx.currentTime;
-  const gain = actx.createGain();
-  const osc  = actx.createOscillator();
+  const ctx_ = ensureAudioContext();
+  const now  = ctx_.currentTime;
+  const gain = ctx_.createGain();
+  const osc  = ctx_.createOscillator();
   osc.type = 'triangle';
   osc.frequency.setValueAtTime(freq, now);
   gain.gain.setValueAtTime(0, now);
   gain.gain.linearRampToValueAtTime(0.35, now + 0.015);
   gain.gain.setTargetAtTime(0.2, now + 0.015, 0.1);
   osc.connect(gain);
-  gain.connect(actx.destination);
+  gain.connect(ctx_.destination);
   osc.start(now);
   active.set(key, { osc, gain });
 }
