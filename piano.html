@@ -1,1 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fingertip Piano</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;font-family:sans-serif;overflow:hidden}
+#wrap{position:relative;width:100%;height:100vh;min-height:500px}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#cv{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
+#hud{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:16px;pointer-events:none}
+.pill{background:rgba(0,0,0,0.6);border-radius:20px;padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.85);pointer-events:all;cursor:default;white-space:nowrap}
+.pill b{font-weight:500;color:#fff}
+.btn{background:rgba(0,0,0,0.6);border:0.5px solid rgba(255,255,255,0.2);border-radius:20px;padding:7px 16px;font-size:12px;color:#fff;cursor:pointer;pointer-events:all}
+.btn:hover{background:rgba(255,255,255,0.15)}
+.btn:disabled{opacity:0.35;cursor:default}
+#top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#bottom{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#piano-legend{background:rgba(0,0,0,0.6);border-radius:12px;padding:10px 14px;pointer-events:all;font-size:11px;color:rgba(255,255,255,0.6)}
+#piano-legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+#notes-active{display:flex;gap:6px;flex-wrap:wrap}
+.note-pill{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 10px;font-size:11px;color:#fff;transition:all 0.1s}
+.note-pill.on{background:rgba(255,255,255,0.9);color:#000}
+select.pill{border:0.5px solid rgba(255,255,255,0.2)}
+select.pill option{background:#111}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="cv"></canvas>
 
+  <div id="hud">
+    <div id="top">
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <select class="pill" id="octave">
+          <option value="3">octave 3</option>
+          <option value="4" selected>octave 4</option>
+          <option value="5">octave 5</option>
+        </select>
+        <select class="pill" id="scale-sel">
+          <option value="major">major</option>
+          <option value="pentatonic">pentatonic</option>
+          <option value="chromatic">chromatic</option>
+        </select>
+        <button class="btn" id="btn-go"   onclick="onStart()" >Start camera</button>
+        <button class="btn" id="btn-stop" onclick="onStop()" disabled>Stop</button>
+      </div>
+      <span class="pill" id="p-status" style="color:rgba(255,255,255,0.4)">ready</span>
+    </div>
+
+    <div id="bottom">
+      <div id="piano-legend">
+        <span style="background:#1D9E75"></span>left hand &nbsp;·&nbsp;
+        <span style="background:#378ADD"></span>right hand &nbsp;·&nbsp;
+        curl fingers down to play notes &nbsp;·&nbsp; 5 fingers = 5 notes per hand
+      </div>
+      <div id="notes-active"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MediaPipe Hands (must load before piano.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+
+<!-- Piano logic — loaded as ES module -->
+<script type="module">
+  import { init, startCam, stopCam } from './piano.js';
+
+  // Wire up DOM refs
+  init({
+    video:  document.getElementById('video'),
+    canvas: document.getElementById('cv'),
+    status: document.getElementById('p-status'),
+    notes:  document.getElementById('notes-active'),
+    octave: document.getElementById('octave'),
+    scale:  document.getElementById('scale-sel'),
+  });
+
+  // Expose to inline onclick handlers
+  window.onStart = async () => {
+    document.getElementById('btn-go').disabled   = true;
+    document.getElementById('btn-stop').disabled = false;
+    await startCam();
+  };
+
+  window.onStop = () => {
+    stopCam();
+    document.getElementById('btn-go').disabled   = false;
+    document.getElementById('btn-stop').disabled = true;
+  };
+</script>
+</body>
+</html>
