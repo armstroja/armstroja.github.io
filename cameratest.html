@@ -276,7 +276,7 @@ function stopCam() {
 }
 
 let actx = null, analyser = null, gainN = null, filt = null, abuf = null;
-let src = null, startT = 0, offset = 0, playing = false;
+let src = null, startT = 0, offset = 0, playing = false, rafT = null;
 const wc = document.getElementById('waveform');
 const wctx = wc.getContext('2d');
 
@@ -288,6 +288,7 @@ function onDrop(e) {
 
 async function loadFile(file) {
   if (!file) return;
+  if (playing) pauseA();
   if (actx) try { actx.close(); } catch (e) {}
   actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
   analyser = actx.createAnalyser();
@@ -304,28 +305,27 @@ async function loadFile(file) {
   analyser.connect(actx.destination);
   lastGainSet = 1; lastFiltSet = 20000;
   abuf = await actx.decodeAudioData(await file.arrayBuffer());
-  document.getElementById('fname').textContent = file.name;
   document.getElementById('drop').style.display = 'none';
   document.getElementById('audio-panel').style.display = 'block';
   drawWave();
   offset = 0;
-  updateTime();
+  playA();
 }
 
 function drawWave() {
   const W = wc.offsetWidth || 600;
-  wc.width = W; wc.height = 32;
+  wc.width = W; wc.height = 48;
   const data = abuf.getChannelData(0);
   const step = Math.ceil(data.length / W);
-  wctx.clearRect(0, 0, W, 32);
+  wctx.clearRect(0, 0, W, 48);
   wctx.strokeStyle = 'rgba(55,138,221,0.55)';
   wctx.lineWidth = 1;
   for (let i = 0; i < W; i++) {
     let mn = 1, mx = -1;
     for (let j = 0; j < step; j++) { const v = data[i * step + j] || 0; if (v < mn) mn = v; if (v > mx) mx = v; }
     wctx.beginPath();
-    wctx.moveTo(i, (1 + mn) / 2 * 32);
-    wctx.lineTo(i, (1 + mx) / 2 * 32);
+    wctx.moveTo(i, (1 + mn) / 2 * 48);
+    wctx.lineTo(i, (1 + mx) / 2 * 48);
     wctx.stroke();
   }
 }
@@ -339,23 +339,31 @@ function playA() {
   src.connect(gainN);
   src.start(0, offset);
   startT = actx.currentTime - offset;
-  playing = true;  src.onended = () => {
-    if (playing) { playing = false; offset = 0; }
-  };
+  playing = true;
+  src.onended = () => { if (playing) { playing = false; offset = 0; updateTime(); } };
+  tickLoop();
 }
 
 function pauseA() {
   if (!playing) return;
   offset = actx.currentTime - startT;
   if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
-  playing = false;}
-
-function stopA() {
-  if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; }
-  playing = false; offset = 0;  cancelAnimationFrame(rafV);
+  playing = false;
+  cancelAnimationFrame(rafT); rafT = null;
   updateTime();
 }
 
+function togglePlay() {
+  if (!abuf) return;
+  if (playing) pauseA(); else playA();
+}
+
+// rAF loop just for updating the position UI while playing
+function tickLoop() {
+  applyAudioParams();
+  updateTime();
+  if (playing) rafT = requestAnimationFrame(tickLoop);
+}
 
 function seekWave(e) {
   if (!abuf) return;
@@ -370,7 +378,8 @@ function updateTime() {
   const pct = dur > 0 ? Math.min(cur, dur) / dur : 0;
   const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
   document.getElementById('ptime').textContent = fmt(Math.min(cur, dur)) + ' / ' + fmt(dur);
-  document.getElementById('seek-slider').value = Math.round(pct * 1000);
+  const sl = document.getElementById('seek-slider');
+  if (sl && document.activeElement !== sl) sl.value = Math.round(pct * 1000);
   const waveW = wc.offsetWidth || 600;
   document.getElementById('pos-line').style.left = Math.round(pct * waveW) + 'px';
 }
