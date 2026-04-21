@@ -83,7 +83,9 @@ select.pill option{background:#111}
 const video = document.getElementById('video');
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
-const TH = 4, IX = 8, NUM = 18;
+const TH = 4, IX = 8, NUM = 48;
+// Full audible spectrum for log-frequency mapping (Hz)
+const FREQ_LO = 20, FREQ_HI = 20000;
 const TEAL = '#1D9E75', BLUE = '#378ADD';
 let hands = null, stream = null, raf = null, running = false;
 let lPos = null, rPos = null, volT = 1, filtT = 1;
@@ -161,9 +163,13 @@ function drawBars(x1, y1, x2, y2) {
   const gap = dist * 0.025, bw = (dist - gap * (NUM - 1)) / NUM;
   if (bw < 1) return;
   const maxA = Math.min(dist * 0.5, 180);
+  const nyquist = actx ? actx.sampleRate / 2 : 22050;
   for (let i = 0; i < NUM; i++) {
-    const raw = buf[Math.floor(i * (buf.length * 0.6) / NUM)] / 255;
-    const fade = i / NUM <= filtT ? 1 : Math.max(0, 1 - (i / NUM - filtT) * 6);
+    const t = i / (NUM - 1);
+    const hz = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, t);
+    const binIndex = Math.round((hz / nyquist) * (buf.length - 1));
+    const raw = buf[Math.min(binIndex, buf.length - 1)] / 255;
+    const fade = t <= filtT ? 1 : Math.max(0, 1 - (t - filtT) * 8);
     const val = raw * volT * fade;
     const amp = Math.max(2, val * maxA);
     const alpha = 0.25 + val * 0.75;
@@ -200,24 +206,32 @@ function onResults(res) {
     // pinch() now returns a 0-1 normalised value
     volT = pinch(lLm, TEAL, 'vol');
     document.getElementById('p-vol').innerHTML = 'vol <b>' + Math.round(volT * 100) + '%</b>';
-    if (gainN && actx) gainN.gain.setTargetAtTime(volT, actx.currentTime, 0.04);
+    if (gainN && actx) gainN.gain.setTargetAtTime(volT, actx.currentTime, 0.12);
     lPos = { x: ((lLm[TH].x + lLm[IX].x) / 2) * cvW, y: ((lLm[TH].y + lLm[IX].y) / 2) * cvH };
   } else {
     volT = 1;
     document.getElementById('p-vol').innerHTML = 'vol —';
-    if (gainN && actx) gainN.gain.setTargetAtTime(1, actx.currentTime, 0.1);
+    if (gainN && actx) gainN.gain.setTargetAtTime(1, actx.currentTime, 0.25);
   }
 
   if (rLm) {
     filtT = pinch(rLm, BLUE, 'freq');
     const [flo, fhi] = document.getElementById('frange').value.split(',').map(Number);
-    document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';
-    if (filt && actx) filt.frequency.setTargetAtTime(200 * Math.pow(18000 / 200, filtT), actx.currentTime, 0.05);
+    document.getElementById('p-freq').innerHTML = 'freq <b>' + Math.round(flo * Math.pow(fhi / flo, filtT)) + ' Hz</b>';    if (filt && actx) {
+      const targetFreq = 20 * Math.pow(20000 / 20, filtT);
+      filt.frequency.cancelScheduledValues(actx.currentTime);
+      filt.frequency.setValueAtTime(filt.frequency.value, actx.currentTime);
+      filt.frequency.linearRampToValueAtTime(targetFreq, actx.currentTime + 0.08);
+    }
     rPos = { x: ((rLm[TH].x + rLm[IX].x) / 2) * cvW, y: ((rLm[TH].y + rLm[IX].y) / 2) * cvH };
   } else {
     filtT = 1;
     document.getElementById('p-freq').innerHTML = 'freq —';
-    if (filt && actx) filt.frequency.setTargetAtTime(18000, actx.currentTime, 0.1);
+    if (filt && actx) {
+      filt.frequency.cancelScheduledValues(actx.currentTime);
+      filt.frequency.setValueAtTime(filt.frequency.value, actx.currentTime);
+      filt.frequency.linearRampToValueAtTime(20000, actx.currentTime + 0.3);
+    }
   }
 
   if (lPos && rPos && playing && analyser) drawBars(lPos.x, lPos.y, rPos.x, rPos.y);
@@ -283,8 +297,8 @@ async function loadFile(file) {
   actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback', sampleRate: 44100 });
 
   analyser = actx.createAnalyser();
-  analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.8;
+  analyser.fftSize = 4096;
+  analyser.smoothingTimeConstant = 0.85;
 
   gainN = actx.createGain();
   gainN.gain.setValueAtTime(1, actx.currentTime);
@@ -292,7 +306,7 @@ async function loadFile(file) {
   filt = actx.createBiquadFilter();
   filt.type = 'lowpass';
   filt.frequency.setValueAtTime(18000, actx.currentTime);
-  filt.Q.setValueAtTime(0.5, actx.currentTime);
+  filt.Q.setValueAtTime(0.8, actx.currentTime);
 
   gainN.connect(filt);
   filt.connect(analyser);
@@ -407,9 +421,13 @@ function vizLoop() {
     vc.clearRect(0, 0, W, H);
     analyser.getByteFrequencyData(buf);
     const n = 64, gap = 2, bw = (W - gap * (n - 1)) / n;
+    const nyquist = actx ? actx.sampleRate / 2 : 22050;
     for (let i = 0; i < n; i++) {
-      const raw = buf[Math.floor(i * (buf.length * 0.6) / n)] / 255;
-      const fade = i / n <= filtT ? 1 : Math.max(0, 1 - (i / n - filtT) * 6);
+      const t = i / (n - 1);
+      const hz = FREQ_LO * Math.pow(FREQ_HI / FREQ_LO, t);
+      const binIndex = Math.round((hz / nyquist) * (buf.length - 1));
+      const raw = buf[Math.min(binIndex, buf.length - 1)] / 255;
+      const fade = t <= filtT ? 1 : Math.max(0, 1 - (t - filtT) * 8);
       const val = raw * volT * fade;
       const bh = Math.max(2, val * (H - 4));
       vc.fillStyle = `rgba(255,255,255,${(0.3 + val * 0.7).toFixed(2)})`;
