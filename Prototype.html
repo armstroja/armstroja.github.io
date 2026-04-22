@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prototype</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:#000; overflow:hidden; font-family:monospace; color:#fff; }
+#wrapper { position:relative; width:100%; height:100%; }
+canvas { display:block; width:100%; height:100%; }
+#ui {
+  position:absolute; top:8px; left:8px;
+  background:rgba(0,0,0,0.75); padding:8px 10px;
+  border:1px solid #444; font-size:11px; min-width:150px; z-index:10;
+}
+#ui h3 { color:#0af; margin-bottom:5px; font-size:12px; }
+.pbtn {
+  display:block; width:100%; margin:2px 0; padding:3px 7px;
+  background:#1a1a1a; border:1px solid #555; color:#ccc;
+  cursor:pointer; text-align:left; font-family:monospace; font-size:11px;
+}
+.pbtn.on { border-color:#0af; color:#0af; }
+.sep { border-top:1px solid #333; margin:5px 0; }
+.stat { color:#888; margin:2px 0; font-size:10px; }
+.stat b { color:#fff; }
+#msg {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.85); padding:5px 14px; border:1px solid #0af;
+  font-size:12px; pointer-events:none; opacity:0; transition:opacity 0.4s;
+  white-space:nowrap; z-index:10;
+}
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="c"></canvas>
+  <div id="ui">
+    <h3 id="modeTitle">🔧 BUILD MODE</h3>
+    <div id="buildPanel">
+      <button class="pbtn on" id="btn-pod"    onclick="selPart('pod')">🧑 Command Pod</button>
+      <button class="pbtn"    id="btn-tank"   onclick="selPart('tank')">🛢 Fuel Tank</button>
+      <button class="pbtn"    id="btn-engine" onclick="selPart('engine')">🔥 Engine</button>
+      <button class="pbtn"    id="btn-fin"    onclick="selPart('fin')">◀ Fin</button>
+      <div class="sep"></div>
+      <button class="pbtn"    id="btn-del"    onclick="toggleDel()">🗑 Delete Part</button>
+      <div class="sep"></div>
+      <div class="stat">R = Rotate | Click = Place</div>
+      <div class="sep"></div>
+      <button class="pbtn" onclick="doLaunch()" style="color:#0f0;border-color:#0f0">🚀 LAUNCH</button>
+      <button class="pbtn" onclick="doClear()"  style="color:#f44;border-color:#f44">✕ Clear All</button>
+    </div>
+    <div id="flightPanel" style="display:none">
+      <div class="stat">Alt: <b id="sAlt">0</b> m</div>
+      <div class="stat">Vel: <b id="sVel">0</b> m/s</div>
+      <div class="stat">Fuel: <b id="sFuel">-</b></div>
+      <div class="stat">Eng: <b id="sEng">OFF</b></div>
+      <div class="sep"></div>
+      <div class="stat">SPACE = engine</div>
+      <div class="stat">A / D = rotate</div>
+      <div class="sep"></div>
+      <button class="pbtn" onclick="backBuild()" style="color:#fa0;border-color:#fa0">↩ Back to Build</button>
+    </div>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<script>
+// ── CANVAS SETUP ──────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width  = canvas.offsetWidth  || window.innerWidth;
+  H = canvas.height = canvas.offsetHeight || window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── CONSTANTS ─────────────────────────────────────────────
+const GRID = 28;
+const GRAV = 10;
+
+const DEFS = {
+  pod:    { w:1, h:1, mass:0.8, color:'#4af', thrust:0  },
+  tank:   { w:1, h:2, mass:1.5, color:'#778', thrust:0  },
+  engine: { w:1, h:1, mass:0.5, color:'#f84', thrust:28 },
+  fin:    { w:1, h:1, mass:0.2, color:'#a8f', thrust:0  },
+};
+
+// ── STATE ─────────────────────────────────────────────────
+let mode     = 'build';
+let selType  = 'pod';
+let delMode  = false;
+let ghostRot = 0;
+
+let parts    = [];   // { type, gx, gy, rot }
+let mx = 0, my = 0; // mouse canvas coords
+
+let ship = null;
+let camX = 0, camY = 0;
+let keys = {};
+let lastT = 0;
+
+// ── MESSAGES ──────────────────────────────────────────────
+let msgTimer = null;
+function msg(txt, ms=2200) {
+  const el = document.getElementById('msg');
+  el.textContent = txt;
+  el.style.opacity = 1;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(()=>el.style.opacity=0, ms);
+}
+
+// ── PART SELECTION ────────────────────────────────────────
+function selPart(t) {
+  selType = t; delMode = false;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('btn-'+t).classList.add('on');
+}
+function toggleDel() {
+  delMode = !delMode;
+  document.querySelectorAll('.pbtn').forEach(b=>b.classList.remove('on'));
+  if (delMode) document.getElementById('btn-del').classList.add('on');
+}
+function doClear() { parts=[]; msg('Cleared'); }
+
+// ── BUILD COORDINATE HELPERS ──────────────────────────────
+// Origin: center-bottom of canvas
+function originX() { return W/2; }
+function originY() { return H - 80; }
+
+function c2b(cx,cy) { return { x: cx-originX(), y: originY()-cy }; }
+function b2c(x, y)  { return { cx: x+originX(), cy: originY()-y  }; }
+function snap(v)    { return Math.round(v/GRID)*GRID; }
+
+function ghostGrid() {
+  const b = c2b(mx, my);
+  return { gx: Math.round(b.x/GRID), gy: Math.round(b.y/GRID) };
+}
+
+function cells(p) {
+  const d = DEFS[p.type];
+  const rot = p.rot||0;
+  const isV = rot===0||rot===180;
+  const w = isV ? d.w : d.h;
+  const h = isV ? d.h : d.w;
+  const res=[];
+  for(let dx=0;dx<w;dx++) for(let dy=0;dy<h;dy++)
+    res.push((p.gx+dx)+','+(p.gy+dy));
+  return res;
+}
+
+// ── PART DRAWING ──────────────────────────────────────────
+function drawPart(type, color, rot, alpha=1) {
+  const d = DEFS[type];
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.rotate((rot||0)*Math.PI/180);
+  const pw = d.w*GRID, ph = d.h*GRID;
+
+  if (type==='pod') {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0,-ph*0.55);
+    ctx.bezierCurveTo( pw*.5,-ph*.55, pw*.5, ph*.45, 0, ph*.5);
+    ctx.bezierCurveTo(-pw*.5, ph*.45,-pw*.55,-ph*.55, 0,-ph*.55);
+    ctx.fill();
+    ctx.strokeStyle='#8df'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#9ef';
+    ctx.beginPath(); ctx.arc(0,-ph*.08,pw*.17,0,Math.PI*2); ctx.fill();
+
+  } else if (type==='tank') {
+    ctx.fillStyle=color;
+    ctx.beginPath(); ctx.roundRect(-pw/2,-ph/2,pw,ph,4); ctx.fill();
+    ctx.strokeStyle='#aaa'; ctx.lineWidth=1; ctx.stroke();
+    ctx.strokeStyle='#555'; ctx.lineWidth=1;
+    [-1,0,1].forEach(i=>{
+      ctx.beginPath();
+      ctx.moveTo(-pw/2+3, i*ph/4);
+      ctx.lineTo( pw/2-3, i*ph/4); ctx.stroke();
+    });
+
+  } else if (type==='engine') {
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(-pw*.25,-ph*.35);
+    ctx.lineTo(-pw*.52, ph*.48);
+    ctx.lineTo( pw*.52, ph*.48);
+    ctx.lineTo( pw*.25,-ph*.35);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#fa4'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#b53';
+    ctx.fillRect(-pw*.25,-ph*.5,pw*.5,ph*.2);
+
+  } else if (type==='fin') {
+    ctx.fillStyle=color;
+    ctx.beginPath();
+    ctx.moveTo(0,-ph/2);
+    ctx.lineTo(pw/2, ph/2);
+    ctx.lineTo(-pw/2,ph/2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#caf'; ctx.lineWidth=1; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawFlame(partRot) {
+  ctx.save();
+  ctx.rotate((partRot||0)*Math.PI/180);
+  const fl = 18+Math.random()*22;
+  const g = ctx.createLinearGradient(0, GRID*.48, 0, GRID*.48+fl);
+  g.addColorStop(0,'rgba(255,220,80,.95)');
+  g.addColorStop(.5,'rgba(255,110,20,.7)');
+  g.addColorStop(1,'rgba(255,50,0,0)');
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.moveTo(-9, GRID*.45);
+  ctx.lineTo( 9, GRID*.45);
+  ctx.lineTo( 3, GRID*.45+fl);
+  ctx.lineTo(-3, GRID*.45+fl);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// ── LAUNCH ────────────────────────────────────────────────
+function doLaunch() {
+  if (!parts.length)                        { msg('Add some parts first!'); return; }
+  if (!parts.some(p=>p.type==='pod'))       { msg('Need a Command Pod!');   return; }
+  if (!parts.some(p=>p.type==='engine'))    { msg('Need an Engine!');       return; }
+
+  const tanks   = parts.filter(p=>p.type==='tank').length;
+  const maxFuel = Math.max(tanks*60, 30);
+  const mass    = parts.reduce((s,p)=>s+DEFS[p.type].mass, 0);
+  const thrust  = parts.filter(p=>p.type==='engine').reduce((s,p)=>s+DEFS[p.type].thrust,0);
+
+  const gxArr = parts.map(p=>p.gx);
+  const gyArr = parts.map(p=>p.gy);
+  const cgx   = (Math.max(...gxArr)+Math.min(...gxArr))/2;
+  const cgy   = (Math.max(...gyArr)+Math.min(...gyArr))/2;
+
+  ship = {
+    parts:[...parts.map(p=>({...p}))],
+    x:0, y:60,
+    vx:0, vy:0,
+    angle:0,
+    mass, thrust,
+    fuel:maxFuel, maxFuel,
+    engineOn:false,
+    dead:false,
+    cgx, cgy,
+  };
+
+  camX=0; camY=ship.y;
+  mode='flight';
+  document.getElementById('modeTitle').textContent='🚀 FLIGHT';
+  document.getElementById('buildPanel').style.display='none';
+  document.getElementById('flightPanel').style.display='block';
+  msg('SPACE=engine  A/D=rotate', 3000);
+}
+
+function backBuild() {
+  mode='build'; ship=null;
+  document.getElementById('modeTitle').textContent='🔧 BUILD MODE';
+  document.getElementById('buildPanel').style.display='block';
+  document.getElementById('flightPanel').style.display='none';
+}
+
+// ── INPUT ─────────────────────────────────────────────────
+canvas.addEventListener('mousemove', e=>{
+  const r = canvas.getBoundingClientRect();
+  const scaleX = W / r.width;
+  const scaleY = H / r.height;
+  mx = (e.clientX - r.left)*scaleX;
+  my = (e.clientY - r.top )*scaleY;
+});
+
+canvas.addEventListener('click', e=>{
+  if (mode!=='build') return;
+  const {gx,gy} = ghostGrid();
+  if (delMode) {
+    const i = parts.findIndex(p=>p.gx===gx&&p.gy===gy);
+    if (i>=0) { parts.splice(i,1); }
+    return;
+  }
+  const occupied = new Set(parts.flatMap(p=>cells(p)));
+  const newCells  = cells({type:selType,gx,gy,rot:ghostRot});
+  if (newCells.some(c=>occupied.has(c))) { msg('Space occupied!'); return; }
+  parts.push({type:selType, gx, gy, rot:ghostRot});
+});
+
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if (mode==='build' && e.code==='KeyR') {
+    ghostRot=(ghostRot+90)%360;
+    msg('Rotation: '+ghostRot+'°');
+  }
+  if (mode==='flight' && e.code==='Space') {
+    e.preventDefault();
+    if (ship && ship.fuel>0 && !ship.dead) ship.engineOn=!ship.engineOn;
+  }
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+// ── PHYSICS ───────────────────────────────────────────────
+function updateFlight(dt) {
+  if (!ship||ship.dead) return;
+  if (keys['KeyA']) ship.angle -= 70*dt;
+  if (keys['KeyD']) ship.angle += 70*dt;
+
+  let ax=0, ay=-GRAV;
+  if (ship.engineOn && ship.fuel>0) {
+    const rad=ship.angle*Math.PI/180;
+    const f=ship.thrust/ship.mass;
+    ax += -Math.sin(rad)*f;
+    ay +=  Math.cos(rad)*f;
+    ship.fuel -= 9*dt;
+    if (ship.fuel<=0) { ship.fuel=0; ship.engineOn=false; msg('💨 OUT OF FUEL!',3000); }
+  }
+
+  ship.vx += ax*dt;
+  ship.vy += ay*dt;
+  ship.x  += ship.vx*dt;
+  ship.y  += ship.vy*dt;
+
+  if (ship.y <= 30) {
+    ship.y = 30;
+    if (Math.abs(ship.vy)>18 || Math.abs(ship.vx)>25) {
+      ship.dead=true; msg('💥 CRASHED! Press ↩ to rebuild.',5000);
+    } else {
+      ship.vy=0; ship.vx*=0.7; ship.engineOn=false;
+    }
+  }
+
+  camX += (ship.x-camX)*0.1;
+  camY += (ship.y-camY)*0.1;
+
+  const alt=Math.max(0,ship.y-30).toFixed(0);
+  const spd=Math.hypot(ship.vx,ship.vy).toFixed(1);
+  document.getElementById('sAlt').textContent=alt;
+  document.getElementById('sVel').textContent=spd;
+  document.getElementById('sFuel').textContent=
+    ship.maxFuel>0 ? ((ship.fuel/ship.maxFuel)*100).toFixed(0)+'%' : 'N/A';
+  document.getElementById('sEng').textContent=ship.engineOn?'🔥 ON':'OFF';
+}
+
+// ── RENDER BUILD ──────────────────────────────────────────
+function renderBuild() {
+  // sky
+  ctx.fillStyle='#080c18'; ctx.fillRect(0,0,W,H);
+
+  // grid lines
+  ctx.strokeStyle='#141e2e'; ctx.lineWidth=1;
+  const ox=originX(), oy=originY();
+  for (let gx=-30;gx<=30;gx++) {
+    const x=ox+gx*GRID;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let gy=-5;gy<=25;gy++) {
+    const y=oy-gy*GRID;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // ground
+  ctx.fillStyle='#0e2010'; ctx.fillRect(0,oy,W,H-oy);
+  ctx.fillStyle='#1e4020'; ctx.fillRect(0,oy,W,3);
+
+  // placed parts
+  for (const p of parts) {
+    const bc = b2c(p.gx*GRID, p.gy*GRID);
+    ctx.save(); ctx.translate(bc.cx, bc.cy);
+    drawPart(p.type, DEFS[p.type].color, p.rot);
+    ctx.restore();
+  }
+
+  // ghost
+  const {gx,gy}=ghostGrid();
+  const bc=b2c(gx*GRID, gy*GRID);
+  ctx.save(); ctx.translate(bc.cx, bc.cy);
+  if (!delMode) drawPart(selType, DEFS[selType].color, ghostRot, 0.45);
+  else {
+    ctx.strokeStyle='#f44'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-12,-12); ctx.lineTo(12,12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(12,-12);  ctx.lineTo(-12,12); ctx.stroke();
+  }
+  ctx.restore();
+
+  // hint
+  ctx.fillStyle='#0af'; ctx.font='12px monospace'; ctx.textAlign='center';
+  ctx.fillText('BUILD — Click to place parts | R to rotate | then LAUNCH', W/2, 18);
+  ctx.textAlign='left';
+}
+
+// ── RENDER FLIGHT ─────────────────────────────────────────
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function renderFlight() {
+  if (!ship) return;
+  const alt=ship.y-30;
+  const t=Math.min(1,alt/1500);
+
+  // sky
+  const r=Math.round(lerp(15,2,t)), g2=Math.round(lerp(25,4,t)), b=Math.round(lerp(55,8,t));
+  ctx.fillStyle=`rgb(${r},${g2},${b})`; ctx.fillRect(0,0,W,H);
+
+  // stars
+  if (t>0.25) {
+    ctx.fillStyle=`rgba(255,255,255,${Math.min(1,(t-.25)*1.3)})`;
+    for (let i=0;i<100;i++) {
+      const sx=((i*173.1+camX*.015)%W+W)%W;
+      const sy=((i*97.7 -camY*.015)%H+H)%H;
+      ctx.fillRect(sx,sy,1+((i%3)*.5),1+((i%3)*.5));
+    }
+  }
+
+  // world origin in screen space
+  const scx=W/2 - camX;
+  const groundSY = H/2 + camY; // screen y of ground (world y=0)
+
+  // ground
+  ctx.fillStyle='#0e2010'; ctx.fillRect(0,groundSY,W,H-groundSY+200);
+  ctx.fillStyle='#1e4020'; ctx.fillRect(0,groundSY,W,3);
+
+  // mountains
+  ctx.fillStyle='#0a180c';
+  for (let i=-4;i<=4;i++) {
+    const bx=(i*240+(camX*.08)%240);
+    const mh=50+(((i*53)+200)%70);
+    const sx=W/2+bx;
+    ctx.beginPath();
+    ctx.moveTo(sx-100,groundSY);
+    ctx.lineTo(sx,groundSY-mh);
+    ctx.lineTo(sx+100,groundSY); ctx.closePath(); ctx.fill();
+  }
+
+  // ship
+  const shipSX = W/2; // ship always center
+  const shipSY = H/2;
+
+  if (!ship.dead) {
+    ctx.save();
+    ctx.translate(shipSX, shipSY);
+    ctx.rotate(ship.angle*Math.PI/180);
+
+    // flames first (behind parts)
+    for (const p of ship.parts) {
+      if (p.type!=='engine') continue;
+      if (!ship.engineOn) continue;
+      const px=(p.gx-ship.cgx)*GRID;
+      const py=-(p.gy-ship.cgy)*GRID;
+      ctx.save(); ctx.translate(px,py);
+      drawFlame(p.rot);
+      ctx.restore();
+    }
+
+    for (const p of ship.parts) {
+      const px=(p.gx-ship.cgx)*GRID;
+      const py=-(p.gy-ship.cgy)*GRID;
+      ctx.save(); ctx.translate(px,py);
+      drawPart(p.type, DEFS[p.type].color, p.rot);
+      ctx.restore();
+    }
+    ctx.restore();
+  } else {
+    // debris
+    ctx.save(); ctx.translate(shipSX,shipSY);
+    const cols=['#f84','#fa0','#888','#4af','#f44'];
+    for (let i=0;i<10;i++) {
+      ctx.fillStyle=cols[i%cols.length];
+      const dx=Math.sin(i*1.57)*40, dy=Math.cos(i*2.1)*30;
+      ctx.fillRect(dx-4,dy-4,8,8);
+    }
+    ctx.restore();
+    ctx.fillStyle='#f44'; ctx.font='bold 22px monospace'; ctx.textAlign='center';
+    ctx.fillText('💥 CRASHED', W/2, H/2-55);
+    ctx.textAlign='left';
+  }
+
+  // altitude dashed line
+  if (!ship.dead && ship.y>60) {
+    ctx.strokeStyle='rgba(255,255,255,0.12)';
+    ctx.setLineDash([4,6]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(W/2+55,H/2); ctx.lineTo(W/2+55,groundSY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // HUD bar
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(W-175,6,168,56);
+  ctx.fillStyle='#0af'; ctx.font='11px monospace';
+  const spd=Math.hypot(ship.vx,ship.vy);
+  ctx.fillText('SPD: '+spd.toFixed(1)+' m/s', W-168,22);
+  ctx.fillText('ALT: '+Math.max(0,ship.y-30).toFixed(0)+' m', W-168,38);
+  ctx.fillText('ANG: '+ship.angle.toFixed(0)+'°', W-168,54);
+
+  if (ship.engineOn) {
+    ctx.fillStyle='#ff6'; ctx.font='bold 13px monospace'; ctx.textAlign='center';
+    ctx.fillText('🔥 ENGINE ON', W/2, 22);
+    ctx.textAlign='left';
+  }
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────
+function loop(ts) {
+  const dt = Math.min((ts-lastT)/1000, 0.05);
+  lastT = ts;
+  ctx.clearRect(0,0,W,H);
+  if (mode==='build')  renderBuild();
+  else                 { updateFlight(dt); renderFlight(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts=>{ lastT=ts; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
