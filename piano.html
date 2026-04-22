@@ -4,27 +4,95 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fingertip Piano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#000;font-family:sans-serif;overflow:hidden}
-#wrap{position:relative;width:100%;height:100vh;min-height:500px}
-#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-#cv{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
-#hud{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:16px;pointer-events:none}
-.pill{background:rgba(0,0,0,0.6);border-radius:20px;padding:7px 14px;font-size:12px;color:rgba(255,255,255,0.85);pointer-events:all;cursor:default;white-space:nowrap}
-.pill b{font-weight:500;color:#fff}
-.btn{background:rgba(0,0,0,0.6);border:0.5px solid rgba(255,255,255,0.2);border-radius:20px;padding:7px 16px;font-size:12px;color:#fff;cursor:pointer;pointer-events:all}
-.btn:hover{background:rgba(255,255,255,0.15)}
-.btn:disabled{opacity:0.35;cursor:default}
-#top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#bottom{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-#piano-legend{background:rgba(0,0,0,0.6);border-radius:12px;padding:10px 14px;pointer-events:all;font-size:11px;color:rgba(255,255,255,0.6)}
-#piano-legend span{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
-#notes-active{display:flex;gap:6px;flex-wrap:wrap}
-.note-pill{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:4px 10px;font-size:11px;color:#fff;transition:all 0.1s}
-.note-pill.on{background:rgba(255,255,255,0.9);color:#000}
-select.pill{border:0.5px solid rgba(255,255,255,0.2)}
-select.pill option{background:#111}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0905; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none; z-index: 999; opacity: 0.55; mix-blend-mode: overlay;
+}
+
+#wrap { position: relative; width: 100%; height: 100vh; }
+#video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); filter: sepia(0.3) contrast(0.9) brightness(0.75); }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+
+#wrap::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.72) 100%);
+  z-index: 2;
+}
+
+#hud {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 22px 26px 26px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#top { display: flex; align-items: center; gap: 8px; }
+
+.ctrl {
+  background: rgba(12,10,7,0.6);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 3px;
+  padding: 6px 12px;
+  color: rgba(255,255,255,0.75);
+  pointer-events: all; cursor: pointer;
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  white-space: nowrap; -webkit-appearance: none;
+}
+.ctrl:hover { border-color: rgba(255,255,255,0.7); color: #fff; background: rgba(255,255,255,0.08); }
+.ctrl:disabled { opacity: 0.25; cursor: default; }
+select.ctrl option { background: #0f0d09; color: #fff; }
+
+#status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  margin-left: auto;
+  transition: background 0.4s;
+  flex-shrink: 0;
+}
+#status-dot.live { background: #7EB8A8; box-shadow: 0 0 6px #7EB8A888; }
+#status-dot.busy { background: #EF9F27; }
+
+#loading {
+  position: absolute; inset: 0; z-index: 50;
+  background: rgba(10,9,5,0.88);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  pointer-events: none; transition: opacity 0.5s;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+#loading p {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+}
+.spinner {
+  width: 26px; height: 26px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-top-color: rgba(255,255,255,0.5);
+  border-radius: 50%; animation: spin 1.1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#note-badge {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  font-family: 'DM Mono', monospace; font-size: 18px;
+  letter-spacing: 0.22em; color: rgba(255,255,255,0);
+  transition: color 0.08s;
+  pointer-events: none; z-index: 10;
+  white-space: nowrap;
+}
+#note-badge.on { color: rgba(255,255,255,0.7); }
 </style>
 </head>
 <body>
@@ -32,70 +100,350 @@ select.pill option{background:#111}
   <video id="video" autoplay playsinline muted></video>
   <canvas id="cv"></canvas>
 
+  <div id="loading" class="hidden">
+    <div class="spinner"></div>
+    <p id="loading-msg">Loading…</p>
+  </div>
+
   <div id="hud">
     <div id="top">
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <select class="pill" id="octave">
-          <option value="3">octave 3</option>
-          <option value="4" selected>octave 4</option>
-          <option value="5">octave 5</option>
-        </select>
-        <select class="pill" id="scale-sel">
-          <option value="major">major</option>
-          <option value="pentatonic">pentatonic</option>
-          <option value="chromatic">chromatic</option>
-        </select>
-        <button class="btn" id="btn-go"   onclick="onStart()" >Start camera</button>
-        <button class="btn" id="btn-stop" onclick="onStop()" disabled>Stop</button>
-      </div>
-      <span class="pill" id="p-status" style="color:rgba(255,255,255,0.4)">ready</span>
+      <select class="ctrl" id="key-sel">
+        <option value="0">C</option>
+        <option value="1">D♭</option>
+        <option value="2">D</option>
+        <option value="3">E♭</option>
+        <option value="4">E</option>
+        <option value="5">F</option>
+        <option value="6">G♭</option>
+        <option value="7">G</option>
+        <option value="8">A♭</option>
+        <option value="9">A</option>
+        <option value="10">B♭</option>
+        <option value="11">B</option>
+      </select>
+      <select class="ctrl" id="scale-sel">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+        <option value="pentatonic">Penta</option>
+        <option value="chromatic">Chromatic</option>
+      </select>
+      <select class="ctrl" id="octave">
+        <option value="3">Oct 3</option>
+        <option value="4" selected>Oct 4</option>
+        <option value="5">Oct 5</option>
+      </select>
+      <button class="ctrl" id="btn-go"   onclick="onStart()">Start</button>
+      <button class="ctrl" id="btn-stop" onclick="onStop()" disabled>Stop</button>
+      <div id="status-dot"></div>
     </div>
-
-    <div id="bottom">
-      <div id="piano-legend">
-        <span style="background:#1D9E75"></span>left hand &nbsp;·&nbsp;
-        <span style="background:#378ADD"></span>right hand &nbsp;·&nbsp;
-        curl fingers down to play notes &nbsp;·&nbsp; 5 fingers = 5 notes per hand
-      </div>
-      <div id="notes-active"></div>
-    </div>
+    <div></div>
   </div>
+
+  <div id="note-badge" aria-live="polite"></div>
 </div>
 
-<!-- MediaPipe Hands (must load before piano.js) -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+<script>
+const GOLD = '#B8A87A', TEAL = '#7EB8A8';
+const SMOOTH_ALPHA = 0.55, GHOST_FRAMES = 6;
+const TIPS = [4, 8, 12, 16, 20];
 
-<!-- Piano logic — loaded as ES module -->
-<script type="module">
-  import { init, startCam, stopCam } from './piano.js';
+const SCALES = {
+  major:      [0,2,4,5,7,9,11,12,14,16],
+  minor:      [0,2,3,5,7,8,10,12,14,15],
+  pentatonic: [0,2,4,7,9,12,14,16,19,21],
+  chromatic:  [0,1,2,3,4,5,6,7,8,9],
+};
 
-  // Wire up DOM refs
-  init({
-    video:  document.getElementById('video'),
-    canvas: document.getElementById('cv'),
-    status: document.getElementById('p-status'),
-    notes:  document.getElementById('notes-active'),
-    octave: document.getElementById('octave'),
-    scale:  document.getElementById('scale-sel'),
-  });
+const NOTE_NAMES_FLAT = ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'];
 
-  // Expose to inline onclick handlers
-  window.onStart = async () => {
-    document.getElementById('btn-go').disabled   = true;
-    document.getElementById('btn-stop').disabled = false;
-    try {
-      await startCam();
-    } catch (e) {
-      document.getElementById('btn-go').disabled   = false;
-      document.getElementById('btn-stop').disabled = true;
+const video    = document.getElementById('video');
+const canvas   = document.getElementById('cv');
+const dotEl    = document.getElementById('status-dot');
+const loadEl   = document.getElementById('loading');
+const loadMsg  = document.getElementById('loading-msg');
+const badgeEl  = document.getElementById('note-badge');
+const octaveEl = document.getElementById('octave');
+const scaleEl  = document.getElementById('scale-sel');
+const keyEl    = document.getElementById('key-sel');
+
+const ctx2d = canvas.getContext('2d');
+let cvW = 0, cvH = 0;
+
+// ── Audio ──────────────────────────────────────────────────────
+let actx = null, masterGain = null;
+const active = new Map();
+
+function ensureAudio() {
+  if (actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value=-18; comp.knee.value=12;
+  comp.ratio.value=4; comp.attack.value=0.003; comp.release.value=0.25;
+  masterGain = actx.createGain(); masterGain.gain.value = 0.82;
+  comp.connect(masterGain); masterGain.connect(actx.destination);
+}
+
+const PARTIALS = [[1.000,1.00],[2.001,0.50],[3.003,0.25],[4.007,0.14],[5.012,0.08],[6.020,0.05],[7.030,0.03],[8.042,0.02]];
+
+function getKeyOffset() { return parseInt(keyEl.value) || 0; }
+
+function noteFreqFromIdx(si) {
+  const scale = SCALES[scaleEl.value] || SCALES.major;
+  if (si >= scale.length) return null;
+  const total = (parseInt(octaveEl.value) - 4) * 12 + scale[si] + getKeyOffset();
+  return 261.6255653 * Math.pow(2, total / 12);
+}
+
+function noteDisplayName(si) {
+  const scale = SCALES[scaleEl.value] || SCALES.major;
+  if (si >= scale.length) return '';
+  const total = (parseInt(octaveEl.value) - 4) * 12 + scale[si] + getKeyOffset();
+  const oct = 4 + Math.floor(total / 12);
+  return NOTE_NAMES_FLAT[((total % 12) + 12) % 12] + oct;
+}
+
+function playNote(key, freq) {
+  if (active.has(key)) return;
+  ensureAudio();
+  const now = actx.currentTime;
+  const decay = Math.max(0.7, 4.0 - (Math.log2(freq/55)/Math.log2(4000/55))*3.3);
+  const vel = 0.28;
+
+  const noteGain = actx.createGain();
+  noteGain.gain.setValueAtTime(0, now);
+  noteGain.gain.linearRampToValueAtTime(vel, now+0.004);
+  noteGain.gain.setTargetAtTime(vel*0.6, now+0.004, 0.06);
+  noteGain.gain.setTargetAtTime(0, now+0.08, decay);
+
+  const lpf = actx.createBiquadFilter();
+  lpf.type='lowpass'; lpf.frequency.value=Math.min(6000,freq*12); lpf.Q.value=0.5;
+  noteGain.connect(lpf); lpf.connect(masterGain);
+
+  const oscs = [];
+  for (const [mult,amp] of PARTIALS) {
+    for (const det of [-2.5,2.5]) {
+      const osc = actx.createOscillator(); osc.type='sine';
+      osc.frequency.value=freq*mult; osc.detune.value=det;
+      const pg = actx.createGain(); pg.gain.value=amp*0.5;
+      osc.connect(pg); pg.connect(noteGain); osc.start(now); oscs.push(osc);
     }
-  };
+  }
 
-  window.onStop = () => {
-    stopCam();
-    document.getElementById('btn-go').disabled   = false;
-    document.getElementById('btn-stop').disabled = true;
-  };
+  const bufSize = actx.sampleRate*0.04;
+  const nBuf = actx.createBuffer(1,bufSize,actx.sampleRate);
+  const nd = nBuf.getChannelData(0);
+  for (let i=0;i<bufSize;i++) nd[i]=Math.random()*2-1;
+  const noise=actx.createBufferSource(); noise.buffer=nBuf;
+  const nbp=actx.createBiquadFilter(); nbp.type='bandpass'; nbp.frequency.value=freq*3; nbp.Q.value=2;
+  const ng=actx.createGain(); ng.gain.setValueAtTime(0.06,now); ng.gain.linearRampToValueAtTime(0,now+0.025);
+  noise.connect(nbp); nbp.connect(ng); ng.connect(masterGain);
+  noise.start(now); noise.stop(now+0.04);
+
+  oscs.forEach(o=>o.stop(now+decay*6+0.3));
+  active.set(key, { stopAll() {
+    const t=actx.currentTime;
+    noteGain.gain.cancelScheduledValues(t);
+    noteGain.gain.setValueAtTime(noteGain.gain.value,t);
+    noteGain.gain.linearRampToValueAtTime(0,t+0.18);
+    oscs.forEach(o=>{try{o.stop(t+0.2);}catch(e){}});
+  }});
+}
+
+function stopNote(key) {
+  if (!active.has(key)) return;
+  active.get(key).stopAll(); active.delete(key);
+}
+
+// ── Badge ──────────────────────────────────────────────────────
+let badgeTimeout = null;
+const playingNames = new Set();
+
+function updateBadge() {
+  clearTimeout(badgeTimeout);
+  if (playingNames.size) {
+    badgeEl.textContent = [...playingNames].join('  ');
+    badgeEl.classList.add('on');
+  } else {
+    badgeEl.classList.remove('on');
+    badgeTimeout = setTimeout(()=>{ badgeEl.textContent=''; }, 300);
+  }
+}
+
+// ── Canvas ─────────────────────────────────────────────────────
+function resize() {
+  const w=window.innerWidth, h=window.innerHeight;
+  if (w===cvW&&h===cvH) return;
+  cvW=w; cvH=h; canvas.width=w; canvas.height=h;
+}
+window.addEventListener('resize', resize); resize();
+
+// ── Smoothing ──────────────────────────────────────────────────
+let smoothL=null,smoothR=null,lastSmoothL=null,lastSmoothR=null,ghostL=0,ghostR=0;
+
+function smoothLandmarks(prev, next) {
+  if (!prev) return next.map(p=>({...p}));
+  return next.map((p,i)=>({
+    x: prev[i].x*(1-SMOOTH_ALPHA)+p.x*SMOOTH_ALPHA,
+    y: prev[i].y*(1-SMOOTH_ALPHA)+p.y*SMOOTH_ALPHA,
+    z: prev[i].z*(1-SMOOTH_ALPHA)+p.z*SMOOTH_ALPHA,
+  }));
+}
+
+function isHandPlausible(lm) {
+  const dx=(lm[9].x-lm[0].x)*cvW, dy=(lm[9].y-lm[0].y)*cvH;
+  return Math.hypot(dx,dy)>25;
+}
+
+function isFingerCurled(lm, fi) {
+  const tipIdx=TIPS[fi], refIdx=fi===0?3:tipIdx-2;
+  return lm[tipIdx].y>lm[refIdx].y;
+}
+
+// ── Draw ───────────────────────────────────────────────────────
+function skeleton(lm, color) {
+  [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
+   [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]]
+    .forEach(([a,b])=>{
+      ctx2d.beginPath();
+      ctx2d.moveTo(lm[a].x*cvW, lm[a].y*cvH);
+      ctx2d.lineTo(lm[b].x*cvW, lm[b].y*cvH);
+      ctx2d.strokeStyle=color+'1a'; ctx2d.lineWidth=1.2; ctx2d.stroke();
+    });
+}
+
+function processHand(lm, handIdx, color) {
+  skeleton(lm, color);
+  const scale=SCALES[scaleEl.value]||SCALES.major;
+  for (let fi=0;fi<5;fi++) {
+    const si=handIdx*5+fi;
+    if (si>=scale.length) continue;
+    const key=`h${handIdx}f${fi}`;
+    const curled=isFingerCurled(lm,fi);
+    const tx=lm[TIPS[fi]].x*cvW, ty=lm[TIPS[fi]].y*cvH;
+    const r=curled?13:7;
+
+    if (curled) {
+      const grd=ctx2d.createRadialGradient(tx,ty,r,tx,ty,r+9);
+      grd.addColorStop(0,color+'44'); grd.addColorStop(1,color+'00');
+      ctx2d.beginPath(); ctx2d.arc(tx,ty,r+9,0,Math.PI*2);
+      ctx2d.fillStyle=grd; ctx2d.fill();
+    }
+
+    ctx2d.beginPath(); ctx2d.arc(tx,ty,r,0,Math.PI*2);
+    ctx2d.fillStyle=curled?color:'rgba(255,255,255,0.10)'; ctx2d.fill();
+    ctx2d.strokeStyle=curled?color:color+'44'; ctx2d.lineWidth=1.5; ctx2d.stroke();
+
+    ctx2d.fillStyle=curled?'#0a0905':'rgba(255,255,255,0.55)';
+    ctx2d.font=`${r<10?7:8}px 'DM Mono',monospace`;
+    ctx2d.textAlign='center'; ctx2d.textBaseline='middle';
+    ctx2d.fillText(noteDisplayName(si),tx,ty);
+
+    if (curled) {
+      const freq=noteFreqFromIdx(si);
+      if (freq) playNote(key,freq);
+      playingNames.add(noteDisplayName(si));
+    } else {
+      stopNote(key);
+      playingNames.delete(noteDisplayName(si));
+    }
+  }
+}
+
+// ── MediaPipe ──────────────────────────────────────────────────
+function onResults(res) {
+  ctx2d.clearRect(0,0,cvW,cvH);
+  let rawL=null,rawR=null;
+  if (res.multiHandLandmarks&&res.multiHandedness) {
+    res.multiHandedness.forEach((h,i)=>{
+      const lm=res.multiHandLandmarks[i];
+      if (!isHandPlausible(lm)) return;
+      if (h.label==='Right') rawL=lm; else rawR=lm;
+    });
+  }
+
+  if(rawL){smoothL=smoothLandmarks(smoothL,rawL);lastSmoothL=smoothL;ghostL=0;}
+  else if(lastSmoothL&&ghostL<GHOST_FRAMES){smoothL=lastSmoothL;ghostL++;}
+  else{smoothL=null;lastSmoothL=null;ghostL=0;}
+
+  if(rawR){smoothR=smoothLandmarks(smoothR,rawR);lastSmoothR=smoothR;ghostR=0;}
+  else if(lastSmoothR&&ghostR<GHOST_FRAMES){smoothR=lastSmoothR;ghostR++;}
+  else{smoothR=null;lastSmoothR=null;ghostR=0;}
+
+  if(!smoothL){for(let f=0;f<5;f++) stopNote(`h0f${f}`);}
+  if(!smoothR){for(let f=0;f<5;f++) stopNote(`h1f${f}`);}
+
+  playingNames.clear();
+  if(smoothL) processHand(smoothL,0,GOLD);
+  if(smoothR) processHand(smoothR,1,TEAL);
+  updateBadge();
+}
+
+// ── Lifecycle ──────────────────────────────────────────────────
+let handsModel=null,stream=null,raf=null,running=false;
+
+async function onStart() {
+  document.getElementById('btn-go').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  ensureAudio();
+  if(actx.state==='suspended') await actx.resume();
+
+  loadEl.classList.remove('hidden');
+  loadMsg.textContent='Opening camera…';
+  dotEl.className='busy';
+
+  try {
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,min:20}}});
+    video.srcObject=stream;
+    await new Promise(r=>{video.readyState>=2?r():(video.onloadedmetadata=r);});
+    await video.play();
+  } catch(e) {
+    dotEl.className='';
+    loadEl.classList.add('hidden');
+    document.getElementById('btn-go').disabled=false;
+    document.getElementById('btn-stop').disabled=true;
+    return;
+  }
+
+  loadMsg.textContent='Loading hand model…';
+  handsModel=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
+  handsModel.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.65,minTrackingConfidence:0.6,selfieMode:false});
+  handsModel.onResults(onResults);
+  await handsModel.initialize();
+
+  loadEl.classList.add('hidden');
+  dotEl.className='live';
+  running=true;
+
+  let lastT=0;
+  async function loop(ts){
+    if(!running) return;
+    if(ts-lastT>=31){lastT=ts;try{if(video.readyState>=2)await handsModel.send({image:video});}catch(e){}}
+    raf=requestAnimationFrame(loop);
+  }
+  raf=requestAnimationFrame(loop);
+}
+
+window.onStart=onStart;
+
+window.onStop=function(){
+  running=false;
+  smoothL=smoothR=lastSmoothL=lastSmoothR=null;
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  if(handsModel){handsModel.close();handsModel=null;}
+  ctx2d.clearRect(0,0,cvW,cvH);
+  for(const k of [...active.keys()]) stopNote(k);
+  playingNames.clear(); updateBadge();
+  dotEl.className='';
+  document.getElementById('btn-go').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+};
+
+[scaleEl, keyEl, octaveEl].forEach(el=>el.addEventListener('change',()=>{
+  for(const k of [...active.keys()]) stopNote(k);
+  playingNames.clear(); updateBadge();
+}));
 </script>
 </body>
 </html>
