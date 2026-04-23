@@ -171,17 +171,33 @@ const ctx2d = canvas.getContext('2d');
 let cvW = 0, cvH = 0;
 
 // ── Audio ──────────────────────────────────────────────────────
+// Safari fix: create AudioContext synchronously inside user gesture,
+// use webkitAudioContext, and handle state carefully.
+const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 let actx = null, masterGain = null;
 const active = new Map();
 
-function ensureAudio() {
+// Safari fix: create the context synchronously the moment the user
+// taps Start. We do NOT use async/await before this call.
+function createAudioContext() {
   if (actx) return;
-  actx = new (window.AudioContext || window.webkitAudioContext)();
+  actx = new AudioContextClass();
   const comp = actx.createDynamicsCompressor();
-  comp.threshold.value=-18; comp.knee.value=12;
-  comp.ratio.value=4; comp.attack.value=0.003; comp.release.value=0.25;
-  masterGain = actx.createGain(); masterGain.gain.value = 0.82;
-  comp.connect(masterGain); masterGain.connect(actx.destination);
+  comp.threshold.value = -18; comp.knee.value = 12;
+  comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+  masterGain = actx.createGain();
+  masterGain.gain.value = 0.82;
+  comp.connect(masterGain);
+  masterGain.connect(actx.destination);
+}
+
+// Safari fix: resume must be called and awaited before scheduling audio.
+// Safari suspends the context even after creation.
+async function resumeAudio() {
+  if (!actx) return;
+  if (actx.state === 'suspended' || actx.state === 'interrupted') {
+    try { await actx.resume(); } catch(e) {}
+  }
 }
 
 const PARTIALS = [[1.000,1.00],[2.001,0.50],[3.003,0.25],[4.007,0.14],[5.012,0.08],[6.020,0.05],[7.030,0.03],[8.042,0.02]];
@@ -205,54 +221,88 @@ function noteDisplayName(si) {
 
 function playNote(key, freq) {
   if (active.has(key)) return;
-  ensureAudio();
+  if (!actx || actx.state !== 'running') return; // Safari: don't schedule if not running
   const now = actx.currentTime;
   const decay = Math.max(0.7, 4.0 - (Math.log2(freq/55)/Math.log2(4000/55))*3.3);
   const vel = 0.28;
 
   const noteGain = actx.createGain();
   noteGain.gain.setValueAtTime(0, now);
-  noteGain.gain.linearRampToValueAtTime(vel, now+0.004);
-  noteGain.gain.setTargetAtTime(vel*0.6, now+0.004, 0.06);
-  noteGain.gain.setTargetAtTime(0, now+0.08, decay);
+  noteGain.gain.linearRampToValueAtTime(vel, now + 0.004);
+  noteGain.gain.setTargetAtTime(vel * 0.6, now + 0.004, 0.06);
+  noteGain.gain.setTargetAtTime(0, now + 0.08, decay);
+  noteGain.connect(masterGain);
 
+  // Safari fix: connect noteGain before lpf, simpler chain is more stable
   const lpf = actx.createBiquadFilter();
-  lpf.type='lowpass'; lpf.frequency.value=Math.min(6000,freq*12); lpf.Q.value=0.5;
-  noteGain.connect(lpf); lpf.connect(masterGain);
+  lpf.type = 'lowpass';
+  lpf.frequency.value = Math.min(6000, freq * 12);
+  lpf.Q.value = 0.5;
+  noteGain.connect(lpf);
+  lpf.connect(masterGain);
 
+  const stopTime = now + decay * 6 + 0.3;
   const oscs = [];
-  for (const [mult,amp] of PARTIALS) {
-    for (const det of [-2.5,2.5]) {
-      const osc = actx.createOscillator(); osc.type='sine';
-      osc.frequency.value=freq*mult; osc.detune.value=det;
-      const pg = actx.createGain(); pg.gain.value=amp*0.5;
-      osc.connect(pg); pg.connect(noteGain); osc.start(now); oscs.push(osc);
+
+  for (const [mult, amp] of PARTIALS) {
+    for (const det of [-2.5, 2.5]) {
+      const osc = actx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq * mult;
+      osc.detune.value = det;
+      const pg = actx.createGain();
+      pg.gain.value = amp * 0.5;
+      osc.connect(pg);
+      pg.connect(noteGain);
+      osc.start(now);
+      // Safari fix: wrap stop in try/catch — Safari throws if context is
+      // torn down before the scheduled stop time fires
+      try { osc.stop(stopTime); } catch(e) {}
+      oscs.push(osc);
     }
   }
 
-  const bufSize = actx.sampleRate*0.04;
-  const nBuf = actx.createBuffer(1,bufSize,actx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i=0;i<bufSize;i++) nd[i]=Math.random()*2-1;
-  const noise=actx.createBufferSource(); noise.buffer=nBuf;
-  const nbp=actx.createBiquadFilter(); nbp.type='bandpass'; nbp.frequency.value=freq*3; nbp.Q.value=2;
-  const ng=actx.createGain(); ng.gain.setValueAtTime(0.06,now); ng.gain.linearRampToValueAtTime(0,now+0.025);
-  noise.connect(nbp); nbp.connect(ng); ng.connect(masterGain);
-  noise.start(now); noise.stop(now+0.04);
+  // Noise burst
+  try {
+    const bufSize = Math.floor(actx.sampleRate * 0.04);
+    const nBuf = actx.createBuffer(1, bufSize, actx.sampleRate);
+    const nd = nBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) nd[i] = Math.random() * 2 - 1;
+    const noise = actx.createBufferSource();
+    noise.buffer = nBuf;
+    const nbp = actx.createBiquadFilter();
+    nbp.type = 'bandpass';
+    nbp.frequency.value = freq * 3;
+    nbp.Q.value = 2;
+    const ng = actx.createGain();
+    ng.gain.setValueAtTime(0.06, now);
+    ng.gain.linearRampToValueAtTime(0, now + 0.025);
+    noise.connect(nbp);
+    nbp.connect(ng);
+    ng.connect(masterGain);
+    noise.start(now);
+    noise.stop(now + 0.04);
+  } catch(e) {}
 
-  oscs.forEach(o=>o.stop(now+decay*6+0.3));
-  active.set(key, { stopAll() {
-    const t=actx.currentTime;
-    noteGain.gain.cancelScheduledValues(t);
-    noteGain.gain.setValueAtTime(noteGain.gain.value,t);
-    noteGain.gain.linearRampToValueAtTime(0,t+0.18);
-    oscs.forEach(o=>{try{o.stop(t+0.2);}catch(e){}});
-  }});
+  active.set(key, {
+    stopAll() {
+      const t = actx ? actx.currentTime : 0;
+      try {
+        noteGain.gain.cancelScheduledValues(t);
+        noteGain.gain.setValueAtTime(noteGain.gain.value, t);
+        noteGain.gain.linearRampToValueAtTime(0, t + 0.18);
+      } catch(e) {}
+      oscs.forEach(o => {
+        try { o.stop(t + 0.2); } catch(e) {}
+      });
+    }
+  });
 }
 
 function stopNote(key) {
   if (!active.has(key)) return;
-  active.get(key).stopAll(); active.delete(key);
+  active.get(key).stopAll();
+  active.delete(key);
 }
 
 // ── Badge ──────────────────────────────────────────────────────
@@ -266,15 +316,15 @@ function updateBadge() {
     badgeEl.classList.add('on');
   } else {
     badgeEl.classList.remove('on');
-    badgeTimeout = setTimeout(()=>{ badgeEl.textContent=''; }, 300);
+    badgeTimeout = setTimeout(() => { badgeEl.textContent = ''; }, 300);
   }
 }
 
 // ── Canvas ─────────────────────────────────────────────────────
 function resize() {
-  const w=window.innerWidth, h=window.innerHeight;
-  if (w===cvW&&h===cvH) return;
-  cvW=w; cvH=h; canvas.width=w; canvas.height=h;
+  const w = window.innerWidth, h = window.innerHeight;
+  if (w === cvW && h === cvH) return;
+  cvW = w; cvH = h; canvas.width = w; canvas.height = h;
 }
 window.addEventListener('resize', resize); resize();
 
@@ -282,66 +332,66 @@ window.addEventListener('resize', resize); resize();
 let smoothL=null,smoothR=null,lastSmoothL=null,lastSmoothR=null,ghostL=0,ghostR=0;
 
 function smoothLandmarks(prev, next) {
-  if (!prev) return next.map(p=>({...p}));
-  return next.map((p,i)=>({
-    x: prev[i].x*(1-SMOOTH_ALPHA)+p.x*SMOOTH_ALPHA,
-    y: prev[i].y*(1-SMOOTH_ALPHA)+p.y*SMOOTH_ALPHA,
-    z: prev[i].z*(1-SMOOTH_ALPHA)+p.z*SMOOTH_ALPHA,
+  if (!prev) return next.map(p => ({...p}));
+  return next.map((p, i) => ({
+    x: prev[i].x * (1 - SMOOTH_ALPHA) + p.x * SMOOTH_ALPHA,
+    y: prev[i].y * (1 - SMOOTH_ALPHA) + p.y * SMOOTH_ALPHA,
+    z: prev[i].z * (1 - SMOOTH_ALPHA) + p.z * SMOOTH_ALPHA,
   }));
 }
 
 function isHandPlausible(lm) {
-  const dx=(lm[9].x-lm[0].x)*cvW, dy=(lm[9].y-lm[0].y)*cvH;
-  return Math.hypot(dx,dy)>25;
+  const dx = (lm[9].x - lm[0].x) * cvW, dy = (lm[9].y - lm[0].y) * cvH;
+  return Math.hypot(dx, dy) > 25;
 }
 
 function isFingerCurled(lm, fi) {
-  const tipIdx=TIPS[fi], refIdx=fi===0?3:tipIdx-2;
-  return lm[tipIdx].y>lm[refIdx].y;
+  const tipIdx = TIPS[fi], refIdx = fi === 0 ? 3 : tipIdx - 2;
+  return lm[tipIdx].y > lm[refIdx].y;
 }
 
 // ── Draw ───────────────────────────────────────────────────────
 function skeleton(lm, color) {
   [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],
    [9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]]
-    .forEach(([a,b])=>{
+    .forEach(([a, b]) => {
       ctx2d.beginPath();
-      ctx2d.moveTo(lm[a].x*cvW, lm[a].y*cvH);
-      ctx2d.lineTo(lm[b].x*cvW, lm[b].y*cvH);
-      ctx2d.strokeStyle=color+'1a'; ctx2d.lineWidth=1.2; ctx2d.stroke();
+      ctx2d.moveTo(lm[a].x * cvW, lm[a].y * cvH);
+      ctx2d.lineTo(lm[b].x * cvW, lm[b].y * cvH);
+      ctx2d.strokeStyle = color + '1a'; ctx2d.lineWidth = 1.2; ctx2d.stroke();
     });
 }
 
 function processHand(lm, handIdx, color) {
   skeleton(lm, color);
-  const scale=SCALES[scaleEl.value]||SCALES.major;
-  for (let fi=0;fi<5;fi++) {
-    const si=handIdx*5+fi;
-    if (si>=scale.length) continue;
-    const key=`h${handIdx}f${fi}`;
-    const curled=isFingerCurled(lm,fi);
-    const tx=lm[TIPS[fi]].x*cvW, ty=lm[TIPS[fi]].y*cvH;
-    const r=curled?13:7;
+  const scale = SCALES[scaleEl.value] || SCALES.major;
+  for (let fi = 0; fi < 5; fi++) {
+    const si = handIdx * 5 + fi;
+    if (si >= scale.length) continue;
+    const key = `h${handIdx}f${fi}`;
+    const curled = isFingerCurled(lm, fi);
+    const tx = lm[TIPS[fi]].x * cvW, ty = lm[TIPS[fi]].y * cvH;
+    const r = curled ? 13 : 7;
 
     if (curled) {
-      const grd=ctx2d.createRadialGradient(tx,ty,r,tx,ty,r+9);
-      grd.addColorStop(0,color+'44'); grd.addColorStop(1,color+'00');
-      ctx2d.beginPath(); ctx2d.arc(tx,ty,r+9,0,Math.PI*2);
-      ctx2d.fillStyle=grd; ctx2d.fill();
+      const grd = ctx2d.createRadialGradient(tx, ty, r, tx, ty, r + 9);
+      grd.addColorStop(0, color + '44'); grd.addColorStop(1, color + '00');
+      ctx2d.beginPath(); ctx2d.arc(tx, ty, r + 9, 0, Math.PI * 2);
+      ctx2d.fillStyle = grd; ctx2d.fill();
     }
 
-    ctx2d.beginPath(); ctx2d.arc(tx,ty,r,0,Math.PI*2);
-    ctx2d.fillStyle=curled?color:'rgba(255,255,255,0.10)'; ctx2d.fill();
-    ctx2d.strokeStyle=curled?color:color+'44'; ctx2d.lineWidth=1.5; ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.arc(tx, ty, r, 0, Math.PI * 2);
+    ctx2d.fillStyle = curled ? color : 'rgba(255,255,255,0.10)'; ctx2d.fill();
+    ctx2d.strokeStyle = curled ? color : color + '44'; ctx2d.lineWidth = 1.5; ctx2d.stroke();
 
-    ctx2d.fillStyle=curled?'#0a0905':'rgba(255,255,255,0.55)';
-    ctx2d.font=`${r<10?7:8}px 'DM Mono',monospace`;
-    ctx2d.textAlign='center'; ctx2d.textBaseline='middle';
-    ctx2d.fillText(noteDisplayName(si),tx,ty);
+    ctx2d.fillStyle = curled ? '#0a0905' : 'rgba(255,255,255,0.55)';
+    ctx2d.font = `${r < 10 ? 7 : 8}px 'DM Mono',monospace`;
+    ctx2d.textAlign = 'center'; ctx2d.textBaseline = 'middle';
+    ctx2d.fillText(noteDisplayName(si), tx, ty);
 
     if (curled) {
-      const freq=noteFreqFromIdx(si);
-      if (freq) playNote(key,freq);
+      const freq = noteFreqFromIdx(si);
+      if (freq) playNote(key, freq);
       playingNames.add(noteDisplayName(si));
     } else {
       stopNote(key);
@@ -352,96 +402,138 @@ function processHand(lm, handIdx, color) {
 
 // ── MediaPipe ──────────────────────────────────────────────────
 function onResults(res) {
-  ctx2d.clearRect(0,0,cvW,cvH);
-  let rawL=null,rawR=null;
-  if (res.multiHandLandmarks&&res.multiHandedness) {
-    res.multiHandedness.forEach((h,i)=>{
-      const lm=res.multiHandLandmarks[i];
+  ctx2d.clearRect(0, 0, cvW, cvH);
+  let rawL = null, rawR = null;
+  if (res.multiHandLandmarks && res.multiHandedness) {
+    res.multiHandedness.forEach((h, i) => {
+      const lm = res.multiHandLandmarks[i];
       if (!isHandPlausible(lm)) return;
-      if (h.label==='Right') rawL=lm; else rawR=lm;
+      if (h.label === 'Right') rawL = lm; else rawR = lm;
     });
   }
 
-  if(rawL){smoothL=smoothLandmarks(smoothL,rawL);lastSmoothL=smoothL;ghostL=0;}
-  else if(lastSmoothL&&ghostL<GHOST_FRAMES){smoothL=lastSmoothL;ghostL++;}
-  else{smoothL=null;lastSmoothL=null;ghostL=0;}
+  if (rawL) { smoothL = smoothLandmarks(smoothL, rawL); lastSmoothL = smoothL; ghostL = 0; }
+  else if (lastSmoothL && ghostL < GHOST_FRAMES) { smoothL = lastSmoothL; ghostL++; }
+  else { smoothL = null; lastSmoothL = null; ghostL = 0; }
 
-  if(rawR){smoothR=smoothLandmarks(smoothR,rawR);lastSmoothR=smoothR;ghostR=0;}
-  else if(lastSmoothR&&ghostR<GHOST_FRAMES){smoothR=lastSmoothR;ghostR++;}
-  else{smoothR=null;lastSmoothR=null;ghostR=0;}
+  if (rawR) { smoothR = smoothLandmarks(smoothR, rawR); lastSmoothR = smoothR; ghostR = 0; }
+  else if (lastSmoothR && ghostR < GHOST_FRAMES) { smoothR = lastSmoothR; ghostR++; }
+  else { smoothR = null; lastSmoothR = null; ghostR = 0; }
 
-  if(!smoothL){for(let f=0;f<5;f++) stopNote(`h0f${f}`);}
-  if(!smoothR){for(let f=0;f<5;f++) stopNote(`h1f${f}`);}
+  if (!smoothL) { for (let f = 0; f < 5; f++) stopNote(`h0f${f}`); }
+  if (!smoothR) { for (let f = 0; f < 5; f++) stopNote(`h1f${f}`); }
 
   playingNames.clear();
-  if(smoothL) processHand(smoothL,0,GOLD);
-  if(smoothR) processHand(smoothR,1,TEAL);
+  if (smoothL) processHand(smoothL, 0, GOLD);
+  if (smoothR) processHand(smoothR, 1, TEAL);
   updateBadge();
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────
-let handsModel=null,stream=null,raf=null,running=false;
+let handsModel = null, stream = null, raf = null, running = false;
 
+// Safari fix: AudioContext must be created synchronously inside a
+// click/touchstart handler — this is the user gesture boundary.
+// We create it here, BEFORE any async operations, so Safari
+// registers it as gesture-initiated.
 async function onStart() {
-  document.getElementById('btn-go').disabled=true;
-  document.getElementById('btn-stop').disabled=false;
-  ensureAudio();
-  if(actx.state==='suspended') await actx.resume();
+  document.getElementById('btn-go').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+
+  // SAFARI FIX: create context synchronously right here, inside the
+  // click handler, before any await. Safari's gesture detector loses
+  // the gesture context across await boundaries.
+  createAudioContext();
+
+  // SAFARI FIX: resume immediately while still in the synchronous
+  // portion of the gesture (Safari allows this even pre-await).
+  // We also call it again after setup below.
+  if (actx.state === 'suspended') {
+    actx.resume().catch(() => {});
+  }
 
   loadEl.classList.remove('hidden');
-  loadMsg.textContent='Opening camera…';
-  dotEl.className='busy';
+  loadMsg.textContent = 'Opening camera…';
+  dotEl.className = 'busy';
 
   try {
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,min:20}}});
-    video.srcObject=stream;
-    await new Promise(r=>{video.readyState>=2?r():(video.onloadedmetadata=r);});
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, min: 20 } }
+    });
+    video.srcObject = stream;
+    await new Promise(r => { video.readyState >= 2 ? r() : (video.onloadedmetadata = r); });
     await video.play();
   } catch(e) {
-    dotEl.className='';
+    dotEl.className = '';
     loadEl.classList.add('hidden');
-    document.getElementById('btn-go').disabled=false;
-    document.getElementById('btn-stop').disabled=true;
+    document.getElementById('btn-go').disabled = false;
+    document.getElementById('btn-stop').disabled = true;
     return;
   }
 
-  loadMsg.textContent='Loading hand model…';
-  handsModel=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
-  handsModel.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:0.65,minTrackingConfidence:0.6,selfieMode:false});
+  // SAFARI FIX: resume again after async gap — Safari may re-suspend
+  await resumeAudio();
+
+  loadMsg.textContent = 'Loading hand model…';
+  handsModel = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}` });
+  handsModel.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.65, minTrackingConfidence: 0.6, selfieMode: false });
   handsModel.onResults(onResults);
   await handsModel.initialize();
 
-  loadEl.classList.add('hidden');
-  dotEl.className='live';
-  running=true;
+  // SAFARI FIX: one more resume attempt after all async init is done
+  await resumeAudio();
 
-  let lastT=0;
-  async function loop(ts){
-    if(!running) return;
-    if(ts-lastT>=31){lastT=ts;try{if(video.readyState>=2)await handsModel.send({image:video});}catch(e){}}
-    raf=requestAnimationFrame(loop);
+  loadEl.classList.add('hidden');
+  dotEl.className = 'live';
+  running = true;
+
+  // SAFARI FIX: re-resume on page visibility restore (Safari suspends
+  // AudioContext when the tab goes to background)
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  let lastT = 0;
+  async function loop(ts) {
+    if (!running) return;
+    if (ts - lastT >= 31) {
+      lastT = ts;
+      // SAFARI FIX: re-resume on each frame if needed (cheap no-op when running)
+      if (actx && actx.state !== 'running') {
+        actx.resume().catch(() => {});
+      }
+      try {
+        if (video.readyState >= 2) await handsModel.send({ image: video });
+      } catch(e) {}
+    }
+    raf = requestAnimationFrame(loop);
   }
-  raf=requestAnimationFrame(loop);
+  raf = requestAnimationFrame(loop);
 }
 
-window.onStart=onStart;
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible' && actx) {
+    actx.resume().catch(() => {});
+  }
+}
 
-window.onStop=function(){
-  running=false;
-  smoothL=smoothR=lastSmoothL=lastSmoothR=null;
-  if(raf){cancelAnimationFrame(raf);raf=null;}
-  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
-  if(handsModel){handsModel.close();handsModel=null;}
-  ctx2d.clearRect(0,0,cvW,cvH);
-  for(const k of [...active.keys()]) stopNote(k);
+window.onStart = onStart;
+
+window.onStop = function() {
+  running = false;
+  smoothL = smoothR = lastSmoothL = lastSmoothR = null;
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  if (raf) { cancelAnimationFrame(raf); raf = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (handsModel) { handsModel.close(); handsModel = null; }
+  ctx2d.clearRect(0, 0, cvW, cvH);
+  for (const k of [...active.keys()]) stopNote(k);
   playingNames.clear(); updateBadge();
-  dotEl.className='';
-  document.getElementById('btn-go').disabled=false;
-  document.getElementById('btn-stop').disabled=true;
+  dotEl.className = '';
+  document.getElementById('btn-go').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
 };
 
-[scaleEl, keyEl, octaveEl].forEach(el=>el.addEventListener('change',()=>{
-  for(const k of [...active.keys()]) stopNote(k);
+[scaleEl, keyEl, octaveEl].forEach(el => el.addEventListener('change', () => {
+  for (const k of [...active.keys()]) stopNote(k);
   playingNames.clear(); updateBadge();
 }));
 </script>
