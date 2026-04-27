@@ -44,55 +44,28 @@
     padding: 2rem 1rem 4rem;
   }
 
-  .page {
-    width: 100%;
-    max-width: 680px;
+  .page { width: 100%; max-width: 740px; }
+
+  .header { text-align: center; margin-bottom: 1.2rem; }
+  .header-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 0.5rem; }
+  .header h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 32px; font-weight: 400; line-height: 1.2; }
+  .header h1 em { font-style: italic; color: var(--accent); }
+  .header-sub { margin-top: 0.5rem; font-size: 14px; color: var(--text-muted); font-weight: 300; }
+
+  .top-controls {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 1rem;
   }
 
-  /* ── Header ── */
-  .header {
-    text-align: center;
-    margin-bottom: 2rem;
-  }
-
-  .header-eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-hint);
-    margin-bottom: 0.5rem;
-  }
-
-  .header h1 {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 32px;
-    font-weight: 400;
-    color: var(--text);
-    line-height: 1.2;
-  }
-
-  .header h1 em {
-    font-style: italic;
-    color: var(--accent);
-  }
-
-  .header-sub {
-    margin-top: 0.5rem;
-    font-size: 14px;
-    color: var(--text-muted);
-    font-weight: 300;
-  }
-
-  /* ── Filter ── */
-  .filter-bar {
+  .filter-bar, .mode-bar {
     display: flex;
     gap: 8px;
     justify-content: center;
-    margin-bottom: 1.5rem;
     flex-wrap: wrap;
   }
 
-  .filter-btn {
+  .filter-btn, .mode-btn {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 400;
@@ -105,348 +78,160 @@
     transition: all 0.2s;
   }
 
-  .filter-btn:hover { background: var(--surface-2); color: var(--text); }
+  .filter-btn:hover, .mode-btn:hover { background: var(--surface-2); color: var(--text); }
 
-  .filter-btn.active-all {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-  }
+  .filter-btn.active-all, .mode-btn.active-lesson { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .filter-btn.active-imp { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .filter-btn.active-pc { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .mode-btn.active-easy { background: var(--green); color: #fff; border-color: var(--green); }
+  .mode-btn.active-quiz { background: var(--red); color: #fff; border-color: var(--red); }
 
-  .filter-btn.active-imp {
-    background: var(--blue);
-    color: #fff;
-    border-color: var(--blue);
-  }
-
-  .filter-btn.active-pc {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
-
-  /* ── Score row ── */
-  .score-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 1.25rem;
-  }
-
-  .metric {
+  .lesson-card {
+    display: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem;
-    text-align: center;
+    border-radius: var(--radius);
+    padding: 1.25rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
   }
 
-  .metric-label {
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-hint);
-    margin-bottom: 4px;
-  }
-
-  .metric-val {
+  .lesson-card h3 {
     font-family: 'Playfair Display', serif;
-    font-size: 26px;
-    font-weight: 600;
-    color: var(--text);
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
   }
 
+  .lesson-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    margin-top: 0.75rem;
+  }
+
+  .lesson-col {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+  }
+
+  .lesson-col h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .lesson-col.imp h4 { color: var(--blue-text); }
+  .lesson-col.pc h4 { color: var(--accent-text); }
+
+  .lesson-col ul { padding-left: 1rem; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+
+  .score-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem; text-align: center; }
+  .metric-label { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 4px; }
+  .metric-val { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600; color: var(--text); }
   .metric-val.green { color: var(--green); }
   .metric-val.red { color: var(--red); }
 
-  /* ── Progress ── */
-  .progress-wrap {
-    background: var(--border);
-    border-radius: 999px;
-    height: 4px;
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-  }
+  .progress-wrap { background: var(--border); border-radius: 999px; height: 4px; margin-bottom: 1.5rem; overflow: hidden; }
+  .progress-fill { height: 4px; background: linear-gradient(90deg, var(--accent), #5BAD7A); border-radius: 999px; transition: width 0.4s ease; }
 
-  .progress-fill {
-    height: 4px;
-    background: linear-gradient(90deg, var(--accent), #5BAD7A);
-    border-radius: 999px;
-    transition: width 0.4s ease;
-  }
-
-  /* ── Question card ── */
-  .q-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.75rem 2rem;
-    box-shadow: var(--shadow);
-    animation: cardIn 0.3s ease;
-  }
-
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  .q-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem 2rem; box-shadow: var(--shadow); }
 
   .tense-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 999px;
-    margin-bottom: 1.25rem;
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; font-weight: 500; padding: 4px 12px; border-radius: 999px; margin-bottom: 1.25rem;
   }
-
-  .tense-badge.imp {
-    background: var(--blue-light);
-    color: var(--blue-text);
-    border: 1px solid #C5D5EC;
-  }
-
-  .tense-badge.pc {
-    background: var(--accent-light);
-    color: var(--accent-text);
-    border: 1px solid #C0DCC8;
-  }
-
-  .tense-badge::before {
-    content: '';
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-  }
-
+  .tense-badge.imp { background: var(--blue-light); color: var(--blue-text); border: 1px solid #C5D5EC; }
+  .tense-badge.pc { background: var(--accent-light); color: var(--accent-text); border: 1px solid #C0DCC8; }
+  .tense-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
   .tense-badge.imp::before { background: var(--blue); }
   .tense-badge.pc::before  { background: var(--accent); }
 
-  .sentence {
-    font-family: 'Playfair Display', serif;
-    font-size: 20px;
-    font-weight: 400;
-    line-height: 1.7;
-    color: var(--text);
-    margin-bottom: 0.5rem;
-  }
+  .sentence { font-family: 'Playfair Display', serif; font-size: 20px; line-height: 1.7; margin-bottom: 0.5rem; }
+  .verb-hint { font-size: 13px; color: var(--text-hint); margin-bottom: 1rem; font-style: italic; }
+  .hint-line { font-size: 13px; color: var(--blue); font-style: italic; margin-bottom: 1rem; min-height: 20px; }
 
-  .sentence .blank-marker {
-    display: inline-block;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: var(--text-hint);
-    font-style: normal;
-    border-bottom: 2px solid var(--border-strong);
-    min-width: 120px;
-    padding: 0 4px;
-    vertical-align: bottom;
-  }
+  .feedback { display: none; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 1rem; font-size: 14px; line-height: 1.6; }
+  .feedback.correct { display: block; background: var(--green-light); border: 1px solid #B0DCBF; color: #1A4D2E; }
+  .feedback.wrong { display: block; background: var(--red-light); border: 1px solid #DCBABA; color: #4D1A1A; }
+  .explanation { display: block; margin-top: 6px; font-size: 13px; opacity: 0.8; }
 
-  .verb-hint {
-    font-size: 13px;
-    color: var(--text-hint);
-    margin-bottom: 1.25rem;
-    font-style: italic;
-  }
-
-  .answer-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 1rem;
-  }
-
+  .answer-row { display: flex; gap: 10px; margin-bottom: 1rem; }
   .answer-input {
-    flex: 1;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    padding: 10px 14px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    color: var(--text);
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    flex: 1; font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 10px 14px;
+    border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg); outline: none;
   }
+  .answer-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,90,61,0.12); background: var(--surface); }
 
-  .answer-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(45,90,61,0.12);
-    background: var(--surface);
-  }
-
-  .answer-input:disabled { opacity: 0.6; }
-
-  .btn-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 9px 20px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: all 0.18s;
-    border: 1px solid var(--border-strong);
-    background: transparent;
-    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 9px 20px; border-radius: var(--radius-sm);
+    cursor: pointer; border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted);
   }
+  .btn-check { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  .btn:hover { background: var(--surface-2); color: var(--text); }
-  .btn:active { transform: scale(0.97); }
+  .end-screen { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; text-align: center; box-shadow: var(--shadow-lg); }
+  .end-score { font-family: 'Playfair Display', serif; font-size: 56px; font-weight: 600; color: var(--accent); line-height: 1; margin: 0.5rem 0 0.25rem; }
 
-  .btn-check {
-    background: var(--accent);
-    color: #fff;
-    border-color: var(--accent);
-  }
-
-  .btn-check:hover { background: #245032; color: #fff; }
-
-  .hint-line {
-    font-size: 13px;
-    color: var(--blue);
-    font-style: italic;
-    margin-bottom: 1rem;
-    min-height: 20px;
-    transition: opacity 0.2s;
-  }
-
-  /* ── Feedback ── */
-  .feedback {
-    display: none;
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    margin-bottom: 1rem;
-    font-size: 14px;
-    line-height: 1.6;
-    animation: fadeIn 0.25s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .feedback.correct {
-    display: block;
-    background: var(--green-light);
-    border: 1px solid #B0DCBF;
-    color: #1A4D2E;
-  }
-
-  .feedback.wrong {
-    display: block;
-    background: var(--red-light);
-    border: 1px solid #DCBABA;
-    color: #4D1A1A;
-  }
-
-  .feedback strong { font-weight: 500; }
-
-  .explanation {
-    display: block;
-    margin-top: 6px;
-    font-size: 13px;
-    opacity: 0.8;
-  }
-
-  /* ── End screen ── */
-  .end-screen {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 2.5rem 2rem;
-    text-align: center;
-    box-shadow: var(--shadow-lg);
-    animation: cardIn 0.4s ease;
-  }
-
-  .end-icon {
-    font-size: 48px;
-    margin-bottom: 1rem;
-  }
-
-  .end-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 28px;
-    font-weight: 400;
-    margin-bottom: 0.5rem;
-  }
-
-  .end-score {
-    font-family: 'Playfair Display', serif;
-    font-size: 56px;
-    font-weight: 600;
-    color: var(--accent);
-    line-height: 1;
-    margin: 0.5rem 0 0.25rem;
-  }
-
-  .end-denom {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 1.25rem;
-  }
-
-  .end-msg {
-    font-size: 15px;
-    color: var(--text-muted);
-    font-weight: 300;
-    margin-bottom: 1.75rem;
-    max-width: 360px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
-  }
-
-  .end-breakdown {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-bottom: 1.75rem;
-  }
-
-  .bd-item { text-align: center; }
-  .bd-val { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 600; }
-  .bd-val.green { color: var(--green); }
-  .bd-val.red   { color: var(--red); }
-  .bd-lbl { font-size: 12px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; }
-
-  /* ── Responsive ── */
-  @media (max-width: 520px) {
-    body { padding: 1rem 0.75rem 3rem; }
-    .header h1 { font-size: 26px; }
+  @media (max-width: 620px) {
     .score-row { grid-template-columns: repeat(2, 1fr); }
-    .q-card { padding: 1.25rem 1.25rem; }
+    .lesson-grid { grid-template-columns: 1fr; }
+    .q-card { padding: 1.25rem; }
     .sentence { font-size: 17px; }
-    .answer-row { flex-direction: column; }
-    .btn-check { width: 100%; }
   }
 </style>
 </head>
 <body>
-<main class="page" role="main">
+<main class="page">
   <header class="header">
     <p class="header-eyebrow">French verb practice</p>
     <h1>L'<em>Imparfait</em> &amp; le<br>Passé Composé</h1>
     <p class="header-sub">Fill in the blank with the correct conjugation.</p>
   </header>
 
-  <div class="filter-bar" id="filter-bar">
-    <button class="filter-btn active-all" onclick="setFilter('all',this)">All tenses</button>
-    <button class="filter-btn" onclick="setFilter('imparfait',this)">Imparfait only</button>
-    <button class="filter-btn" onclick="setFilter('passe',this)">Passé composé only</button>
+  <div class="top-controls">
+    <div class="mode-bar" id="mode-bar">
+      <button class="mode-btn active-lesson" onclick="setMode('lesson',this)">Lesson mode</button>
+      <button class="mode-btn" onclick="setMode('easy',this)">Easy mode</button>
+      <button class="mode-btn" onclick="setMode('quiz',this)">Quiz mode</button>
+    </div>
+
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-btn active-all" onclick="setFilter('all',this)">All tenses</button>
+      <button class="filter-btn" onclick="setFilter('imparfait',this)">Imparfait only</button>
+      <button class="filter-btn" onclick="setFilter('passe',this)">Passé composé only</button>
+    </div>
   </div>
+
+  <section class="lesson-card" id="lesson-card">
+    <h3>Mini Lesson</h3>
+    <p style="font-size:14px;color:var(--text-muted);line-height:1.6">
+      Use <strong>imparfait</strong> for background, habits, and ongoing states in the past.
+      Use <strong>passé composé</strong> for completed actions and sudden events.
+    </p>
+    <div class="lesson-grid">
+      <div class="lesson-col imp">
+        <h4>Imparfait (description / habit)</h4>
+        <ul>
+          <li>Quand j'étais petit, je <em>jouais</em> au foot.</li>
+          <li>Il <em>faisait</em> beau.</li>
+          <li>Nous <em>regardions</em> la télé chaque soir.</li>
+        </ul>
+      </div>
+      <div class="lesson-col pc">
+        <h4>Passé composé (completed event)</h4>
+        <ul>
+          <li>Hier, j'<em>ai fini</em> mes devoirs.</li>
+          <li>Elle <em>est arrivée</em> à 8h.</li>
+          <li>Soudain, le téléphone <em>a sonné</em>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
   <div class="score-row">
     <div class="metric"><div class="metric-label">Score</div><div class="metric-val" id="score">0</div></div>
@@ -469,251 +254,130 @@
     <div class="btn-row">
       <button class="btn btn-check" id="check-btn" onclick="checkAnswer()">Vérifier →</button>
       <button class="btn" onclick="skipQuestion()">Passer</button>
-      <button class="btn" onclick="showHint()">Indice</button>
+      <button class="btn" id="hint-btn" onclick="showHint()">Indice</button>
     </div>
   </div>
 
   <div class="end-screen" id="end-screen">
-    <div class="end-icon">🎉</div>
-    <h2 class="end-title">Session terminée !</h2>
+    <div style="font-size:48px">🎉</div>
+    <h2 style="font-family:'Playfair Display',serif;font-weight:400;font-size:28px;margin-bottom:6px;">Session terminée !</h2>
     <div class="end-score" id="end-score"></div>
-    <div class="end-denom" id="end-denom"></div>
-    <div class="end-breakdown">
-      <div class="bd-item"><div class="bd-val green" id="end-correct">0</div><div class="bd-lbl">Correct</div></div>
-      <div class="bd-item"><div class="bd-val red"   id="end-wrong">0</div><div class="bd-lbl">Incorrect</div></div>
-    </div>
-    <p class="end-msg" id="end-msg"></p>
-    <button class="btn btn-check" onclick="restart()" style="padding:11px 32px;font-size:15px">Recommencer →</button>
+    <div id="end-denom" style="font-size:14px;color:var(--text-muted);margin-bottom:10px;"></div>
+    <p id="end-msg" style="font-size:15px;color:var(--text-muted);line-height:1.6;margin-bottom:16px;"></p>
+    <button class="btn btn-check" onclick="restart()">Recommencer →</button>
   </div>
 </main>
 
 <script>
 const ALL_QUESTIONS = [
-  // ─── IMPARFAIT ───────────────────────────────────────────────
-  { tense:"imparfait", verb:"jouer (ils)", answer:"jouaient",
-    sentence:"Quand j'étais enfant, les enfants ___ dans le jardin tous les jours.",
-    explanation:"Habitual repeated action in the past ('every day')." },
-  { tense:"imparfait", verb:"faire", answer:"faisait",
-    sentence:"Il ___ très beau quand nous sommes arrivés.",
-    explanation:"Background/ongoing condition (the weather) when another event occurred." },
-  { tense:"imparfait", verb:"se promener (ils)", answer:"se promenaient",
-    sentence:"Ils ___ souvent dans la forêt le dimanche.",
-    explanation:"Habitual past action ('often')." },
-  { tense:"imparfait", verb:"pleurer (l'enfant)", answer:"pleurait",
-    sentence:"L'enfant ___ quand sa mère est entrée.",
-    explanation:"Ongoing background action interrupted by a sudden event." },
-  { tense:"imparfait", verb:"habiter (nous)", answer:"habitions",
-    sentence:"Pendant mon enfance, nous ___ à Lyon.",
-    explanation:"Prolonged state/situation during a period in the past." },
-  { tense:"imparfait", verb:"lire (elle)", answer:"lisait",
-    sentence:"Elle ___ un livre quand le bruit a commencé.",
-    explanation:"Ongoing action in progress when something interrupted it." },
-  { tense:"imparfait", verb:"savoir (je)", answer:"ne savais pas",
-    sentence:"Je ___ quoi répondre.",
-    explanation:"Mental state with no defined start or end." },
-  { tense:"imparfait", verb:"être (elle)", answer:"était",
-    sentence:"Quand elle ___ jeune, elle voulait devenir médecin.",
-    explanation:"Habitual state during a period in the past." },
-  { tense:"imparfait", verb:"vouloir (elle)", answer:"voulait",
-    sentence:"Petite, elle ___ toujours un chien.",
-    explanation:"Ongoing wish/desire in the past — a mental state." },
-  { tense:"imparfait", verb:"utiliser (on)", answer:"utilisait",
-    sentence:"Autrefois, on ___ des bougies pour s'éclairer.",
-    explanation:"General past custom ('in the old days')." },
-  { tense:"imparfait", verb:"regarder (nous)", answer:"regardions",
-    sentence:"Nous ___ la télévision tous les soirs après le dîner.",
-    explanation:"Repeated routine in the past ('every evening')." },
-  { tense:"imparfait", verb:"dormir (tu)", answer:"dormais",
-    sentence:"Tu ___ encore quand je suis parti.",
-    explanation:"Ongoing action (still in progress) when another occurred." },
-  { tense:"imparfait", verb:"pleuvoir", answer:"pleuvait",
-    sentence:"Il ___ à verse quand l'accident s'est produit.",
-    explanation:"Weather description as a background condition." },
-  { tense:"imparfait", verb:"travailler (mon père)", answer:"travaillait",
-    sentence:"Mon père ___ dans une usine depuis dix ans.",
-    explanation:"Prolonged ongoing situation in the past." },
-  { tense:"imparfait", verb:"penser (elle)", answer:"pensait",
-    sentence:"Elle ___ à ses vacances pendant tout le cours.",
-    explanation:"Ongoing mental state throughout a period." },
-  { tense:"imparfait", verb:"avoir (il)", answer:"avait",
-    sentence:"Il ___ les cheveux longs quand il était étudiant.",
-    explanation:"Physical description/state during a past period." },
-  { tense:"imparfait", verb:"aimer (ils)", answer:"aimaient",
-    sentence:"Mes grands-parents ___ danser le tango.",
-    explanation:"Habitual activity/preference of a past period." },
-  { tense:"imparfait", verb:"attendre (elle)", answer:"attendait",
-    sentence:"Elle ___ le bus depuis une heure quand il a finalement arrêté.",
-    explanation:"Ongoing action already in progress when another event happened." },
-  { tense:"imparfait", verb:"faire (nous)", answer:"faisions",
-    sentence:"Chaque été, nous ___ du camping en Bretagne.",
-    explanation:"Regular seasonal habit — typical imparfait territory." },
-  { tense:"imparfait", verb:"croire (je)", answer:"croyais",
-    sentence:"Je ___ qu'il était parti, mais il était là.",
-    explanation:"Mental state/belief at the time." },
-  { tense:"imparfait", verb:"savoir (nous)", answer:"savions",
-    sentence:"Nous ___ que la situation était grave.",
-    explanation:"State of knowledge — mental state verb." },
-  { tense:"imparfait", verb:"parler (les enfants)", answer:"parlaient",
-    sentence:"Les enfants ___ trop fort en classe.",
-    explanation:"Ongoing/repeated behaviour in a past context." },
-  { tense:"imparfait", verb:"sentir (il)", answer:"sentait",
-    sentence:"Il ___ que quelque chose n'allait pas.",
-    explanation:"Feeling/sensation as an ongoing mental state." },
-  { tense:"imparfait", verb:"habiter (elle)", answer:"habitait",
-    sentence:"Avant de déménager à Paris, elle ___ à Bordeaux.",
-    explanation:"Prolonged past situation before a change." },
+  { tense:"imparfait", verb:"jouer (ils)", answer:"jouaient", sentence:"Quand j'étais enfant, les enfants ___ dans le jardin tous les jours.", explanation:"Habitual repeated action." },
+  { tense:"imparfait", verb:"faire", answer:"faisait", sentence:"Il ___ très beau quand nous sommes arrivés.", explanation:"Background weather condition." },
+  { tense:"imparfait", verb:"lire (elle)", answer:"lisait", sentence:"Elle ___ un livre quand le bruit a commencé.", explanation:"Ongoing action interrupted." },
+  { tense:"imparfait", verb:"dormir (tu)", answer:"dormais", sentence:"Tu ___ encore quand je suis parti.", explanation:"Ongoing action." },
+  { tense:"imparfait", verb:"pleuvoir", answer:"pleuvait", sentence:"Il ___ à verse quand l'accident s'est produit.", explanation:"Background weather." },
+  { tense:"imparfait", verb:"regarder (nous)", answer:"regardions", sentence:"Nous ___ la télévision tous les soirs.", explanation:"Routine in the past." },
+  { tense:"imparfait", verb:"être (elle)", answer:"était", sentence:"Quand elle ___ jeune, elle voulait devenir médecin.", explanation:"State in the past." },
+  { tense:"imparfait", verb:"avoir (il)", answer:"avait", sentence:"Il ___ les cheveux longs quand il était étudiant.", explanation:"Description in the past." },
+  { tense:"imparfait", verb:"attendre (elle)", answer:"attendait", sentence:"Elle ___ le bus quand son ami est arrivé.", explanation:"Action in progress." },
+  { tense:"imparfait", verb:"faire (nous)", answer:"faisions", sentence:"Chaque été, nous ___ du camping en Bretagne.", explanation:"Habitual action." },
+  { tense:"imparfait", verb:"se réveiller (je)", answer:"me réveillais", sentence:"Quand j'étais à l'université, je ___ à 6h.", explanation:"Repeated habit." },
+  { tense:"imparfait", verb:"étudier (vous)", answer:"étudiiez", sentence:"Vous ___ souvent à la bibliothèque.", explanation:"Repeated action in the past." },
 
-  // ─── PASSÉ COMPOSÉ ───────────────────────────────────────────
-  { tense:"passe", verb:"finir (elle)", answer:"a fini",
-    sentence:"Hier soir, elle ___ ses devoirs à 22h.",
-    explanation:"Completed action at a specific past time ('last night')." },
-  { tense:"passe", verb:"visiter (nous)", answer:"avons visité",
-    sentence:"Nous ___ Paris l'année dernière.",
-    explanation:"Single completed trip in a specific past year." },
-  { tense:"passe", verb:"voir (tu)", answer:"as vu",
-    sentence:"Tu ___ ce film le week-end dernier ?",
-    explanation:"Specific completed event ('last weekend')." },
-  { tense:"passe", verb:"sonner (le téléphone)", answer:"a sonné",
-    sentence:"Soudain, le téléphone ___.",
-    explanation:"Sudden interrupting event ('suddenly')." },
-  { tense:"passe", verb:"arriver (ils)", answer:"sont arrivés",
-    sentence:"Ils ___ à la gare à midi pile.",
-    explanation:"Completed arrival at a precise time." },
-  { tense:"passe", verb:"appeler (mon ami)", answer:"a appelé",
-    sentence:"Hier, mon ami ___ trois fois mais je n'ai pas répondu.",
-    explanation:"Specific completed actions with a count." },
-  { tense:"passe", verb:"se lever (elle)", answer:"s'est levée",
-    sentence:"Elle ___ tard et a raté le train.",
-    explanation:"Completed action with an immediate consequence." },
-  { tense:"passe", verb:"commencer (il)", answer:"a commencé",
-    sentence:"Les enfants jouaient dehors quand il ___ à pleuvoir.",
-    explanation:"Sudden interrupting event — passé composé breaks into the imparfait background." },
-  { tense:"passe", verb:"manger (nous)", answer:"avons mangé",
-    sentence:"Nous ___ au restaurant hier soir.",
-    explanation:"Completed single event in the past." },
-  { tense:"passe", verb:"boire (je)", answer:"ai bu",
-    sentence:"Ce matin, j'___ deux cafés avant de partir.",
-    explanation:"Completed actions with a specific count this morning." },
-  { tense:"passe", verb:"partir (il)", answer:"est parti",
-    sentence:"Il ___ sans dire au revoir.",
-    explanation:"Completed departure — verb of movement uses être." },
-  { tense:"passe", verb:"naître (elle)", answer:"est née",
-    sentence:"Elle ___ à Montréal en 1990.",
-    explanation:"Completed one-time event (birth date)." },
-  { tense:"passe", verb:"prendre (je)", answer:"ai pris",
-    sentence:"J'___ le métro pour aller au travail ce matin.",
-    explanation:"Completed action this morning." },
-  { tense:"passe", verb:"écrire (ils)", answer:"ont écrit",
-    sentence:"Ils ___ une lettre de plainte la semaine dernière.",
-    explanation:"Completed action in a specified past week." },
-  { tense:"passe", verb:"tomber (il)", answer:"est tombé",
-    sentence:"Il ___ en descendant l'escalier.",
-    explanation:"Completed event (movement/change of state — être verb)." },
-  { tense:"passe", verb:"rencontrer (nous)", answer:"avons rencontré",
-    sentence:"Nous ___ nos voisins pour la première fois hier.",
-    explanation:"First-time meeting — passé composé marks a new event." },
-  { tense:"passe", verb:"aller (tu)", answer:"es allé(e)",
-    sentence:"Tu ___ au marché ce matin ?",
-    explanation:"Completed trip — aller uses être." },
-  { tense:"passe", verb:"lire (elle)", answer:"a lu",
-    sentence:"Elle ___ tout le roman en une seule nuit.",
-    explanation:"Completed act (she finished it) with a defined time frame." },
-  { tense:"passe", verb:"ouvrir (il)", answer:"a ouvert",
-    sentence:"Il ___ la fenêtre parce qu'il faisait chaud.",
-    explanation:"Completed action; imparfait describes the ongoing hot condition." },
-  { tense:"passe", verb:"décider (ils)", answer:"ont décidé",
-    sentence:"Après de longues discussions, ils ___ de déménager.",
-    explanation:"Completed decision after a process." },
-  { tense:"passe", verb:"répondre (elle)", answer:"a répondu",
-    sentence:"Elle ___ à tous les messages en une heure.",
-    explanation:"Completed task within a defined time." },
-  { tense:"passe", verb:"entrer (la directrice)", answer:"est entrée",
-    sentence:"La directrice ___ dans la salle et tout le monde s'est tu.",
-    explanation:"Completed entry (movement verb — être); triggered another event." },
-  { tense:"passe", verb:"perdre (je)", answer:"ai perdu",
-    sentence:"J'___ mon portefeuille dans le métro hier.",
-    explanation:"Completed specific event with time reference." },
-  { tense:"passe", verb:"choisir (elle)", answer:"a choisi",
-    sentence:"Elle ___ la robe bleue finalement.",
-    explanation:"Completed choice/decision (definitive)." },
+  { tense:"passe", verb:"finir (elle)", answer:"a fini", sentence:"Hier soir, elle ___ ses devoirs à 22h.", explanation:"Completed action at specific time." },
+  { tense:"passe", verb:"visiter (nous)", answer:"avons visité", sentence:"Nous ___ Paris l'année dernière.", explanation:"Single completed trip." },
+  { tense:"passe", verb:"voir (tu)", answer:"as vu", sentence:"Tu ___ ce film le week-end dernier ?", explanation:"Specific completed event." },
+  { tense:"passe", verb:"arriver (ils)", answer:"sont arrivés", sentence:"Ils ___ à la gare à midi pile.", explanation:"Completed arrival." },
+  { tense:"passe", verb:"boire (je)", answer:"ai bu", sentence:"Ce matin, j'___ deux cafés.", explanation:"Completed actions." },
+  { tense:"passe", verb:"partir (il)", answer:"est parti", sentence:"Il ___ sans dire au revoir.", explanation:"Movement verb with être." },
+  { tense:"passe", verb:"prendre (je)", answer:"ai pris", sentence:"J'___ le métro ce matin.", explanation:"Completed action." },
+  { tense:"passe", verb:"écrire (ils)", answer:"ont écrit", sentence:"Ils ___ une lettre la semaine dernière.", explanation:"Finished action in specific period." },
+  { tense:"passe", verb:"tomber (il)", answer:"est tombé", sentence:"Il ___ en descendant l'escalier.", explanation:"Sudden completed event." },
+  { tense:"passe", verb:"ouvrir (elle)", answer:"a ouvert", sentence:"Elle ___ la porte immédiatement.", explanation:"Completed event." },
+  { tense:"passe", verb:"sortir (nous)", answer:"sommes sortis", sentence:"Nous ___ tard hier soir.", explanation:"Completed movement event." },
+  { tense:"passe", verb:"choisir (elle)", answer:"a choisi", sentence:"Finalement, elle ___ la robe bleue.", explanation:"Completed decision." },
 
-  // ─── MIXED (both tenses in one sentence) ─────────────────────
-  { tense:"imparfait", verb:"être (c')", answer:"était",
-    sentence:"Nous avons mangé au restaurant et c'___ délicieux.",
-    explanation:"Passé composé for the event; imparfait for the ongoing description/state." },
-  { tense:"imparfait", verb:"jouer (les enfants)", answer:"jouaient",
-    sentence:"Les enfants ___ dehors quand il a commencé à pleuvoir.",
-    explanation:"Imparfait for the ongoing background action interrupted by the sudden event." },
-  { tense:"imparfait", verb:"chercher (elle)", answer:"cherchait",
-    sentence:"Elle ___ ses clés quand elle a trouvé le billet.",
-    explanation:"Ongoing action in progress when a sudden discovery occurred." },
-  { tense:"passe", verb:"rentrer (je)", answer:"suis rentré(e)",
-    sentence:"Il faisait noir quand je ___ à la maison.",
-    explanation:"Passé composé for the completed return; imparfait describes the background darkness." },
-  { tense:"imparfait", verb:"conduire (il)", answer:"conduisait",
-    sentence:"Il ___ trop vite lorsque la police l'a arrêté.",
-    explanation:"Imparfait for the ongoing action the police interrupted." },
-  { tense:"passe", verb:"tomber (elle)", answer:"est tombée",
-    sentence:"Elle marchait dans la rue quand elle ___.",
-    explanation:"Passé composé for the sudden completed event that broke the ongoing walk." },
+  { tense:"imparfait", verb:"jouer (les enfants)", answer:"jouaient", sentence:"Les enfants ___ dehors quand il a commencé à pleuvoir.", explanation:"Background action interrupted." },
+  { tense:"passe", verb:"rentrer (je)", answer:"suis rentré/suis rentrée", sentence:"Il faisait noir quand je ___ à la maison.", explanation:"Completed event in background context." },
+  { tense:"imparfait", verb:"conduire (il)", answer:"conduisait", sentence:"Il ___ trop vite lorsque la police l'a arrêté.", explanation:"Ongoing action interrupted." },
+  { tense:"passe", verb:"tomber (elle)", answer:"est tombée", sentence:"Elle marchait dans la rue quand elle ___.", explanation:"Sudden completed event." },
+  { tense:"imparfait", verb:"préparer (nous)", answer:"préparions", sentence:"Nous ___ le dîner quand les invités sont arrivés.", explanation:"Action in progress interrupted." },
+  { tense:"passe", verb:"commencer (le film)", answer:"a commencé", sentence:"Nous parlions encore quand le film ___.", explanation:"Sudden event interrupts background." },
 ];
 
 let currentFilter = 'all';
+let currentMode = 'lesson'; // lesson | easy | quiz
 let questions = [];
-let idx = 0;
-let correct = 0;
-let wrong = 0;
-let hintShown = false;
-let answered = false;
+let idx = 0, correct = 0, wrong = 0;
+let hintShown = false, answered = false;
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
   return a;
 }
 
-function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.className = 'filter-btn';
-  });
-  if (f === 'all')       btn.classList.add('active-all');
-  if (f === 'imparfait') btn.classList.add('active-imp');
-  if (f === 'passe')     btn.classList.add('active-pc');
+function setMode(mode, btn){
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.className = 'mode-btn');
+  if(mode==='lesson') btn.classList.add('active-lesson');
+  if(mode==='easy') btn.classList.add('active-easy');
+  if(mode==='quiz') btn.classList.add('active-quiz');
   restart();
 }
 
-function buildPool() {
-  if (currentFilter === 'all') return ALL_QUESTIONS;
+function setFilter(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+  if (f === 'all') btn.classList.add('active-all');
+  if (f === 'imparfait') btn.classList.add('active-imp');
+  if (f === 'passe') btn.classList.add('active-pc');
+  restart();
+}
+
+function buildPool(){
+  if(currentFilter==='all') return ALL_QUESTIONS;
   return ALL_QUESTIONS.filter(q => q.tense === currentFilter);
 }
 
-function restart() {
-  correct = 0; wrong = 0; idx = 0;
+function restart(){
+  idx=0; correct=0; wrong=0;
   questions = shuffle(buildPool());
-  document.getElementById('end-screen').style.display = 'none';
-  document.getElementById('q-card').style.display = 'block';
-  document.getElementById('filter-bar').style.display = 'flex';
+
+  document.getElementById('end-screen').style.display='none';
+  document.getElementById('q-card').style.display='block';
+  document.getElementById('filter-bar').style.display='flex';
+
+  const lessonCard = document.getElementById('lesson-card');
+  lessonCard.style.display = (currentMode === 'lesson') ? 'block' : 'none';
+
+  document.getElementById('hint-btn').style.display = (currentMode === 'quiz') ? 'none' : 'inline-block';
+
   updateStats();
   loadQ();
 }
 
-function loadQ() {
-  if (idx >= questions.length) { showEnd(); return; }
-  hintShown = false;
-  answered = false;
+function loadQ(){
+  if(idx >= questions.length){ showEnd(); return; }
+  hintShown = false; answered = false;
 
   const q = questions[idx];
   const badge = document.getElementById('tense-badge');
-  if (q.tense === 'imparfait') {
-    badge.textContent = 'Imparfait';
-    badge.className = 'tense-badge imp';
+  const showBadge = currentMode !== 'quiz';
+
+  if(showBadge){
+    badge.style.display = 'inline-flex';
+    if(q.tense === 'imparfait'){
+      badge.textContent = 'Imparfait';
+      badge.className = 'tense-badge imp';
+    } else {
+      badge.textContent = 'Passé composé';
+      badge.className = 'tense-badge pc';
+    }
   } else {
-    badge.textContent = 'Passé composé';
-    badge.className = 'tense-badge pc';
+    badge.style.display = 'none';
   }
 
   document.getElementById('sentence').textContent = q.sentence;
@@ -733,25 +397,25 @@ function loadQ() {
   updateStats();
 }
 
-function normalize(s) {
+function normalize(s){
   return s.trim().toLowerCase()
     .replace(/[éèêë]/g,'e').replace(/[àâä]/g,'a').replace(/[îï]/g,'i')
     .replace(/[ôö]/g,'o').replace(/[ûü]/g,'u').replace(/ç/g,'c')
     .replace(/œ/g,'oe').replace(/\s+/g,' ');
 }
 
-function checkAnswer() {
-  if (answered) { nextQ(); return; }
+function checkAnswer(){
+  if(answered){ nextQ(); return; }
 
   const q = questions[idx];
   const userRaw = document.getElementById('answer-input').value;
-  if (!userRaw.trim()) return;
+  if(!userRaw.trim()) return;
 
-  const accepted = q.answer.split('/').map(a => normalize(a.trim()));
+  const accepted = q.answer.split('/').map(a => normalize(a));
   const isCorrect = accepted.includes(normalize(userRaw));
 
   const fb = document.getElementById('feedback');
-  if (isCorrect) {
+  if(isCorrect){
     correct++;
     fb.className = 'feedback correct';
     fb.innerHTML = '✓ Correct !<span class="explanation">' + q.explanation + '</span>';
@@ -764,13 +428,11 @@ function checkAnswer() {
   document.getElementById('answer-input').disabled = true;
   answered = true;
   updateStats();
-
-  document.getElementById('check-btn').textContent =
-    idx < questions.length - 1 ? 'Question suivante →' : 'Voir les résultats →';
+  document.getElementById('check-btn').textContent = idx < questions.length - 1 ? 'Question suivante →' : 'Voir les résultats →';
 }
 
-function skipQuestion() {
-  if (answered) { nextQ(); return; }
+function skipQuestion(){
+  if(answered){ nextQ(); return; }
   wrong++;
   const q = questions[idx];
   const fb = document.getElementById('feedback');
@@ -779,62 +441,54 @@ function skipQuestion() {
   document.getElementById('answer-input').disabled = true;
   answered = true;
   updateStats();
-  document.getElementById('check-btn').textContent =
-    idx < questions.length - 1 ? 'Question suivante →' : 'Voir les résultats →';
+  document.getElementById('check-btn').textContent = idx < questions.length - 1 ? 'Question suivante →' : 'Voir les résultats →';
 }
 
-function nextQ() {
-  idx++;
-  // re-animate card
-  const card = document.getElementById('q-card');
-  card.style.animation = 'none';
-  card.offsetHeight;
-  card.style.animation = '';
-  loadQ();
-}
+function nextQ(){ idx++; loadQ(); }
 
-function showHint() {
-  if (hintShown || answered) return;
+function showHint(){
+  if(hintShown || answered || currentMode === 'quiz') return;
   hintShown = true;
   const q = questions[idx];
   const firstWord = q.answer.split(' ')[0];
-  document.getElementById('hint-line').textContent = 'Indice : commence par « ' + firstWord + ' »';
+  const msg = currentMode === 'easy'
+    ? `Indice : commence par « ${firstWord} » (${q.answer.length} caractères)`
+    : `Indice : commence par « ${firstWord} »`;
+  document.getElementById('hint-line').textContent = msg;
 }
 
-function updateStats() {
+function updateStats(){
   document.getElementById('score').textContent = correct - wrong;
   document.getElementById('correct-count').textContent = correct;
   document.getElementById('wrong-count').textContent = wrong;
   document.getElementById('q-num').textContent = Math.min(idx + 1, questions.length);
-  const pct = questions.length > 0 ? (idx / questions.length) * 100 : 0;
-  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-fill').style.width = questions.length ? (idx / questions.length) * 100 + '%' : '0%';
 }
 
-function showEnd() {
-  document.getElementById('q-card').style.display = 'none';
-  document.getElementById('filter-bar').style.display = 'none';
-  document.getElementById('end-screen').style.display = 'block';
+function showEnd(){
+  document.getElementById('q-card').style.display='none';
+  document.getElementById('filter-bar').style.display='none';
+  document.getElementById('end-screen').style.display='block';
 
-  const total = questions.length;
+  const total = questions.length || 1;
   const pct = Math.round((correct / total) * 100);
-
   document.getElementById('end-score').textContent = pct + '%';
-  document.getElementById('end-denom').textContent = correct + ' / ' + total + ' correct';
-  document.getElementById('end-correct').textContent = correct;
-  document.getElementById('end-wrong').textContent = wrong;
+  document.getElementById('end-denom').textContent = `${correct} / ${total} correct`;
 
-  const msgs = [
-    [90, 'Bravo ! Vos temps verbaux sont impeccables. Vous maîtrisez vraiment la distinction !'],
-    [70, 'Très bien ! Quelques petites erreurs, mais vous êtes sur la bonne voie.'],
-    [50, 'Pas mal ! Continuez à pratiquer les contextes clés — ça viendra !'],
-    [0,  'Continuez — la pratique régulière est le secret. Bonne chance !'],
-  ];
-  const msg = msgs.find(([threshold]) => pct >= threshold);
-  document.getElementById('end-msg').textContent = msg[1];
+  let msg = 'Continuez — la pratique régulière est le secret.';
+  if (pct >= 90) msg = 'Excellent ! Distinction des temps très solide.';
+  else if (pct >= 70) msg = 'Très bien ! Encore un peu de pratique et c’est parfait.';
+  else if (pct >= 50) msg = 'Bon début ! Concentrez-vous sur contexte vs événement ponctuel.';
+
+  if (currentMode === 'quiz') msg += ' (Quiz mode ✔)';
+  if (currentMode === 'easy') msg += ' (Easy mode)';
+  if (currentMode === 'lesson') msg += ' (Lesson mode)';
+
+  document.getElementById('end-msg').textContent = msg;
 }
 
-document.getElementById('answer-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') checkAnswer();
+document.getElementById('answer-input').addEventListener('keydown', e => {
+  if(e.key === 'Enter') checkAnswer();
 });
 
 restart();
