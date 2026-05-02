@@ -2344,4 +2344,23 @@ async function main(){
       document.getElementById('m-fd').textContent=r.ok;
       renderThreats();
     }
-  }, 5*
+  }, 5*60*1000);
+
+  // Resize handler
+  window.addEventListener('resize',()=>{
+    const center=document.getElementById('center');
+    width=center.clientWidth;
+    height=center.clientHeight;
+    projection.translate([width/2,height/2]);
+    svg.attr('width',width).attr('height',height);
+    svg.select('.sphere').attr('cx',width/2).attr('cy',height/2);
+    svg.select('#rim').attr('cx',width/2).attr('cy',height/2);
+    updateGlobe();
+  });
+}
+
+// ─── LAUNCH ───────────────────────────────────────────────────
+main();
+</script>
+</body>
+</html>
