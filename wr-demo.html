@@ -351,7 +351,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       </div>
       <div class="co tl"></div><div class="co tr"></div>
       <div class="co bl"></div><div class="co br"></div>
-      <div id="glabel">DRAG · ROTATE · SCROLL · ZOOM · CLICK COUNTRY · HOVER DOTS · LIVE ADS-B</div>
+      <div id="glabel">DRAG · ROTATE · SCROLL · ZOOM · CLICK COUNTRY · HOVER DOTS · LIVE ADS-B GLOBAL</div>
     </div>
   </div>
 
@@ -434,7 +434,6 @@ function toggleFlightLayer(layer){
 }
 
 // ─── MILITARY AIRCRAFT DETECTION ─────────────────────────────
-// Detect military aircraft by callsign patterns, ICAO hex ranges, or aircraft type
 const MIL_CALLSIGN_PREFIXES = [
   'RCH','REACH','JAKE','IRON','SPAR','SAM','VENUS','DUKE','ROCKY','HOMER',
   'VIPER','GHOST','KNIGHT','EAGLE','FALCON','HAWK','WOLF','PANTHER','COBRA',
@@ -451,18 +450,17 @@ const MIL_CALLSIGN_PREFIXES = [
   'NORDY','SWEDE','NORK','FRANC','BRIT','POLES','CZECH',
 ];
 
-// Military ICAO 24-bit address ranges
 const MIL_ICAO_RANGES = [
-  {start:0xAE0000, end:0xAFFFFF}, // US military
-  {start:0x3A8000, end:0x3AFFFF}, // German military
-  {start:0x3B0000, end:0x3BFFFF}, // German military
-  {start:0x400000, end:0x40FFFF}, // UK military
-  {start:0x430000, end:0x43FFFF}, // French military
-  {start:0x478000, end:0x47FFFF}, // Italian military
-  {start:0x730000, end:0x73FFFF}, // Russian military
-  {start:0x780000, end:0x78FFFF}, // Chinese military (PLAAF)
-  {start:0x800000, end:0x80FFFF}, // Japanese JASDF
-  {start:0x71C000, end:0x71FFFF}, // South Korea ROK AF
+  {start:0xAE0000, end:0xAFFFFF},
+  {start:0x3A8000, end:0x3AFFFF},
+  {start:0x3B0000, end:0x3BFFFF},
+  {start:0x400000, end:0x40FFFF},
+  {start:0x430000, end:0x43FFFF},
+  {start:0x478000, end:0x47FFFF},
+  {start:0x730000, end:0x73FFFF},
+  {start:0x780000, end:0x78FFFF},
+  {start:0x800000, end:0x80FFFF},
+  {start:0x71C000, end:0x71FFFF},
 ];
 
 const MIL_AIRCRAFT_TYPES = [
@@ -489,40 +487,27 @@ function isMilitaryFlight(fl){
   const cs = (fl.callsign || '').toUpperCase().trim();
   const type = (fl.aircraft_type || '').toUpperCase().trim();
   const icao = fl.icao24 || '';
-
-  // Check callsign prefixes
   for(const pfx of MIL_CALLSIGN_PREFIXES){
     if(cs.startsWith(pfx)) return true;
   }
-
-  // Check ICAO hex range
   const icaoNum = parseInt(icao, 16);
   if(!isNaN(icaoNum)){
     for(const r of MIL_ICAO_RANGES){
       if(icaoNum >= r.start && icaoNum <= r.end) return true;
     }
   }
-
-  // Check aircraft type
   for(const t of MIL_AIRCRAFT_TYPES){
     if(type.includes(t)) return true;
   }
-
-  // Short all-alpha callsigns (many military) over 4 chars — heuristic
-  // e.g. "RCH271" → already caught above
-  // Common US military format: 3-letter prefix + digits
   if(/^[A-Z]{3}\d{2,4}$/.test(cs)){
-    // Additional prefix list for 3-letter military codes
     const short3 = ['RCH','CNV','FLT','NAF','AEF','AMC','COM','CTF','TFW','FIG'];
     for(const s of short3) if(cs.startsWith(s)) return true;
   }
-
   return false;
 }
 
 // ─── MILITARY SHIPS DATA ─────────────────────────────────────
 const MIL_SHIPS = [
-  // ── US CARRIER STRIKE GROUPS ──
   {id:'csg-ike',   name:'USS EISENHOWER CSG',    lat:22.5,  lon:58.5,  nation:'United States',  type:'CARRIER STRIKE GROUP',
    class:'Nimitz-class CVN',vessels:'CVN-69 + CG-52 + DDG-56/78/89 + SSN',armament:'90 aircraft, Tomahawk, SM-6, MK-41',
    status:'5th Fleet AOR — Arabian Sea patrol. F/A-18 sorties ongoing.'},
@@ -535,18 +520,12 @@ const MIL_SHIPS = [
   {id:'lhd-boxer',  name:'USS BOXER ARG',          lat:24.0,  lon:60.0,  nation:'United States',  type:'AMPHIBIOUS READY GROUP',
    class:'Wasp-class LHD',vessels:'LHD-4 + LPD + LSD + MEU Marines',armament:'AV-8B, MV-22, CH-53E, 2,000 Marines',
    status:'5th Fleet — readiness posture. Persian Gulf.'},
-
-  // ── ROYAL NAVY ──
   {id:'hms-qe',    name:'HMS QUEEN ELIZABETH CSG',lat:41.0,  lon:25.0,  nation:'United Kingdom', type:'CARRIER STRIKE GROUP',
    class:'Queen Elizabeth-class CVF',vessels:'R08 + T45 destroyer + T23 frigate + SSN',armament:'F-35B, Wildcat, Merlin; 24 aircraft',
    status:'NATO exercises — Eastern Mediterranean.'},
-
-  // ── FRENCH NAVY ──
   {id:'pa-cdg',    name:'PAN CHARLES DE GAULLE',  lat:43.3,  lon:7.0,   nation:'France',         type:'CARRIER STRIKE GROUP',
    class:'Nuclear carrier R91',vessels:'R91 + 2x FREMM frigates + Barracuda SSN',armament:'Rafale M, E-2C Hawkeye; 40 aircraft',
    status:'Mediterranean patrol. Refuelling Toulon.'},
-
-  // ── RUSSIAN NAVY ──
   {id:'ru-bsf',    name:'RUSSIAN BLACK SEA FLEET', lat:44.6,  lon:33.5,  nation:'Russia',         type:'SURFACE ACTION GROUP',
    class:'Mixed fleet',vessels:'Frigates + corvettes + submarines (degraded)',armament:'Kalibr cruise missiles, Zircon HCM',
    status:'Severely degraded. Multiple vessels sunk/damaged. Sevastopol base contested.'},
@@ -556,8 +535,6 @@ const MIL_SHIPS = [
   {id:'ru-north',  name:'RUSSIAN NORTHERN FLEET',  lat:69.0,  lon:33.0,  nation:'Russia',         type:'SUBMARINE FORCE',
    class:'Oscar II / Borei / Yasen',vessels:'12+ SSBNs + SSNs + SSGNs',armament:'RSM-56 Bulava SLBM, Kalibr, Zircon',
    status:'Murmansk/Severomorsk. SSBN deterrent patrols continuous.'},
-
-  // ── CHINESE PLAN ──
   {id:'cn-csg1',   name:'PLA SHANDONG CSG',        lat:19.0,  lon:115.0, nation:'China',          type:'CARRIER STRIKE GROUP',
    class:'Type 001A Shandong CV-17',vessels:'CV-17 + 2x Type 052D DDG + Type 055 DDG',armament:'J-15, Z-18; 36 aircraft',
    status:'South China Sea patrol. Heightened readiness posture.'},
@@ -567,28 +544,18 @@ const MIL_SHIPS = [
   {id:'cn-ssf',    name:'PLA SUBMARINE FORCE',      lat:18.2,  lon:109.5, nation:'China',          type:'SUBMARINE FORCE',
    class:'Type 094 Jin SSBN / Type 093 Shang SSN',vessels:'6x SSBN + 8x SSN',armament:'JL-2/JL-3 SLBM, YJ-18 ASCM',
    status:'Yulin Naval Base, Hainan. Patrol posture elevated.'},
-
-  // ── IRAN NAVY ──
   {id:'irgcn-gulf', name:'IRGCN FAST ATTACK FLEET', lat:26.8,  lon:53.0,  nation:'Iran',           type:'FAST ATTACK CRAFT',
    class:'Koudak/Thondor-class',vessels:'50+ speedboats + mini-subs',armament:'C-802 AShM, torpedoes, suicide drones',
    status:'Persian Gulf / Strait of Hormuz. Harassment operations active.'},
-
-  // ── NORTH KOREA ──
   {id:'kpa-navy',  name:'KPA SUBMARINE FLEET',      lat:38.8,  lon:125.3, nation:'North Korea',    type:'SUBMARINE FORCE',
    class:'Romeo/Sinpo-class',vessels:'70+ submarines (aging)',armament:'Torpedoes, Pukguksong SLBM (testing)',
    status:'West Sea Fleet. SLV launch preparations monitored.'},
-
-  // ── NATO BALTIC ──
   {id:'nato-baltic',name:'NATO STANDING MARITIME GRP',lat:57.5, lon:19.5,  nation:'NATO Alliance', type:'STANDING NAVAL FORCE',
    class:'Mixed allied frigates',vessels:'6x frigates/destroyers (rotating)',armament:'SM-2, Harpoon, Aster 30, ASW',
    status:'SNMG1 Baltic Sea. Undersea infrastructure protection.'},
-
-  // ── INDIA ──
   {id:'ins-vikrant',name:'INS VIKRANT CSG',          lat:13.0,  lon:74.5,  nation:'India',          type:'CARRIER STRIKE GROUP',
    class:'IAC-1 Vikrant',vessels:'R11 + 2x destroyers + frigate',armament:'MiG-29K, MH-60R; 30 aircraft',
    status:'Arabian Sea / Indian Ocean patrol. Operational since 2022.'},
-
-  // ── HOUTHI ──
   {id:'houthi-rsea',name:'HOUTHI RED SEA OPS',       lat:14.5,  lon:43.2,  nation:'Houthi/Yemen',   type:'ASYMMETRIC NAVAL',
    class:'Fast boats + drone boats',vessels:'USV suicide drones + missile launchers',armament:'C-802, Houthi cruise missiles, USV',
    status:'Red Sea / Gulf of Aden. Active anti-shipping campaign.'},
@@ -674,7 +641,6 @@ const COUNTRY_MIL = {
   'Poland':{personnel:'214K',budget:'$33B',nukes:'None',status:'ELEVATED',alerts:['Russia border monitoring','HIMARS deployed','F-35A acquisition','NATO EFP host nation'],readiness:73},
 };
 
-// ─── FLIGHT STATUS PER COUNTRY ────────────────────────────────
 function getCountryFlights(name){
   const kw = name.toLowerCase();
   const live = LIVE_FLIGHTS.filter(f =>
@@ -684,7 +650,6 @@ function getCountryFlights(name){
   return {live};
 }
 
-// ─── TAB SWITCHING ────────────────────────────────────────────
 function switchCpTab(tab){
   document.querySelectorAll('.cp-tab').forEach((t,i)=>{
     const tabs=['overview','military','flights'];
@@ -696,7 +661,6 @@ function switchCpTab(tab){
   document.getElementById('cp-tab-'+tab).classList.add('active');
 }
 
-// ─── ENHANCED COUNTRY PANEL ───────────────────────────────────
 function showCountryPanel(name){
   if(!name) return;
   const panel=document.getElementById('country-panel');
@@ -782,7 +746,9 @@ let liveGroup = null;
 let buildupGroup = null;
 let shipsGroup = null;
 let troopsGroup = null;
-const LIVE_MAX_RENDER = 600;
+
+// ── Increased max render to show flights across all continents ──
+const LIVE_MAX_RENDER = 2000;
 const LIVE_REFRESH_MS = 60000;
 
 function initFlightGroups(){
@@ -792,7 +758,7 @@ function initFlightGroups(){
   troopsGroup  = svg.append('g').attr('id','mil-troops');
 }
 
-// Primary proxy — steep-frog worker, with fallbacks for 502/timeout
+// ── Single proxy — steep-frog worker ──────────────────────────
 const PROXY_PRIMARY = 'https://steep-frog-bb3a.optimizedjack.workers.dev/?url=';
 const PROXIES_FALLBACK = [
   'https://corsproxy.io/?',
@@ -800,21 +766,51 @@ const PROXIES_FALLBACK = [
 ];
 const ADSB_LOL_BASE = 'https://api.adsb.lol/v2/point';
 const ADSB_LOL_TIMEOUT_MS = 20000;
+
+// ── 30 regions for true global coverage across all continents ──
 const ADSB_LOL_REGIONS = [
-  {label:'N AMERICA',  lat:40,  lon:-100, radius:1800},
-  {label:'S AMERICA',  lat:-20, lon:-60,  radius:1700},
-  {label:'EUROPE',     lat:55,  lon:10,   radius:1500},
-  {label:'AFRICA',     lat:5,   lon:20,   radius:1800},
-  {label:'MIDDLE EAST',lat:25,  lon:60,   radius:1800},
-  {label:'E ASIA',     lat:35,  lon:120,  radius:1800},
-  {label:'OCEANIA',    lat:-25, lon:150,  radius:1800},
-  {label:'PACIFIC',    lat:0,   lon:-150, radius:2200},
-  {label:'ATLANTIC',   lat:0,   lon:-30,  radius:2200},
+  // North America — split into sub-regions for density
+  {label:'NE AMERICA',   lat:42,  lon:-75,  radius:1200},
+  {label:'NW AMERICA',   lat:45,  lon:-120, radius:1400},
+  {label:'SE AMERICA',   lat:28,  lon:-85,  radius:1100},
+  {label:'C AMERICA',    lat:18,  lon:-95,  radius:1000},
+  // South America — north and south
+  {label:'N S.AMERICA',  lat:5,   lon:-60,  radius:1400},
+  {label:'S S.AMERICA',  lat:-35, lon:-60,  radius:1400},
+  // Europe — split for density
+  {label:'W EUROPE',     lat:50,  lon:5,    radius:1100},
+  {label:'E EUROPE',     lat:55,  lon:35,   radius:1200},
+  {label:'N EUROPE',     lat:62,  lon:15,   radius:1000},
+  {label:'MED',          lat:37,  lon:15,   radius:1000},
+  // Africa — all sub-regions
+  {label:'N AFRICA',     lat:25,  lon:15,   radius:1500},
+  {label:'C AFRICA',     lat:0,   lon:20,   radius:1400},
+  {label:'S AFRICA',     lat:-25, lon:25,   radius:1400},
+  {label:'E AFRICA',     lat:10,  lon:40,   radius:1000},
+  {label:'W AFRICA',     lat:10,  lon:-5,   radius:1000},
+  // Middle East & Central Asia
+  {label:'MIDDLE EAST',  lat:26,  lon:50,   radius:1400},
+  {label:'GULF',         lat:25,  lon:60,   radius:900},
+  {label:'CENT ASIA',    lat:42,  lon:65,   radius:1400},
+  // Asia — comprehensive split
+  {label:'S ASIA',       lat:20,  lon:80,   radius:1400},
+  {label:'SE ASIA',      lat:12,  lon:105,  radius:1300},
+  {label:'E ASIA',       lat:35,  lon:120,  radius:1400},
+  {label:'NE ASIA',      lat:50,  lon:130,  radius:1200},
+  // Oceania & Pacific
+  {label:'AUSTRALIA',    lat:-25, lon:135,  radius:1500},
+  {label:'SE PACIFIC',   lat:-15, lon:170,  radius:1600},
+  {label:'NW PACIFIC',   lat:20,  lon:150,  radius:1800},
+  {label:'NE PACIFIC',   lat:30,  lon:-160, radius:2000},
+  // Ocean routes & polar
+  {label:'N ATLANTIC',   lat:45,  lon:-35,  radius:2000},
+  {label:'S ATLANTIC',   lat:-15, lon:-25,  radius:1800},
+  {label:'INDIAN OCEAN', lat:-15, lon:70,   radius:1800},
+  {label:'ARCTIC',       lat:75,  lon:0,    radius:1500},
 ];
 
-// Track if primary proxy has been failing — switch to fallbacks temporarily
 let _primaryProxyFailStreak = 0;
-const PRIMARY_FAIL_THRESHOLD = 3; // after 3 consecutive region failures, try fallbacks
+const PRIMARY_FAIL_THRESHOLD = 3;
 
 async function fetchFromProxy(proxyBase, targetUrl, timeoutMs){
   const url = proxyBase + encodeURIComponent(targetUrl);
@@ -836,16 +832,14 @@ async function fetchFromProxy(proxyBase, targetUrl, timeoutMs){
 
 async function fetchAdsbLolRegion(region){
   const targetUrl = `${ADSB_LOL_BASE}/${region.lat}/${region.lon}/${region.radius}`;
-  // Always try primary (steep-frog) first
   try{
     const data = await fetchFromProxy(PROXY_PRIMARY, targetUrl, ADSB_LOL_TIMEOUT_MS);
-    _primaryProxyFailStreak = 0; // reset on success
+    _primaryProxyFailStreak = 0;
     const raw = data.ac || data.aircraft || [];
     return raw.map(s => parseAdsbFiRecord(s)).filter(Boolean);
   } catch(e){
     _primaryProxyFailStreak++;
     console.warn(`[ADS-B] ${region.label} primary failed (streak:${_primaryProxyFailStreak}): ${e.message}`);
-    // Only use fallbacks if primary has been consistently failing
     if(_primaryProxyFailStreak >= PRIMARY_FAIL_THRESHOLD){
       for(const fb of PROXIES_FALLBACK){
         try{
@@ -857,7 +851,7 @@ async function fetchAdsbLolRegion(region){
         }
       }
     }
-    throw e; // let caller handle via Promise.allSettled
+    throw e;
   }
 }
 
@@ -886,9 +880,10 @@ async function fetchLiveFlights(){
   if(liveFlightsFetching) return;
   liveFlightsFetching = true;
   const statusEl = document.getElementById('live-status');
-  if(statusEl){ statusEl.className='loading'; statusEl.textContent='● ADS-B GLOBAL SYNC...'; }
+  if(statusEl){ statusEl.className='loading'; statusEl.textContent=`● ADS-B GLOBAL SYNC (${ADSB_LOL_REGIONS.length} REGIONS)...`; }
 
   try{
+    // Fetch all 30 regions concurrently using the same proxy
     const results = await Promise.allSettled(ADSB_LOL_REGIONS.map(region =>
       fetchAdsbLolRegion(region)
         .then(v=>v)
@@ -898,12 +893,20 @@ async function fetchLiveFlights(){
     const merged = new Map();
     let ok = 0;
 
-    results.forEach((res, idx)=>{
+    results.forEach((res)=>{
       if(res.status === 'fulfilled' && Array.isArray(res.value)){
         ok++;
         for(const fl of res.value){
           if(!fl) continue;
-          if(!merged.has(fl.icao24)) merged.set(fl.icao24, fl);
+          // Deduplicate by ICAO — keep the entry with a better callsign if duplicate
+          if(!merged.has(fl.icao24)){
+            merged.set(fl.icao24, fl);
+          } else {
+            const existing = merged.get(fl.icao24);
+            if((fl.callsign||'').length > (existing.callsign||'').length){
+              merged.set(fl.icao24, fl);
+            }
+          }
         }
       }
     });
@@ -912,11 +915,11 @@ async function fetchLiveFlights(){
 
     if(!newFlights.length){
       if(statusEl){ statusEl.className='err'; statusEl.textContent=`● ADS-B OFFLINE — DEMO MODE`; }
-      // Inject simulated flights so the globe still shows activity
       injectDemoFlights();
       return;
     }
 
+    // Update history trails
     for(const fl of newFlights){
       const icao = fl.icao24;
       if(!LIVE_HISTORY.has(icao)) LIVE_HISTORY.set(icao,[]);
@@ -948,39 +951,138 @@ async function fetchLiveFlights(){
   }
 }
 
-// ─── DEMO FLIGHT INJECTOR (when live feed unavailable) ────────
+// ─── DEMO FLIGHT INJECTOR — global coverage across all continents ──
 function injectDemoFlights(){
-  if(LIVE_FLIGHTS.length > 0) return; // already have data
+  if(LIVE_FLIGHTS.length > 0) return;
   const routes = [
-    {cs:'BAW001',lat:51,lon:-0.5,hdg:280,alt:35000,spd:480,country:'GBR',type:'A380'},
-    {cs:'UAL100',lat:42,lon:-85,hdg:90,alt:38000,spd:510,country:'USA',type:'B787'},
-    {cs:'DLH400',lat:50,lon:8,hdg:45,alt:36000,spd:490,country:'DEU',type:'A330'},
-    {cs:'AFR220',lat:48,lon:2,hdg:200,alt:33000,spd:460,country:'FRA',type:'B777'},
-    {cs:'SPAR19',lat:38,lon:-77,hdg:120,alt:39000,spd:530,country:'USA',type:'C17'},
-    {cs:'RCH702',lat:35,lon:140,hdg:60,alt:34000,spd:500,country:'USA',type:'C130'},
-    {cs:'JAL727',lat:35,lon:137,hdg:330,alt:37000,spd:495,country:'JPN',type:'B767'},
-    {cs:'EK202',lat:25,lon:55,hdg:270,alt:39000,spd:520,country:'UAE',type:'A380'},
-    {cs:'SIA321',lat:1,lon:104,hdg:0,alt:35000,spd:480,country:'SGP',type:'A350'},
-    {cs:'QFA011',lat:-33,lon:151,hdg:315,alt:36000,spd:500,country:'AUS',type:'A380'},
-    {cs:'IRON11',lat:55,lon:25,hdg:90,alt:28000,spd:450,country:'USA',type:'F16'},
-    {cs:'HAWK22',lat:52,lon:14,hdg:0,alt:25000,spd:430,country:'DEU',type:'EF2000'},
-    {cs:'TAM001',lat:-23,lon:-46,hdg:180,alt:32000,spd:460,country:'BRA',type:'B737'},
-    {cs:'AFL100',lat:55,lon:37,hdg:270,alt:35000,spd:490,country:'RUS',type:'IL96'},
-    {cs:'CCA901',lat:40,lon:116,hdg:45,alt:38000,spd:510,country:'CHN',type:'B737'},
-    {cs:'AAL300',lat:33,lon:-118,hdg:60,alt:36000,spd:480,country:'USA',type:'B757'},
-    {cs:'REAPER1',lat:26,lon:55,hdg:180,alt:20000,spd:250,country:'USA',type:'MQ9'},
-    {cs:'NATO01',lat:49,lon:16,hdg:270,alt:30000,spd:440,country:'BEL',type:'E3A'},
-    {cs:'KAL001',lat:37,lon:126,hdg:10,alt:37000,spd:495,country:'KOR',type:'B777'},
-    {cs:'VIR100',lat:28,lon:-15,hdg:315,alt:36000,spd:470,country:'GBR',type:'A330'},
-    {cs:'GHOST7',lat:32,lon:34,hdg:200,alt:18000,spd:400,country:'ISR',type:'F35'},
-    {cs:'ETH500',lat:9,lon:38,hdg:315,alt:34000,spd:465,country:'ETH',type:'B787'},
-    {cs:'PIA211',lat:30,lon:69,hdg:270,alt:35000,spd:470,country:'PAK',type:'B777'},
-    {cs:'THA001',lat:15,lon:102,hdg:45,alt:33000,spd:455,country:'THA',type:'A330'},
+    // ── NORTH AMERICA ──
+    {cs:'BAW001', lat:51,  lon:-0.5, hdg:280,alt:35000,spd:480,country:'GBR',type:'A380'},
+    {cs:'UAL100', lat:42,  lon:-85,  hdg:90, alt:38000,spd:510,country:'USA',type:'B787'},
+    {cs:'AAL300', lat:33,  lon:-118, hdg:60, alt:36000,spd:480,country:'USA',type:'B757'},
+    {cs:'DAL450', lat:38,  lon:-105, hdg:270,alt:37000,spd:475,country:'USA',type:'B767'},
+    {cs:'WJA220', lat:49,  lon:-110, hdg:100,alt:36000,spd:470,country:'CAN',type:'B737'},
+    {cs:'SPAR19', lat:38,  lon:-77,  hdg:120,alt:39000,spd:530,country:'USA',type:'C17'},
+    {cs:'RCH702', lat:35,  lon:-95,  hdg:60, alt:34000,spd:500,country:'USA',type:'C130'},
+    {cs:'IRON11', lat:55,  lon:-75,  hdg:180,alt:28000,spd:450,country:'USA',type:'F16'},
+    {cs:'AMX100', lat:20,  lon:-100, hdg:0,  alt:35000,spd:460,country:'MEX',type:'A320'},
+    {cs:'AAL550', lat:28,  lon:-80,  hdg:180,alt:36000,spd:470,country:'USA',type:'B777'},
+    {cs:'UAL210', lat:47,  lon:-122, hdg:270,alt:38000,spd:505,country:'USA',type:'B787'},
+    {cs:'ACO300', lat:45,  lon:-73,  hdg:270,alt:35000,spd:460,country:'CAN',type:'A320'},
+    // ── SOUTH AMERICA ──
+    {cs:'TAM001', lat:-23, lon:-46,  hdg:180,alt:32000,spd:460,country:'BRA',type:'B737'},
+    {cs:'LAN500', lat:-33, lon:-70,  hdg:0,  alt:35000,spd:470,country:'CHL',type:'A320'},
+    {cs:'AVA300', lat:4,   lon:-74,  hdg:270,alt:36000,spd:465,country:'COL',type:'A319'},
+    {cs:'GOL200', lat:-15, lon:-50,  hdg:315,alt:37000,spd:460,country:'BRA',type:'B737'},
+    {cs:'AZU100', lat:-5,  lon:-35,  hdg:90, alt:34000,spd:455,country:'BRA',type:'A320'},
+    {cs:'ARG500', lat:-35, lon:-60,  hdg:45, alt:36000,spd:465,country:'ARG',type:'B737'},
+    {cs:'FAB10',  lat:-20, lon:-48,  hdg:180,alt:25000,spd:380,country:'BRA',type:'C130'},
+    {cs:'LPE100', lat:-12, lon:-77,  hdg:90, alt:35000,spd:460,country:'PER',type:'B737'},
+    {cs:'VCP200', lat:-4,  lon:-62,  hdg:315,alt:33000,spd:450,country:'BRA',type:'A319'},
+    // ── EUROPE ──
+    {cs:'DLH400', lat:50,  lon:8,    hdg:45, alt:36000,spd:490,country:'DEU',type:'A330'},
+    {cs:'AFR220', lat:48,  lon:2,    hdg:200,alt:33000,spd:460,country:'FRA',type:'B777'},
+    {cs:'VIR100', lat:52,  lon:-1,   hdg:270,alt:36000,spd:470,country:'GBR',type:'A330'},
+    {cs:'KLM300', lat:52,  lon:5,    hdg:315,alt:37000,spd:480,country:'NLD',type:'B787'},
+    {cs:'RYR200', lat:53,  lon:-6,   hdg:90, alt:35000,spd:455,country:'IRL',type:'B737'},
+    {cs:'SAS600', lat:60,  lon:18,   hdg:270,alt:37000,spd:475,country:'SWE',type:'A321'},
+    {cs:'IBE800', lat:40,  lon:-4,   hdg:225,alt:36000,spd:465,country:'ESP',type:'A330'},
+    {cs:'AZA700', lat:42,  lon:12,   hdg:90, alt:35000,spd:460,country:'ITA',type:'A320'},
+    {cs:'HAWK22', lat:52,  lon:14,   hdg:0,  alt:25000,spd:430,country:'DEU',type:'EF2000'},
+    {cs:'BRIT01', lat:56,  lon:-2,   hdg:90, alt:22000,spd:420,country:'GBR',type:'TYPHOON'},
+    {cs:'FRN07',  lat:47,  lon:3,    hdg:0,  alt:24000,spd:440,country:'FRA',type:'RAFALE'},
+    {cs:'NORDY1', lat:62,  lon:10,   hdg:180,alt:20000,spd:410,country:'NOR',type:'F35'},
+    {cs:'LOT400', lat:52,  lon:21,   hdg:270,alt:36000,spd:470,country:'POL',type:'B737'},
+    {cs:'THY500', lat:41,  lon:29,   hdg:315,alt:37000,spd:480,country:'TUR',type:'A330'},
+    {cs:'AFL600', lat:57,  lon:40,   hdg:90, alt:35000,spd:470,country:'RUS',type:'B737'},
+    {cs:'SUA400', lat:60,  lon:55,   hdg:270,alt:33000,spd:455,country:'RUS',type:'IL96'},
+    // ── AFRICA ──
+    {cs:'ETH500', lat:9,   lon:38,   hdg:315,alt:34000,spd:465,country:'ETH',type:'B787'},
+    {cs:'SAA200', lat:-26, lon:28,   hdg:0,  alt:36000,spd:470,country:'ZAF',type:'A340'},
+    {cs:'EAK100', lat:1,   lon:37,   hdg:270,alt:35000,spd:455,country:'KEN',type:'B787'},
+    {cs:'RAM200', lat:30,  lon:2,    hdg:225,alt:35000,spd:460,country:'ALG',type:'B737'},
+    {cs:'MSR300', lat:27,  lon:31,   hdg:270,alt:36000,spd:465,country:'EGY',type:'A320'},
+    {cs:'NGA100', lat:6,   lon:3,    hdg:45, alt:35000,spd:460,country:'NGA',type:'B737'},
+    {cs:'TZA100', lat:-6,  lon:35,   hdg:90, alt:33000,spd:450,country:'TZA',type:'B737'},
+    {cs:'MOR300', lat:34,  lon:-7,   hdg:45, alt:33000,spd:450,country:'MAR',type:'B737'},
+    {cs:'ANL01',  lat:15,  lon:20,   hdg:270,alt:18000,spd:320,country:'FRA',type:'C130'},
+    {cs:'BFS01',  lat:12,  lon:2,    hdg:45, alt:20000,spd:350,country:'FRA',type:'RAFALE'},
+    {cs:'GHA200', lat:5,   lon:-0.2, hdg:315,alt:34000,spd:455,country:'GHA',type:'A320'},
+    {cs:'CAM100', lat:4,   lon:12,   hdg:0,  alt:33000,spd:445,country:'CMR',type:'B737'},
+    {cs:'ANK200', lat:-8,  lon:14,   hdg:315,alt:32000,spd:450,country:'AGO',type:'B737'},
+    {cs:'MOZ100', lat:-18, lon:35,   hdg:45, alt:33000,spd:445,country:'MOZ',type:'A319'},
+    {cs:'TUN100', lat:34,  lon:9,    hdg:90, alt:33000,spd:445,country:'TUN',type:'A319'},
+    {cs:'LIB100', lat:28,  lon:13,   hdg:180,alt:30000,spd:430,country:'LBA',type:'A320'},
+    // ── MIDDLE EAST & CENTRAL ASIA ──
+    {cs:'EK202',  lat:25,  lon:55,   hdg:270,alt:39000,spd:520,country:'UAE',type:'A380'},
+    {cs:'QTR300', lat:25,  lon:51,   hdg:90, alt:38000,spd:510,country:'QAT',type:'B777'},
+    {cs:'SVA500', lat:24,  lon:46,   hdg:315,alt:37000,spd:495,country:'SAU',type:'B777'},
+    {cs:'MED100', lat:34,  lon:36,   hdg:270,alt:33000,spd:450,country:'LBN',type:'A320'},
+    {cs:'KUW100', lat:29,  lon:48,   hdg:315,alt:36000,spd:465,country:'KWT',type:'A330'},
+    {cs:'REAPER1',lat:26,  lon:55,   hdg:180,alt:20000,spd:250,country:'USA',type:'MQ9'},
+    {cs:'GHOST7', lat:32,  lon:34,   hdg:200,alt:18000,spd:400,country:'ISR',type:'F35'},
+    {cs:'KAZ100', lat:43,  lon:77,   hdg:270,alt:35000,spd:460,country:'KAZ',type:'B737'},
+    {cs:'UZB100', lat:41,  lon:69,   hdg:90, alt:33000,spd:445,country:'UZB',type:'A319'},
+    {cs:'IRI200', lat:32,  lon:51,   hdg:45, alt:30000,spd:440,country:'IRN',type:'A300'},
+    {cs:'IST300', lat:39,  lon:35,   hdg:90, alt:36000,spd:470,country:'TUR',type:'A321'},
+    {cs:'AFG100', lat:34,  lon:69,   hdg:270,alt:28000,spd:420,country:'AFG',type:'C130'},
+    // ── SOUTH & SOUTHEAST ASIA ──
+    {cs:'PIA211', lat:30,  lon:69,   hdg:270,alt:35000,spd:470,country:'PAK',type:'B777'},
+    {cs:'AIC500', lat:19,  lon:73,   hdg:45, alt:37000,spd:480,country:'IND',type:'B787'},
+    {cs:'IGO300', lat:13,  lon:77,   hdg:315,alt:36000,spd:470,country:'IND',type:'A320'},
+    {cs:'SIA321', lat:1,   lon:104,  hdg:0,  alt:35000,spd:480,country:'SGP',type:'A350'},
+    {cs:'THA001', lat:15,  lon:102,  hdg:45, alt:33000,spd:455,country:'THA',type:'A330'},
+    {cs:'GIA500', lat:-6,  lon:107,  hdg:270,alt:36000,spd:465,country:'IDN',type:'B737'},
+    {cs:'VJC100', lat:16,  lon:108,  hdg:0,  alt:35000,spd:460,country:'VNM',type:'A321'},
+    {cs:'PAL200', lat:14,  lon:121,  hdg:315,alt:34000,spd:455,country:'PHL',type:'A320'},
+    {cs:'MAS300', lat:3,   lon:102,  hdg:90, alt:37000,spd:470,country:'MYS',type:'A380'},
+    {cs:'IAF01',  lat:28,  lon:77,   hdg:270,alt:22000,spd:420,country:'IND',type:'RAFALE'},
+    {cs:'PAF01',  lat:33,  lon:73,   hdg:90, alt:20000,spd:410,country:'PAK',type:'F16'},
+    {cs:'UBD100', lat:24,  lon:88,   hdg:90, alt:35000,spd:460,country:'BGD',type:'B737'},
+    {cs:'SRI200', lat:7,   lon:81,   hdg:315,alt:33000,spd:450,country:'LKA',type:'A330'},
+    {cs:'MMR100', lat:17,  lon:96,   hdg:45, alt:30000,spd:440,country:'MMR',type:'A320'},
+    {cs:'CAM200', lat:12,  lon:105,  hdg:0,  alt:32000,spd:445,country:'KHM',type:'A320'},
+    // ── EAST & NORTHEAST ASIA ──
+    {cs:'CCA901', lat:40,  lon:116,  hdg:45, alt:38000,spd:510,country:'CHN',type:'B737'},
+    {cs:'CSH200', lat:31,  lon:121,  hdg:315,alt:37000,spd:495,country:'CHN',type:'A321'},
+    {cs:'JAL727', lat:35,  lon:137,  hdg:330,alt:37000,spd:495,country:'JPN',type:'B767'},
+    {cs:'ANA400', lat:35,  lon:140,  hdg:270,alt:38000,spd:500,country:'JPN',type:'B787'},
+    {cs:'KAL001', lat:37,  lon:126,  hdg:10, alt:37000,spd:495,country:'KOR',type:'B777'},
+    {cs:'AFL100', lat:55,  lon:37,   hdg:270,alt:35000,spd:490,country:'RUS',type:'IL96'},
+    {cs:'SUA200', lat:60,  lon:80,   hdg:90, alt:36000,spd:475,country:'RUS',type:'A320'},
+    {cs:'JASDF1', lat:34,  lon:136,  hdg:180,alt:20000,spd:420,country:'JPN',type:'F35'},
+    {cs:'ROKAF1', lat:37,  lon:127,  hdg:90, alt:22000,spd:430,country:'KOR',type:'F35'},
+    {cs:'PLAAF1', lat:32,  lon:118,  hdg:270,alt:24000,spd:440,country:'CHN',type:'J20'},
+    {cs:'PLAAF2', lat:24,  lon:120,  hdg:0,  alt:22000,spd:430,country:'CHN',type:'J16'},
+    {cs:'TXN100', lat:25,  lon:121,  hdg:90, alt:35000,spd:460,country:'TWN',type:'B737'},
+    {cs:'MGL100', lat:47,  lon:107,  hdg:90, alt:33000,spd:445,country:'MNG',type:'B737'},
+    {cs:'NATO01', lat:49,  lon:16,   hdg:270,alt:30000,spd:440,country:'BEL',type:'E3A'},
+    // ── OCEANIA & PACIFIC ──
+    {cs:'QFA011', lat:-33, lon:151,  hdg:315,alt:36000,spd:500,country:'AUS',type:'A380'},
+    {cs:'VOZ200', lat:-27, lon:133,  hdg:270,alt:35000,spd:470,country:'AUS',type:'B737'},
+    {cs:'ANZ300', lat:-36, lon:174,  hdg:45, alt:36000,spd:475,country:'NZL',type:'B787'},
+    {cs:'FJI100', lat:-18, lon:178,  hdg:315,alt:33000,spd:450,country:'FJI',type:'A330'},
+    {cs:'RAAF01', lat:-31, lon:116,  hdg:0,  alt:20000,spd:390,country:'AUS',type:'F35'},
+    {cs:'PAA500', lat:20,  lon:-160, hdg:270,alt:37000,spd:490,country:'USA',type:'B777'},
+    {cs:'UAL800', lat:35,  lon:-160, hdg:90, alt:38000,spd:505,country:'USA',type:'B787'},
+    {cs:'PNG100', lat:-6,  lon:147,  hdg:270,alt:28000,spd:420,country:'PNG',type:'B737'},
+    {cs:'AIR200', lat:-22, lon:166,  hdg:315,alt:32000,spd:440,country:'NCL',type:'A320'},
+    // ── POLAR / TRANS-POLAR ROUTES ──
+    {cs:'SAS800', lat:70,  lon:25,   hdg:315,alt:36000,spd:480,country:'SWE',type:'A321'},
+    {cs:'AFL900', lat:72,  lon:60,   hdg:90, alt:33000,spd:460,country:'RUS',type:'TU95'},
+    {cs:'USAF01', lat:68,  lon:-150, hdg:270,alt:40000,spd:530,country:'USA',type:'B52'},
+    {cs:'DLH900', lat:68,  lon:5,    hdg:45, alt:37000,spd:480,country:'DEU',type:'A350'},
+    {cs:'FIN100', lat:65,  lon:25,   hdg:90, alt:36000,spd:470,country:'FIN',type:'A321'},
+    // ── TRANS-OCEANIC ROUTES ──
+    {cs:'SIA900', lat:-10, lon:85,   hdg:225,alt:39000,spd:510,country:'SGP',type:'A350'},
+    {cs:'QTR800', lat:5,   lon:55,   hdg:270,alt:38000,spd:495,country:'QAT',type:'B777'},
+    {cs:'ETH700', lat:-2,  lon:65,   hdg:315,alt:37000,spd:480,country:'ETH',type:'B787'},
+    {cs:'UAL600', lat:0,   lon:-40,  hdg:90, alt:38000,spd:505,country:'USA',type:'B787'},
+    {cs:'AFR800', lat:2,   lon:-20,  hdg:225,alt:37000,spd:475,country:'FRA',type:'A380'},
   ];
   LIVE_FLIGHTS = routes.map((r,i)=>({
     icao24:'demo'+i.toString().padStart(4,'0'),
     callsign:r.cs, origin_country:r.country, aircraft_type:r.type,
-    lat:r.lat+(Math.random()-.5)*5, lon:r.lon+(Math.random()-.5)*5,
+    lat:r.lat+(Math.random()-.5)*3, lon:r.lon+(Math.random()-.5)*3,
     alt_ft:r.alt, spd_kts:r.spd, heading:r.hdg, vert_rate:0, squawk:'',
   }));
   lastLiveUpdate = Date.now();
@@ -995,7 +1097,7 @@ function injectDemoFlights(){
 
 function updateLiveTicker(){
   if(!LIVE_FLIGHTS.length) return;
-  const shuffled = [...LIVE_FLIGHTS].sort(()=>Math.random()-0.5).slice(0,60);
+  const shuffled = [...LIVE_FLIGHTS].sort(()=>Math.random()-0.5).slice(0,80);
   const items = shuffled.map(f=>{
     const alt = f.alt_ft!=null?`FL${Math.round(f.alt_ft/100).toString().padStart(3,'0')}`:'FL???';
     const spd = f.spd_kts!=null?`${f.spd_kts}kts`:'';
@@ -1017,20 +1119,35 @@ function isVisible(lat,lon){
   return dist<Math.PI/2;
 }
 
-// ─── RENDER LIVE ADS-B FLIGHTS (Red=MIL, Blue=CIV) ────────────
+// ─── RENDER LIVE ADS-B FLIGHTS ────────────────────────────────
+// Renders all visible military flights + a sampled set of civilian flights
+// up to LIVE_MAX_RENDER total — ensuring global coverage on every continent
 function renderLiveFlights(){
   if(!liveGroup||!projection) return;
   liveGroup.selectAll('*').remove();
   if(!LIVE_FLIGHTS.length) return;
 
-  const step = Math.max(1, Math.ceil(LIVE_FLIGHTS.length/LIVE_MAX_RENDER));
   const now = Date.now();
   const stale = (now - lastLiveUpdate) > 180000;
 
   let milShown = 0, civShown = 0;
 
-  for(let i=0;i<LIVE_FLIGHTS.length;i+=step){
-    const fl = LIVE_FLIGHTS[i];
+  // Separate mil and civ, then sample civ so total ≤ LIVE_MAX_RENDER
+  const milFlights = LIVE_FLIGHTS.filter(isMilitaryFlight);
+  const civFlights = LIVE_FLIGHTS.filter(f => !isMilitaryFlight(f));
+
+  // How many civ slots remain
+  const civBudget = Math.max(0, LIVE_MAX_RENDER - milFlights.length);
+  const civStep = civFlights.length > civBudget
+    ? Math.ceil(civFlights.length / civBudget)
+    : 1;
+
+  const toRender = [
+    ...milFlights,
+    ...civFlights.filter((_,i) => i % civStep === 0),
+  ];
+
+  for(const fl of toRender){
     const isMil = isMilitaryFlight(fl);
 
     // Layer visibility check
@@ -1082,9 +1199,8 @@ function renderLiveFlights(){
         .attr('stroke-width',isMil?1.0:0.8);
     }
 
-    // Military aircraft: slightly larger, diamond shape overlay
+    // Military aircraft: outer ring indicator
     if(isMil){
-      // Outer ring for military planes
       grp.append('circle')
         .attr('cx',p[0]).attr('cy',p[1])
         .attr('r',3.5)
@@ -1161,7 +1277,6 @@ function renderMilShips(){
     const pulse = (Math.sin(t*1.5 + MIL_SHIPS.indexOf(ship)*1.3)*0.5+0.5);
     const grp = shipsGroup.append('g').style('cursor','pointer');
 
-    // Outer pulse ring
     grp.append('circle')
       .attr('cx',p[0]).attr('cy',p[1])
       .attr('r', 10 + pulse*8)
@@ -1169,7 +1284,6 @@ function renderMilShips(){
       .attr('stroke',`rgba(255,0,51,${0.25*(1-pulse)})`)
       .attr('stroke-width',1.2);
 
-    // Ship icon — diamond shape
     const s = 5;
     grp.append('polygon')
       .attr('points',`${p[0]},${p[1]-s} ${p[0]+s},${p[1]} ${p[0]},${p[1]+s} ${p[0]-s},${p[1]}`)
@@ -1178,13 +1292,11 @@ function renderMilShips(){
       .attr('stroke-width',0.8)
       .attr('opacity',0.9);
 
-    // Anchor cross
     grp.append('line').attr('x1',p[0]-4).attr('y1',p[1]).attr('x2',p[0]+4).attr('y2',p[1])
       .attr('stroke','#ff0033').attr('stroke-width',0.7).attr('opacity',0.6);
     grp.append('line').attr('x1',p[0]).attr('y1',p[1]-4).attr('x2',p[0]).attr('y2',p[1]+4)
       .attr('stroke','#ff0033').attr('stroke-width',0.7).attr('opacity',0.6);
 
-    // Label
     const shortName = ship.name.split(' ').slice(0,2).join(' ');
     grp.append('text')
       .attr('x',p[0]+9).attr('y',p[1]-4)
@@ -1192,16 +1304,13 @@ function renderMilShips(){
       .attr('fill','#ff4455').attr('opacity',0.85).attr('letter-spacing','1')
       .text(shortName);
 
-    // Nation flag dot
     const natCol = ship.nation==='United States'?'#4af':ship.nation==='Russia'?'#f55':ship.nation==='China'?'#fa0':ship.nation==='United Kingdom'?'#88f':ship.nation==='France'?'#8cf':ship.nation.includes('NATO')?'#fff':'#f03';
     grp.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',2.5)
       .attr('fill',natCol).attr('opacity',0.95);
 
-    // Hover
     grp.on('mouseover',function(event){ showShipTooltip(event,ship); })
        .on('mouseout',function(){ document.getElementById('ship-tooltip').style.display='none'; });
 
-    // Click → show mil panel repurposed for ship
     grp.on('click',function(){
       document.getElementById('mil-name').textContent=ship.name;
       document.getElementById('mil-name').style.color='#f03';
@@ -1252,7 +1361,6 @@ function renderMilTroops(){
     const pulse = (Math.sin(t*2 + MIL_TROOPS.indexOf(tr)*0.9)*0.5+0.5);
     const grp = troopsGroup.append('g').style('cursor','pointer');
 
-    // Outer pulse ring (slightly different from ships)
     grp.append('circle')
       .attr('cx',p[0]).attr('cy',p[1])
       .attr('r', 7 + pulse*10)
@@ -1260,7 +1368,6 @@ function renderMilTroops(){
       .attr('stroke',`rgba(255,80,80,${0.3*(1-pulse)})`)
       .attr('stroke-width',1);
 
-    // Troop icon — upward triangle
     const s = 5;
     grp.append('polygon')
       .attr('points',`${p[0]},${p[1]-s} ${p[0]+s*0.85},${p[1]+s*0.5} ${p[0]-s*0.85},${p[1]+s*0.5}`)
@@ -1269,12 +1376,10 @@ function renderMilTroops(){
       .attr('stroke-width',0.7)
       .attr('opacity',0.9);
 
-    // Nation indicator center dot
     const natCol = tr.nation.includes('United States')?'#4af':tr.nation.includes('Russia')?'#f55':tr.nation.includes('China')?'#fa0':tr.nation.includes('NATO')||tr.nation.includes('Ukraine')?'#8cf':tr.nation.includes('Israel')?'#ff8':tr.nation.includes('North Korea')?'#f66':'#f55';
     grp.append('circle').attr('cx',p[0]).attr('cy',p[1]+1).attr('r',1.8)
       .attr('fill',natCol).attr('opacity',0.95);
 
-    // Hover tooltip
     grp.on('mouseover',function(event){
       const tt=document.getElementById('tooltip');
       tt.style.display='block';
@@ -1781,7 +1886,7 @@ const COUNTRY_COORDS={
   'Azerbaijan':[40,48],'Belarus':[53,28],'Moldova':[47,29],'Lithuania':[56,24],
   'Latvia':[57,25],'Estonia':[59,25],'Iceland':[65,-18],'Cyprus':[35,33],
   'Ivory Coast':[7,-5],'Mali':[17,-4],'Niger':[17,8],'Chad':[15,18],
-  'Burkina Faso':[12,-2],'Iraq':[33,44],'Lebanon':[34,36],'Libya':[27,17],'Kuwait':[29,47],
+  'Burkina Faso':[12,-2],
 };
 
 // ─── WATCH ZONE RINGS ─────────────────────────────────────────
@@ -1952,14 +2057,6 @@ const FEEDS=[
   {url:'https://foreignpolicy.com/feed/',                            name:'FOREIGN POL',cat:'WORLD'},
 ];
 
-// RSS JSON proxy services — tried in sequence
-const RSS_PROXIES = [
-  url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=10`,
-  url => `https://rss.blogtrottr.com/convert?feed=${encodeURIComponent(url)}&format=json`, // unused but slot reserved
-  url => null, // raw XML via corsproxy
-];
-
-// Parse raw RSS/Atom XML text into article array
 function parseRssXml(xmlText, feed){
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText, 'text/xml');
@@ -1980,9 +2077,7 @@ function parseRssXml(xmlText, feed){
   }).filter(a => a.title && a.title !== 'Untitled');
 }
 
-// Fetch raw RSS XML via CORS proxy
 async function fetchFeedRaw(feed){
-  // Try CORS proxies to get raw XML
   const proxyBases = [
     'https://corsproxy.io/?',
     'https://api.allorigins.win/raw?url=',
@@ -2000,7 +2095,6 @@ async function fetchFeedRaw(feed){
   throw new Error('Raw XML fetch failed');
 }
 
-// Fetch via rss2json JSON API
 async function fetchFeedJson(feed){
   const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=10`;
   const res = await fetchTimeout(url, 10000);
@@ -2015,7 +2109,6 @@ async function fetchFeedJson(feed){
 }
 
 async function fetchFeed(feed){
-  // Try rss2json first, fall back to raw XML
   try{ return await fetchFeedJson(feed); }
   catch(e){ console.warn(`Feed ${feed.name} rss2json failed (${e.message}), trying raw XML`); }
   return await fetchFeedRaw(feed);
@@ -2165,6 +2258,7 @@ function buildTickers(articles){
     'OIL TRANSIT CHOKEPOINTS: 7 MONITORED','G7 AVG DEBT/GDP: 128%',
     'DEFORESTATION RATE: 10M HA/YR','DRONE INCIDENTS YTD: 47',
     `MIL VESSELS TRACKED: ${MIL_SHIPS.length}`,`MIL TROOP CONCENTRATIONS: ${MIL_TROOPS.length}`,
+    `ADS-B GLOBAL COVERAGE: ${ADSB_LOL_REGIONS.length} REGIONS`,
   ];
   document.getElementById('t3').innerHTML=[...DATA,...DATA].map(d=>
     `<div class="ti"><span class="sep">◆</span><span>${d}</span></div>`).join('');
@@ -2224,6 +2318,7 @@ async function main(){
   setTimeout(()=>{ pushNotification('Frontline Positions Shift in Eastern Ukraine as Offensive Intensifies','DEMO','crit'); },1500);
   setTimeout(()=>{ pushNotification('Houthi Drone Strikes Target Red Sea Shipping Lane Vessels','DEMO','warn'); },3000);
   setTimeout(()=>{ pushNotification(`${MIL_SHIPS.length} Military Vessels + ${MIL_TROOPS.length} Troop Concentrations Mapped`,'INTEL','warn'); },4500);
+  setTimeout(()=>{ pushNotification(`ADS-B Global Coverage: ${ADSB_LOL_REGIONS.length} regions — all continents`,'ADS-B',''); },6000);
 
   setLoad('CONNECTING TO LIVE FEEDS...',55);
   const {articles,ok}=await fetchAll();
@@ -2249,20 +2344,4 @@ async function main(){
       document.getElementById('m-fd').textContent=r.ok;
       renderThreats();
     }
-  }, 5*60*1000);
-
-  window.addEventListener('resize',()=>{
-    const center=document.getElementById('center');
-    width=center.clientWidth; height=center.clientHeight;
-    projection.translate([width/2,height/2]);
-    svg.attr('width',width).attr('height',height);
-    svg.select('.sphere').attr('cx',width/2).attr('cy',height/2);
-    svg.select('#rim').attr('cx',width/2).attr('cy',height/2);
-    updateGlobe();
-  });
-}
-
-main();
-</script>
-</body>
-</html>
+  }, 5*
