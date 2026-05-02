@@ -557,7 +557,7 @@ function isVisible(lat,lon){
 
 
 // ─── LIVE ADS-B STATE ─────────────────────────────────────────
-let LIVE_FLIGHTS = [];          // Real ADS-B data (OpenSky Network)
+let LIVE_FLIGHTS = [];          // Real ADS-B data (ADSB.LOL)
 let LIVE_HISTORY = new Map();   // icao24 → [{lat,lon,ts}] for trails
 let liveFlightsFetching = false;
 let lastLiveUpdate = 0;
@@ -594,53 +594,43 @@ function renderFlights(){
   renderLiveFlights();
 }
 
-// ─── LIVE ADS-B — MULTI-SOURCE WITH FALLBACK ─────────────────
-// Strategy: use the same internal JSON endpoints the public globe viewers load in browsers.
-// These are served directly to browsers (residential IPs) with no API key required.
-// We try multiple providers; first success wins.
+// ─── LIVE ADS-B — ADSB.LOL GLOBAL SWEEP ───────────────────────
+// Strategy: use ADSB.LOL's built-in point search and stitch regions together
+// to approximate worldwide coverage without API keys.
 const PROXY = 'https://steep-frog-bb3a.optimizedjack.workers.dev/?url=';
-const ADS_B_SOURCES = [
-  {
-    label: 'ADSB.FI',
-    url: PROXY + encodeURIComponent('https://globe.adsb.fi/re-api/?all'),
-    parse: data => (data.aircraft || data.ac || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.FI API (EUR)',
-    url: PROXY + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/50/lon/10/dist/1500'),
-    parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.FI API (NAM)',
-    url: PROXY + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/40/lon/-95/dist/1500'),
-    parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.LOL (EUR)',
-    url: PROXY + encodeURIComponent('https://api.adsb.lol/v2/lat/50/lon/10/dist/1500'),
-    parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.LOL (NAM)',
-    url: PROXY + encodeURIComponent('https://api.adsb.lol/v2/lat/40/lon/-95/dist/1500'),
-    parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.ONE (EUR)',
-    url: PROXY + encodeURIComponent('https://api.adsb.one/v2/point/50/10/1500'),
-    parse: data => (data.ac || data.aircraft || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'ADSB.ONE (NAM)',
-    url: PROXY + encodeURIComponent('https://api.adsb.one/v2/point/40/-95/1500'),
-    parse: data => (data.ac || data.aircraft || []).map(s => parseAdsbFiRecord(s))
-  },
-  {
-    label: 'OPENSKY',
-    url: PROXY + encodeURIComponent('https://opensky-network.org/api/states/all'),
-    parse: data => (data.states || []).map(s => parseOpenSkyRecord(s))
-  },
+const ADSB_LOL_BASE = 'https://api.adsb.lol/v2/point';
+const ADSB_LOL_TIMEOUT_MS = 15000;
+const ADSB_LOL_REGIONS = [
+  {label:'N AMERICA',  lat:40,  lon:-100, radius:1800},
+  {label:'S AMERICA',  lat:-20, lon:-60,  radius:1700},
+  {label:'EUROPE',     lat:55,  lon:10,   radius:1500},
+  {label:'AFRICA',     lat:5,   lon:20,   radius:1800},
+  {label:'MIDDLE EAST',lat:25,  lon:60,   radius:1800},
+  {label:'E ASIA',     lat:35,  lon:120,  radius:1800},
+  {label:'OCEANIA',    lat:-25, lon:150,  radius:1800},
+  {label:'PACIFIC',    lat:0,   lon:-150, radius:2200},
+  {label:'ATLANTIC',   lat:0,   lon:-30,  radius:2200},
 ];
+
+async function fetchAdsbLolRegion(region){
+  const url = PROXY + encodeURIComponent(`${ADSB_LOL_BASE}/${region.lat}/${region.lon}/${region.radius}`);
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), ADSB_LOL_TIMEOUT_MS);
+  let resp;
+  try {
+    resp = await fetch(url, {signal: ctrl.signal, mode:'cors', credentials:'omit'});
+  } finally {
+    clearTimeout(timer);
+  }
+  if(!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+  const text = await resp.text();
+  const firstChar = text.trim()[0];
+  if(firstChar!=='{' && firstChar!=='[') throw new Error(`Non-JSON (${text.slice(0,60)})`);
+  let data;
+  try { data = JSON.parse(text); } catch(pe){ throw new Error(`JSON: ${pe.message}`); }
+  const raw = data.ac || data.aircraft || [];
+  return raw.map(s => parseAdsbFiRecord(s)).filter(Boolean);
+}
 
 function parseAdsbFiRecord(s){
   const lat = s.lat, lon = s.lon;
@@ -687,63 +677,59 @@ async function fetchLiveFlights(){
   if(liveFlightsFetching) return;
   liveFlightsFetching = true;
   const statusEl = document.getElementById('live-status');
-  if(statusEl){ statusEl.className='loading'; statusEl.textContent='● ADS-B SYNCING...'; }
+  if(statusEl){ statusEl.className='loading'; statusEl.textContent='● ADSB.LOL GLOBAL SYNC...'; }
 
-  let loaded = false;
   const failures = [];
+  try{
+    const results = await Promise.allSettled(ADSB_LOL_REGIONS.map(region => fetchAdsbLolRegion(region)));
+    const now = Date.now();
+    const merged = new Map();
+    let ok = 0;
 
-  for(const src of ADS_B_SOURCES){
-    if(loaded) break;
-    try{
-      if(statusEl) statusEl.textContent=`● TRYING ${src.label}...`;
-      const ctrl = new AbortController();
-      const timer = setTimeout(()=>ctrl.abort(), 15000);
-      let resp;
-      try {
-        resp = await fetch(src.url, {signal: ctrl.signal, mode:'cors', credentials:'omit'});
-      } finally {
-        clearTimeout(timer);
+    results.forEach((res, idx)=>{
+      const region = ADSB_LOL_REGIONS[idx];
+      if(res.status === 'fulfilled'){
+        ok++;
+        for(const fl of res.value){
+          if(!fl) continue;
+          if(!merged.has(fl.icao24)) merged.set(fl.icao24, fl);
+        }
+      } else {
+        const msg = res.reason?.name==='AbortError' ? 'Timed out' : (res.reason?.message || String(res.reason));
+        failures.push(`${region.label}: ${msg}`);
+        console.warn(`[ADS-B] ${region.label} failed:`, msg);
       }
-      if(!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
-      const text = await resp.text();
-      const firstChar = text.trim()[0];
-      if(firstChar!=='{' && firstChar!=='[') throw new Error(`Non-JSON (${text.slice(0,60)})`);
-      let data;
-      try { data = JSON.parse(text); } catch(pe){ throw new Error(`JSON: ${pe.message}`); }
-      const raw = src.parse(data);
-      const now = Date.now();
-      const newFlights = [];
-      for(const fl of raw){
-        if(!fl) continue;
-        const icao = fl.icao24;
-        if(!LIVE_HISTORY.has(icao)) LIVE_HISTORY.set(icao,[]);
-        const hist = LIVE_HISTORY.get(icao);
-        hist.push({lat:fl.lat, lon:fl.lon, ts:now});
-        if(hist.length>4) hist.shift();
-        newFlights.push(fl);
-      }
-      if(newFlights.length < 5) throw new Error(`Only ${newFlights.length} aircraft`);
-      LIVE_FLIGHTS = newFlights;
-      lastLiveUpdate = now;
-      const cnt = LIVE_FLIGHTS.length;
-      if(statusEl){ statusEl.className=''; statusEl.textContent=`▶ ${cnt.toLocaleString()} LIVE [${src.label}]`; }
-      const liveEl = document.getElementById('m-live');
-      if(liveEl) liveEl.textContent = cnt.toLocaleString();
-      updateLiveTicker();
-      loaded = true;
-    }catch(e){
-      const msg = e.name==='AbortError' ? 'Timed out' : (e.message||String(e));
-      failures.push(`${src.label}: ${msg}`);
-      console.warn(`[ADS-B] ${src.label} failed:`, msg);
+    });
+
+    const newFlights = [...merged.values()];
+    if(!newFlights.length){
+      const summary = failures.slice(0,3).join(' | ') || 'No aircraft returned';
+      if(statusEl){ statusEl.className='err'; statusEl.textContent=`● ADSB.LOL NO DATA — ${summary}`; }
+      console.error('[ADS-B] ADSB.LOL returned no data:\n' + failures.join('\n'));
+      return;
     }
-  }
 
-  if(!loaded){
-    const summary = failures.slice(0,3).join(' | ');
-    if(statusEl){ statusEl.className='err'; statusEl.textContent=`● ALL SOURCES FAILED — ${summary}`; }
-    console.error('[ADS-B] All sources failed:\n' + failures.join('\n'));
+    for(const fl of newFlights){
+      const icao = fl.icao24;
+      if(!LIVE_HISTORY.has(icao)) LIVE_HISTORY.set(icao,[]);
+      const hist = LIVE_HISTORY.get(icao);
+      hist.push({lat:fl.lat, lon:fl.lon, ts:now});
+      if(hist.length>4) hist.shift();
+    }
+
+    LIVE_FLIGHTS = newFlights;
+    lastLiveUpdate = now;
+    const cnt = LIVE_FLIGHTS.length;
+    const regionStatus = ok < ADSB_LOL_REGIONS.length
+      ? `PARTIAL ${ok}/${ADSB_LOL_REGIONS.length}`
+      : `GLOBAL ${ok}/${ADSB_LOL_REGIONS.length}`;
+    if(statusEl){ statusEl.className=''; statusEl.textContent=`▶ ${cnt.toLocaleString()} LIVE [ADSB.LOL ${regionStatus}]`; }
+    const liveEl = document.getElementById('m-live');
+    if(liveEl) liveEl.textContent = cnt.toLocaleString();
+    updateLiveTicker();
+  } finally {
+    liveFlightsFetching = false;
   }
-  liveFlightsFetching = false;
 }
 
 
