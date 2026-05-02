@@ -598,47 +598,46 @@ function renderFlights(){
 // Strategy: use the same internal JSON endpoints the public globe viewers load in browsers.
 // These are served directly to browsers (residential IPs) with no API key required.
 // We try multiple providers; first success wins.
+const PROXY = 'https://steep-frog-bb3a.optimizedjack.workers.dev/?url=';
 const ADS_B_SOURCES = [
   {
-    // adsb.fi internal globe data endpoint — same one globe.adsb.fi loads
     label: 'ADSB.FI',
-    url: 'https://globe.adsb.fi/re-api/?all',
+    url: PROXY + encodeURIComponent('https://globe.adsb.fi/re-api/?all'),
     parse: data => (data.aircraft || data.ac || []).map(s => parseAdsbFiRecord(s))
   },
   {
-    // opendata.adsb.fi public API — CORS-open, 1 req/s rate limit
     label: 'ADSB.FI API (EUR)',
-    url: 'https://opendata.adsb.fi/api/v2/lat/50/lon/10/dist/1500',
+    url: PROXY + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/50/lon/10/dist/1500'),
     parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'ADSB.FI API (NAM)',
-    url: 'https://opendata.adsb.fi/api/v2/lat/40/lon/-95/dist/1500',
+    url: PROXY + encodeURIComponent('https://opendata.adsb.fi/api/v2/lat/40/lon/-95/dist/1500'),
     parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'ADSB.LOL (EUR)',
-    url: 'https://api.adsb.lol/v2/lat/50/lon/10/dist/1500',
+    url: PROXY + encodeURIComponent('https://api.adsb.lol/v2/lat/50/lon/10/dist/1500'),
     parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'ADSB.LOL (NAM)',
-    url: 'https://api.adsb.lol/v2/lat/40/lon/-95/dist/1500',
+    url: PROXY + encodeURIComponent('https://api.adsb.lol/v2/lat/40/lon/-95/dist/1500'),
     parse: data => (data.ac || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'ADSB.ONE (EUR)',
-    url: 'https://api.adsb.one/v2/point/50/10/1500',
+    url: PROXY + encodeURIComponent('https://api.adsb.one/v2/point/50/10/1500'),
     parse: data => (data.ac || data.aircraft || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'ADSB.ONE (NAM)',
-    url: 'https://api.adsb.one/v2/point/40/-95/1500',
+    url: PROXY + encodeURIComponent('https://api.adsb.one/v2/point/40/-95/1500'),
     parse: data => (data.ac || data.aircraft || []).map(s => parseAdsbFiRecord(s))
   },
   {
     label: 'OPENSKY',
-    url: 'https://opensky-network.org/api/states/all',
+    url: PROXY + encodeURIComponent('https://opensky-network.org/api/states/all'),
     parse: data => (data.states || []).map(s => parseOpenSkyRecord(s))
   },
 ];
