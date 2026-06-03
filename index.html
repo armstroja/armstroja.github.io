@@ -278,19 +278,19 @@
 </div>
 
 <!-- popups -->
-<div class="win-popup" id="popup-stem">
-  <div class="win-titlebar" id="drag-stem">
-    <div class="win-title-icon">🎵</div>
-    <span class="win-title">Stem Mixer — stemmixer.pages.dev</span>
+<div class="win-popup" id="popup-3d">
+  <div class="win-titlebar" id="drag-3d">
+    <div class="win-title-icon">🧊</div>
+    <span class="win-title">3D Viewer — 3d.html</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('stem')">_</div>
-      <div class="win-btn" onclick="closePopup('stem')">&#x2715;</div>
+      <div class="win-btn" onclick="toggleMin('3d')">_</div>
+      <div class="win-btn" onclick="closePopup('3d')">&#x2715;</div>
     </div>
   </div>
-  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
+  <div class="win-menubar"><span>File</span><span>Edit</span><span>Help</span></div>
   <div class="win-body">
-    <div class="win-label"><a href="https://stemmixer.pages.dev" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
-    <iframe src="" data-src="https://stemmixer.pages.dev" title="Stem Mixer" allow="autoplay"></iframe>
+    <div class="win-label"><a href="3d.html" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
+    <iframe src="" data-src="3d.html" title="3D Viewer" allow="autoplay"></iframe>
   </div>
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
 </div>
@@ -364,7 +364,7 @@
   window.dispatchEvent(new Event('scroll'));
 
   /* ── random popup spawner ── */
-  const POPUP_IDS = ['stem', 'contact', 'about'];
+  const POPUP_IDS = ['3d', 'contact', 'about'];
 
   function randomPos(el) {
     const margin = 32;
