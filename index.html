@@ -333,6 +333,23 @@
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
 </div>
 
+<div class="win-popup" id="popup-css">
+  <div class="win-titlebar" id="drag-css">
+    <div class="win-title-icon">🧊</div>
+    <span class="win-title">3D CSS</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="toggleMin('css')">_</div>
+      <div class="win-btn" onclick="closePopup('css')">&#x2715;</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
+  <div class="win-body">
+    <div class="win-label"><a href="3d.html" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
+    <iframe src="" data-src="3d.html" title="3D CSS"></iframe>
+  </div>
+  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+</div>
+
 <script>
   /* ── scroll ── */
   const jaText        = document.getElementById('jaText');
@@ -364,7 +381,7 @@
   window.dispatchEvent(new Event('scroll'));
 
   /* ── random popup spawner ── */
-  const POPUP_IDS = ['stem', 'contact', 'about'];
+  const POPUP_IDS = ['stem', 'contact', 'about', 'css'];
 
   function randomPos(el) {
     const margin = 32;
