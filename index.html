@@ -278,13 +278,13 @@
 </div>
 
 <!-- popups -->
-<div class="win-popup" id="popup-stem">
-  <div class="win-titlebar" id="drag-stem">
+<div class="win-popup" id="popup-3d">
+  <div class="win-titlebar" id="drag-3d">
     <div class="win-title-icon">🧊</div>
     <span class="win-title">3D Viewer — 3d.html</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('stem')">_</div>
-      <div class="win-btn" onclick="closePopup('stem')">&#x2715;</div>
+      <div class="win-btn" onclick="toggleMin('3d')">_</div>
+      <div class="win-btn" onclick="closePopup('3d')">&#x2715;</div>
     </div>
   </div>
   <div class="win-menubar"><span>File</span><span>Edit</span><span>Help</span></div>
@@ -364,7 +364,7 @@
   window.dispatchEvent(new Event('scroll'));
 
   /* ── random popup spawner ── */
-  const POPUP_IDS = ['stem', 'contact', 'about'];
+  const POPUP_IDS = ['3d', 'contact', 'about'];
 
   function randomPos(el) {
     const margin = 32;
