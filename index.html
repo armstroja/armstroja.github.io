@@ -348,7 +348,26 @@
     <iframe src="" data-src="3d.html" title="3D CSS"></iframe>
   </div>
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
-</div> <div class="win-popup" id="popup-css"> <div class="win-titlebar" id="drag-css"> <div class="win-title-icon">⌘</div> <span class="win-title">Video Player</span> <div class="win-btns"> <div class="win-btn" onclick="toggleMin('css')">_</div> <div class="win-btn" onclick="closePopup('css')">&#x2715;</div> </div> </div> <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div> <div class="win-body"> <video width="640" height="360" controls> <source src="my-video.mp4" type="video/mp4"> Your browser does not support the video tag. </video> </div> <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div> </div>
+</div>
+
+<div class="win-popup" id="popup-video">
+  <div class="win-titlebar" id="drag-video">
+    <div class="win-title-icon">⌘</div>
+    <span class="win-title">Video Player</span>
+    <div class="win-btns">
+      <div class="win-btn" onclick="toggleMin('video')">_</div>
+      <div class="win-btn" onclick="closePopup('video')">&#x2715;</div>
+    </div>
+  </div>
+  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
+  <div class="win-body">
+    <video width="640" height="360" controls>
+      <source src="my-video.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+</div>
 
 <script>
   /* ── scroll ── */
@@ -381,7 +400,7 @@
   window.dispatchEvent(new Event('scroll'));
 
   /* ── random popup spawner ── */
-  const POPUP_IDS = ['stem', 'contact', 'about', 'css'];
+  const POPUP_IDS = ['stem', 'contact', 'about', 'css', 'video'];
 
   function randomPos(el) {
     const margin = 32;
