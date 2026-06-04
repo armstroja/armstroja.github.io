@@ -76,8 +76,15 @@
       document.body.style.overflow = '';
     }
 
+    function revealAfterGifLoad() {
+      setTimeout(revealSite, 2500);
+    }
+
     // Reveal shortly after GIF loads
-    gif.addEventListener('load', () => setTimeout(revealSite, 2500));
+    gif.addEventListener('load', revealAfterGifLoad);
+    if (gif.complete) {
+      revealAfterGifLoad();
+    }
 
     // Fallback: if GIF fails to load, reveal after 1s
     gif.addEventListener('error', () => setTimeout(revealSite, 1000));
