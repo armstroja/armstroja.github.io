@@ -1,5 +1,5 @@
 ## jaaaaaaaaaaaaaacck
-Inspired by Virgil Abloh's ["free-game"](https://free-game.virgilabloh.com)
+Always inspired by Virgil Abloh
 <br>
 I used many tools to make this website happen including <br>
 1. [Space Type Generator](https://spacetypegenerator.com) <br>
