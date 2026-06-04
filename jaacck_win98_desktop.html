@@ -1,0 +1,512 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body { font-family: 'MS Sans Serif', Arial, sans-serif; }
+
+  #desktop {
+    width: 100%;
+    min-height: 540px;
+    background: #008080;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Taskbar */
+  #taskbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 4px;
+    z-index: 9999;
+  }
+  #start-btn {
+    height: 20px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 0 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  #start-btn:active { border-color: #808080 #fff #fff #808080; }
+  .taskbar-sep { width: 1px; height: 20px; background: #808080; margin: 0 2px; box-shadow: 1px 0 0 #fff; }
+  .taskbar-clock {
+    margin-left: auto;
+    font-size: 11px;
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    padding: 2px 6px;
+    background: #c0c0c0;
+  }
+
+  /* Windows */
+  .win {
+    position: absolute;
+    min-width: 220px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    box-shadow: 2px 2px 0 #000;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .win.open { opacity: 1; transform: scale(1); }
+  .win.minimized { opacity: 0; transform: scale(0.7); pointer-events: none; }
+
+  .win-titlebar {
+    background: #000080;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: move;
+    flex-shrink: 0;
+  }
+  .win-icon { font-size: 12px; }
+  .win-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win-btns { display: flex; gap: 2px; }
+  .win-btn {
+    width: 16px; height: 14px;
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: #000;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .win-btn:active { border-color: #808080 #fff #fff #808080; }
+
+  .win-menubar {
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+    padding: 1px 4px;
+    display: flex;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .win-menu-item {
+    font-size: 11px;
+    padding: 1px 6px;
+    cursor: default;
+  }
+  .win-menu-item:hover { background: #000080; color: #fff; }
+
+  .win-body {
+    flex: 1;
+    overflow: auto;
+    background: #fff;
+    border: 2px solid;
+    border-color: #808080 #fff #fff #808080;
+    margin: 4px;
+  }
+
+  .win-statusbar {
+    font-size: 10px;
+    color: #000;
+    padding: 2px 6px;
+    border-top: 1px solid #808080;
+    border-color: #808080 #fff #fff #808080;
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .status-cell {
+    border: 1px solid;
+    border-color: #808080 #fff #fff #808080;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+
+  /* Scrollbar styling */
+  .win-body::-webkit-scrollbar { width: 16px; }
+  .win-body::-webkit-scrollbar-track { background: #c0c0c0; }
+  .win-body::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border: 2px solid;
+    border-color: #fff #808080 #808080 #fff;
+  }
+
+  /* Content inside windows */
+  .about-content { padding: 12px; font-size: 12px; line-height: 1.6; color: #000; }
+  .about-content h2 { font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+  .about-header {
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px;
+    padding-bottom: 10px; border-bottom: 1px solid #808080;
+  }
+  .avatar {
+    width: 48px; height: 48px;
+    background: #000080; color: #fff;
+    font-size: 18px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid; border-color: #808080 #fff #fff #808080;
+    flex-shrink: 0;
+  }
+  .about-info { font-size: 11px; }
+  .about-info p { margin-bottom: 3px; }
+  .divider { height: 1px; background: #808080; margin: 8px 0; box-shadow: 0 1px 0 #fff; }
+
+  /* Projects list (explorer style) */
+  .explorer-toolbar {
+    background: #c0c0c0;
+    border-bottom: 1px solid #808080;
+    padding: 2px 4px;
+    display: flex; gap: 2px;
+    flex-shrink: 0;
+  }
+  .tb-btn {
+    height: 22px; padding: 0 8px;
+    background: #c0c0c0;
+    border: 2px solid; border-color: #fff #808080 #808080 #fff;
+    font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+  }
+  .tb-btn:active { border-color: #808080 #fff #fff #808080; }
+  .tb-sep { width: 1px; background: #808080; margin: 2px 3px; box-shadow: 1px 0 #fff; }
+
+  .project-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    font-size: 11px; color: #000;
+    border-bottom: 1px dotted #c0c0c0;
+    cursor: default;
+  }
+  .project-item:hover { background: #000080; color: #fff; }
+  .project-item:hover .proj-tag { color: #aaf; }
+  .folder-icon { font-size: 16px; }
+  .proj-name { flex: 1; font-weight: bold; }
+  .proj-tag { font-size: 10px; color: #808080; }
+  .proj-year { font-size: 10px; color: #808080; margin-left: auto; }
+  .project-item:hover .proj-year { color: #aaf; }
+
+  /* Contact window */
+  .contact-content { padding: 12px; font-size: 11px; color: #000; }
+  .contact-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .contact-label { width: 60px; font-weight: bold; }
+  .contact-field {
+    flex: 1; border: 2px solid; border-color: #808080 #fff #fff #808080;
+    background: #fff; padding: 2px 4px; font-size: 11px;
+  }
+  .contact-btn {
+    height: 22px; padding: 0 12px;
+    background: #c0c0c0;
+    border: 2px solid; border-color: #fff #808080 #808080 #fff;
+    font-size: 11px; cursor: pointer;
+  }
+  .contact-btn:active { border-color: #808080 #fff #fff #808080; }
+  .btn-row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
+
+  /* System popup */
+  .sys-content { padding: 16px; font-size: 11px; display: flex; gap: 12px; color: #000; }
+  .sys-icon { font-size: 32px; flex-shrink: 0; }
+  .sys-text h3 { font-size: 12px; margin-bottom: 6px; }
+  .sys-text p { margin-bottom: 4px; }
+  .sys-btns { display: flex; justify-content: center; gap: 8px; padding: 6px 12px 12px; }
+
+  /* Desktop icons */
+  .desk-icon {
+    position: absolute;
+    width: 64px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; padding: 4px;
+  }
+  .desk-icon:hover .icon-label { background: #000080; color: #fff; }
+  .icon-img { font-size: 28px; }
+  .icon-label {
+    font-size: 10px; color: #fff; text-align: center;
+    padding: 1px 3px; line-height: 1.3;
+    text-shadow: 1px 1px 1px #000;
+    word-break: break-word;
+  }
+</style>
+
+<div id="desktop">
+  <h2 class="sr-only">jaacck.me — Windows 98 style portfolio desktop with draggable windows</h2>
+
+  <!-- Desktop Icons -->
+  <div class="desk-icon" style="top:20px;left:16px;" onclick="openWin('about')">
+    <div class="icon-img">🗂️</div>
+    <div class="icon-label">About Me</div>
+  </div>
+  <div class="desk-icon" style="top:100px;left:16px;" onclick="openWin('projects')">
+    <div class="icon-img">💼</div>
+    <div class="icon-label">Projects</div>
+  </div>
+  <div class="desk-icon" style="top:180px;left:16px;" onclick="openWin('contact')">
+    <div class="icon-img">✉️</div>
+    <div class="icon-label">Contact</div>
+  </div>
+  <div class="desk-icon" style="top:260px;left:16px;" onclick="openWin('system')">
+    <div class="icon-img">💻</div>
+    <div class="icon-label">System Info</div>
+  </div>
+
+  <!-- ABOUT WINDOW -->
+  <div class="win" id="win-about" style="top:40px;left:90px;width:300px;">
+    <div class="win-titlebar" onmousedown="startDrag(event,'win-about')">
+      <span class="win-icon">🗂️</span>
+      <span class="win-title">About Me — jaacck.me</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('win-about')">_</div>
+        <div class="win-btn" onclick="closeWin('win-about')">✕</div>
+      </div>
+    </div>
+    <div class="win-menubar">
+      <span class="win-menu-item">File</span>
+      <span class="win-menu-item">Edit</span>
+      <span class="win-menu-item">View</span>
+      <span class="win-menu-item">Help</span>
+    </div>
+    <div class="win-body">
+      <div class="about-content">
+        <div class="about-header">
+          <div class="avatar">J</div>
+          <div class="about-info">
+            <p><b>Jack</b></p>
+            <p>Designer & Creative</p>
+            <p style="color:#808080">jaacck.me</p>
+          </div>
+        </div>
+        <p><b>Bio</b></p>
+        <div class="divider"></div>
+        <p>Designer working at the intersection of identity, editorial, and digital experience. Focused on work that's built to last.</p>
+        <br>
+        <p><b>Skills</b></p>
+        <div class="divider"></div>
+        <p>Brand Identity · Editorial Design · Typography · Motion · Web Design · Spatial</p>
+        <br>
+        <p><b>Based in</b></p>
+        <div class="divider"></div>
+        <p>Burlington, Ontario</p>
+      </div>
+    </div>
+    <div class="win-statusbar">
+      <span class="status-cell">Ready</span>
+      <span class="status-cell">Designer</span>
+    </div>
+  </div>
+
+  <!-- PROJECTS WINDOW -->
+  <div class="win" id="win-projects" style="top:60px;left:240px;width:340px;">
+    <div class="win-titlebar" onmousedown="startDrag(event,'win-projects')">
+      <span class="win-icon">💼</span>
+      <span class="win-title">Projects — (5 objects)</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('win-projects')">_</div>
+        <div class="win-btn" onclick="closeWin('win-projects')">✕</div>
+      </div>
+    </div>
+    <div class="explorer-toolbar">
+      <div class="tb-btn">⬅ Back</div>
+      <div class="tb-btn">➡ Forward</div>
+      <div class="tb-sep"></div>
+      <div class="tb-btn">🔼 Up</div>
+    </div>
+    <div class="win-menubar">
+      <span class="win-menu-item">File</span>
+      <span class="win-menu-item">Edit</span>
+      <span class="win-menu-item">View</span>
+      <span class="win-menu-item">Favorites</span>
+    </div>
+    <div class="win-body">
+      <div class="project-item"><span class="folder-icon">📁</span><span class="proj-name">Brand Systems</span><span class="proj-tag">Identity</span><span class="proj-year">2024</span></div>
+      <div class="project-item"><span class="folder-icon">📁</span><span class="proj-name">Almanac Annual Report</span><span class="proj-tag">Editorial</span><span class="proj-year">2024</span></div>
+      <div class="project-item"><span class="folder-icon">📁</span><span class="proj-name">Forma Type Specimen</span><span class="proj-tag">Typography</span><span class="proj-year">2023</span></div>
+      <div class="project-item"><span class="folder-icon">📁</span><span class="proj-name">Grid Studies Vol. II</span><span class="proj-tag">Print</span><span class="proj-year">2023</span></div>
+      <div class="project-item"><span class="folder-icon">📄</span><span class="proj-name">Monograph Series</span><span class="proj-tag">Spatial</span><span class="proj-year">2022</span></div>
+    </div>
+    <div class="win-statusbar">
+      <span class="status-cell">5 object(s)</span>
+      <span class="status-cell">Select a project</span>
+    </div>
+  </div>
+
+  <!-- CONTACT WINDOW -->
+  <div class="win" id="win-contact" style="top:220px;left:130px;width:280px;">
+    <div class="win-titlebar" onmousedown="startDrag(event,'win-contact')">
+      <span class="win-icon">✉️</span>
+      <span class="win-title">New Message</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('win-contact')">_</div>
+        <div class="win-btn" onclick="closeWin('win-contact')">✕</div>
+      </div>
+    </div>
+    <div class="win-menubar">
+      <span class="win-menu-item">File</span>
+      <span class="win-menu-item">Insert</span>
+      <span class="win-menu-item">Format</span>
+    </div>
+    <div class="win-body">
+      <div class="contact-content">
+        <div class="contact-row">
+          <span class="contact-label">To:</span>
+          <input class="contact-field" value="hello@jaacck.me" readonly style="font-size:11px;font-family:inherit;">
+        </div>
+        <div class="contact-row">
+          <span class="contact-label">Subject:</span>
+          <input class="contact-field" placeholder="Let's work together" style="font-size:11px;font-family:inherit;">
+        </div>
+        <div class="divider"></div>
+        <textarea class="contact-field" style="width:100%;height:80px;resize:none;font-family:inherit;font-size:11px;" placeholder="Write your message here..."></textarea>
+        <div class="btn-row">
+          <button class="contact-btn" onclick="closeWin('win-contact')">Cancel</button>
+          <button class="contact-btn" onclick="sendMsg()">Send ✉️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYSTEM INFO WINDOW -->
+  <div class="win" id="win-system" style="top:140px;left:370px;width:260px;">
+    <div class="win-titlebar" onmousedown="startDrag(event,'win-system')">
+      <span class="win-icon">💻</span>
+      <span class="win-title">System Properties</span>
+      <div class="win-btns">
+        <div class="win-btn" onclick="minimizeWin('win-system')">_</div>
+        <div class="win-btn" onclick="closeWin('win-system')">✕</div>
+      </div>
+    </div>
+    <div class="win-body">
+      <div class="sys-content">
+        <span class="sys-icon">💻</span>
+        <div class="sys-text">
+          <h3>jaacck.me OS</h3>
+          <p><b>Version:</b> MMXXIV Build 1</p>
+          <p><b>Owner:</b> Jack</p>
+          <p><b>Role:</b> Designer</p>
+          <p><b>CPU:</b> Creative Engine v2</p>
+          <p><b>RAM:</b> Endless Ideas</p>
+          <p><b>HDD:</b> Full of projects</p>
+          <p><b>Display:</b> Bold & Expressive</p>
+        </div>
+      </div>
+    </div>
+    <div class="sys-btns">
+      <button class="contact-btn" onclick="closeWin('win-system')">OK</button>
+      <button class="contact-btn">Apply</button>
+    </div>
+  </div>
+
+  <!-- Taskbar -->
+  <div id="taskbar">
+    <button id="start-btn">🪟 Start</button>
+    <div class="taskbar-sep"></div>
+    <div id="taskbar-btns" style="display:flex;gap:3px;"></div>
+    <div class="taskbar-clock" id="clock">00:00</div>
+  </div>
+</div>
+
+<script>
+  const wins = ['about','projects','contact','system'];
+  const labels = { about:'About Me', projects:'Projects', contact:'New Message', system:'System Info' };
+  const icons  = { about:'🗂️', projects:'💼', contact:'✉️', system:'💻' };
+  let zTop = 100;
+
+  function bringToFront(id) {
+    zTop++;
+    document.getElementById('win-'+id).style.zIndex = zTop;
+  }
+
+  function openWin(id) {
+    const w = document.getElementById('win-'+id);
+    w.classList.remove('minimized');
+    w.classList.add('open');
+    bringToFront(id);
+    renderTaskbar();
+  }
+
+  function closeWin(id) {
+    const w = document.getElementById('win-'+id);
+    w.classList.remove('open','minimized');
+    renderTaskbar();
+  }
+
+  function minimizeWin(id) {
+    const w = document.getElementById('win-'+id);
+    w.classList.add('minimized');
+    renderTaskbar();
+  }
+
+  function renderTaskbar() {
+    const c = document.getElementById('taskbar-btns');
+    c.innerHTML = '';
+    wins.forEach(id => {
+      const w = document.getElementById('win-'+id);
+      if (w.classList.contains('open') || w.classList.contains('minimized')) {
+        const b = document.createElement('button');
+        b.className = 'tb-btn';
+        b.style.cssText = 'font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        b.innerHTML = icons[id] + ' ' + labels[id];
+        b.onclick = () => {
+          if (w.classList.contains('minimized')) openWin(id);
+          else { minimizeWin(id); }
+        };
+        c.appendChild(b);
+      }
+    });
+  }
+
+  function sendMsg() {
+    alert('Message sent! Jack will get back to you soon.');
+    closeWin('contact');
+  }
+
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // Drag
+  let dragging = null, ox = 0, oy = 0;
+  function startDrag(e, id) {
+    dragging = id;
+    bringToFront(id);
+    const rect = document.getElementById('win-'+id).getBoundingClientRect();
+    const dRect = document.getElementById('desktop').getBoundingClientRect();
+    ox = e.clientX - (rect.left - dRect.left);
+    oy = e.clientY - (rect.top  - dRect.top);
+    e.preventDefault();
+  }
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const desk = document.getElementById('desktop');
+    const dRect = desk.getBoundingClientRect();
+    const w = document.getElementById('win-'+dragging);
+    let nx = e.clientX - dRect.left - ox;
+    let ny = e.clientY - dRect.top  - oy;
+    nx = Math.max(0, Math.min(nx, dRect.width  - w.offsetWidth));
+    ny = Math.max(0, Math.min(ny, dRect.height - w.offsetHeight - 28));
+    w.style.left = nx + 'px';
+    w.style.top  = ny + 'px';
+  });
+  document.addEventListener('mouseup', () => dragging = null);
+
+  // Click to bring to front
+  wins.forEach(id => {
+    document.getElementById('win-'+id).addEventListener('mousedown', () => bringToFront(id));
+  });
+
+  // Staggered open on load
+  wins.forEach((id, i) => setTimeout(() => openWin(id), 150 + i * 180));
+</script>
