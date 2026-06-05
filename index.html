@@ -26,8 +26,12 @@
     color: var(--dark);
     font-family: 'DM Mono', monospace;
     font-weight: 300;
-    cursor: none;
     overflow-x: hidden;
+  }
+
+  /* hide default cursor only on non-touch */
+  @media (hover: hover) and (pointer: fine) {
+    body { cursor: none; }
   }
 
   .cursor {
@@ -39,6 +43,10 @@
     z-index: 10000;
     transform: translate(-50%, -50%);
     transition: width 0.2s, height 0.2s, background 0.2s;
+    display: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .cursor { display: block; }
   }
   .cursor.expand {
     width: 28px; height: 28px;
@@ -106,9 +114,11 @@
     font-size: 0.58rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    cursor: none;
     padding: 0;
     transition: color 0.2s;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .links-row a, .popup-trigger { cursor: none; }
   }
   .links-row a:hover, .popup-trigger:hover { color: var(--dark); }
 
@@ -131,8 +141,7 @@
   .win-popup {
     position: fixed;
     z-index: 9000;
-    min-width: 300px;
-    max-width: 380px;
+    width: min(340px, calc(100vw - 24px));
     background: #d4d0c8;
     border: 2px solid;
     border-color: #ffffff #808080 #808080 #ffffff;
@@ -155,6 +164,7 @@
     cursor: move;
     flex-shrink: 0;
     gap: 6px;
+    touch-action: none;
   }
   .win-title-icon {
     width: 14px; height: 14px;
@@ -181,18 +191,21 @@
     flex-shrink: 0;
   }
   .win-btn {
-    width: 16px; height: 14px;
+    width: 20px; height: 18px;
     background: #d4d0c8;
     border: 1px solid;
     border-color: #ffffff #808080 #808080 #ffffff;
     color: #000;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    cursor: none;
+    cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     font-family: 'DM Mono', monospace;
     flex-shrink: 0;
     line-height: 1;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .win-btn { cursor: none; width: 16px; height: 14px; font-size: 10px; }
   }
   .win-btn:active {
     border-color: #808080 #ffffff #ffffff #808080;
@@ -208,7 +221,7 @@
   .win-menubar span {
     font-size: 0.62rem;
     padding: 1px 6px;
-    cursor: none;
+    cursor: default;
     color: #000;
   }
   .win-menubar span:hover { background: #000080; color: #fff; }
@@ -223,16 +236,8 @@
   }
   .win-body iframe {
     width: 100%;
-    height: 260px;
+    height: 220px;
     border: none;
-    display: block;
-  }
-  #popup-video {
-    min-width: 0;
-    max-width: none;
-    width: max-content;
-  }
-  #popup-video .win-body video {
     display: block;
   }
   .win-body .win-label {
@@ -244,7 +249,9 @@
   .win-body .win-label a {
     color: #000080;
     text-decoration: underline;
-    cursor: none;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .win-body .win-label a { cursor: none; }
   }
   .win-body .win-label a:hover { color: #0000ff; }
 
@@ -263,6 +270,13 @@
     padding: 1px 6px;
     flex: 1;
   }
+
+  /* on mobile, iframes are too small to be useful — show a link instead */
+  @media (max-width: 480px) {
+    .win-body iframe { display: none; }
+    .win-body .mobile-link-only { display: block !important; }
+  }
+  .win-body .mobile-link-only { display: none; }
 </style>
 </head>
 <body>
@@ -299,6 +313,9 @@
   <div class="win-body">
     <div class="win-label"><a href="https://lab.jaacck.me" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
     <iframe src="" data-src="https://lab.jaacck.me" title="lab" allow="autoplay"></iframe>
+    <div class="win-label mobile-link-only" style="padding-top:0;">
+      <a href="https://lab.jaacck.me" target="_blank" rel="noopener">Tap to open lab.jaacck.me &#x2197;</a>
+    </div>
   </div>
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
 </div>
@@ -334,7 +351,7 @@
   <div class="win-menubar"><span>File</span><span>Edit</span><span>Help</span></div>
   <div class="win-body">
     <div class="win-label" style="padding:20px 16px; font-size:0.68rem; line-height:2.4;">
-      Forever love <3
+      Forever love &lt;3
     </div>
   </div>
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
@@ -353,25 +370,9 @@
   <div class="win-body">
     <div class="win-label"><a href="3d.html" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
     <iframe src="" data-src="3d.html" title="3D CSS"></iframe>
-  </div>
-  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
-</div>
-
-<div class="win-popup" id="popup-video">
-  <div class="win-titlebar" id="drag-video">
-    <div class="win-title-icon">⌘</div>
-    <span class="win-title">Video Player</span>
-    <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('video')">_</div>
-      <div class="win-btn" onclick="closePopup('video')">&#x2715;</div>
+    <div class="win-label mobile-link-only" style="padding-top:0;">
+      <a href="3d.html" target="_blank" rel="noopener">Tap to open 3D CSS &#x2197;</a>
     </div>
-  </div>
-  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
-  <div class="win-body">
-    <video width="640" height="360" controls>
-      <source src="my-video.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
   </div>
   <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
 </div>
@@ -397,7 +398,6 @@
     const end        = -(textWidth + vw * 0.08);
     jaText.style.transform = `translateX(${start + (end - start) * progress}px)`;
     hint.classList.toggle('hidden', scrollY > 40);
-    const wasVisible = landing.classList.contains('visible');
     landing.classList.toggle('visible', progress >= 1);
     if (progress >= 1 && !popupsSpawned) {
       popupsSpawned = true;
@@ -406,11 +406,21 @@
   });
   window.dispatchEvent(new Event('scroll'));
 
-  /* ── random popup spawner ── */
-  const POPUP_IDS = ['stem', 'contact', 'about', 'css', 'video'];
+  /* ── popup management ── */
+  const POPUP_IDS = ['stem', 'contact', 'about', 'css'];
+
+  function clampPos(el, x, y) {
+    const margin = 8;
+    const w = el.offsetWidth  || 300;
+    const h = el.offsetHeight || 200;
+    return {
+      x: Math.min(Math.max(margin, x), window.innerWidth  - w - margin),
+      y: Math.min(Math.max(margin, y), window.innerHeight - h - margin)
+    };
+  }
 
   function randomPos(el) {
-    const margin = 32;
+    const margin = 24;
     const w = el.offsetWidth  || 300;
     const h = el.offsetHeight || 200;
     const maxX = Math.max(margin, window.innerWidth  - w - margin);
@@ -422,7 +432,6 @@
   }
 
   function spawnAllPopups() {
-    // shuffle order
     const ids = [...POPUP_IDS].sort(() => Math.random() - 0.5);
     ids.forEach((id, i) => {
       setTimeout(() => openPopup(id), i * 320 + Math.random() * 200);
@@ -452,27 +461,60 @@
   let zTop = 9000;
   function bringToFront(el) { el.style.zIndex = ++zTop; }
 
-  /* ── drag ── */
+  /* ── drag: mouse + touch ── */
   document.querySelectorAll('.win-titlebar').forEach(bar => {
     const popup = bar.closest('.win-popup');
     let ox, oy, dragging = false;
+
+    function startDrag(clientX, clientY) {
+      if (!dragging) {
+        dragging = true;
+        ox = clientX - popup.offsetLeft;
+        oy = clientY - popup.offsetTop;
+        bringToFront(popup);
+      }
+    }
+
+    function moveDrag(clientX, clientY) {
+      if (!dragging) return;
+      const pos = clampPos(popup, clientX - ox, clientY - oy);
+      popup.style.left = pos.x + 'px';
+      popup.style.top  = pos.y + 'px';
+    }
+
+    function endDrag() { dragging = false; }
+
+    /* mouse */
     bar.addEventListener('mousedown', e => {
       if (e.target.classList.contains('win-btn')) return;
-      dragging = true;
-      ox = e.clientX - popup.offsetLeft;
-      oy = e.clientY - popup.offsetTop;
-      bringToFront(popup);
+      startDrag(e.clientX, e.clientY);
       e.preventDefault();
     });
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      popup.style.left = (e.clientX - ox) + 'px';
-      popup.style.top  = (e.clientY - oy) + 'px';
-    });
-    document.addEventListener('mouseup', () => { dragging = false; });
+    document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+    document.addEventListener('mouseup', endDrag);
+
+    /* touch */
+    bar.addEventListener('touchstart', e => {
+      if (e.target.classList.contains('win-btn')) return;
+      const t = e.touches[0];
+      startDrag(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    bar.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      moveDrag(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    bar.addEventListener('touchend', endDrag);
+
+    /* bring to front on tap */
+    popup.addEventListener('mousedown', () => bringToFront(popup));
+    popup.addEventListener('touchstart', () => bringToFront(popup), { passive: true });
   });
 
-  /* ── cursor ── */
+  /* ── cursor (mouse only) ── */
   const c = document.getElementById('cursor');
   document.addEventListener('mousemove', e => {
     c.style.left = e.clientX + 'px';
