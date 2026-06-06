@@ -27,32 +27,38 @@
     font-family: 'DM Mono', monospace;
     font-weight: 300;
     overflow-x: hidden;
+    scrollbar-width: none;
   }
+  body::-webkit-scrollbar { display: none; }
 
-  /* hide default cursor only on non-touch */
   @media (hover: hover) and (pointer: fine) {
     body { cursor: none; }
   }
 
+  :focus { outline: none; }
+  :focus-visible { outline: 2px dotted var(--dark); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-section { height: 100vh; }
+    .ja-text { display: none; }
+    .landing { opacity: 1 !important; }
+  }
+
+  /* ── WIN98 SVG CURSOR ── */
   .cursor {
     position: fixed;
-    width: 8px; height: 8px;
-    background: var(--dark);
-    border-radius: 50%;
+    width: 20px; height: 24px;
     pointer-events: none;
     z-index: 10000;
-    transform: translate(-50%, -50%);
-    transition: width 0.2s, height 0.2s, background 0.2s;
     display: none;
+    /* hotspot is top-left, no offset needed */
   }
   @media (hover: hover) and (pointer: fine) {
     .cursor { display: block; }
   }
-  .cursor.expand {
-    width: 28px; height: 28px;
-    background: var(--green);
-    mix-blend-mode: multiply;
-  }
+  .cursor svg { width: 100%; height: 100%; }
+  /* pointer state (over links/buttons) */
+  .cursor.pointer { width: 16px; height: 22px; }
 
   /* ── SCROLL SECTION ── */
   .scroll-section { height: 600vh; position: relative; }
@@ -83,7 +89,7 @@
     justify-content: center;
     gap: 2.5rem;
     text-align: center;
-    padding: 3rem 2rem;
+    padding: 3rem 2rem calc(3rem + 32px);
     opacity: 0;
     transition: opacity 0.6s;
     position: relative;
@@ -122,7 +128,6 @@
   }
   .links-row a:hover, .popup-trigger:hover { color: var(--dark); }
 
-  /* scroll hint */
   .scroll-hint {
     position: fixed;
     bottom: 2rem; left: 50%;
@@ -132,12 +137,13 @@
     text-transform: uppercase;
     color: var(--warm-gray);
     opacity: 1;
-    transition: opacity 0.4s;
+    transition: opacity 0.4s, bottom 0.3s;
     pointer-events: none;
   }
   .scroll-hint.hidden { opacity: 0; }
+  .scroll-hint.tb-offset { bottom: 3.2rem; }
 
-  /* ── CLASSIC WINDOWS POPUP ── */
+  /* ── WINDOWS POPUPS ── */
   .win-popup {
     position: fixed;
     z-index: 9000;
@@ -152,7 +158,9 @@
     font-family: 'DM Mono', monospace;
   }
   .win-popup.active { display: flex; }
-  .win-popup.minimized .win-body { display: none; }
+  .win-popup.minimized .win-body,
+  .win-popup.minimized .win-menubar,
+  .win-popup.minimized .win-statusbar { display: none; }
 
   .win-titlebar {
     background: linear-gradient(to right, #000080, #1084d0);
@@ -166,6 +174,8 @@
     gap: 6px;
     touch-action: none;
   }
+  .win-popup.minimized .win-titlebar { background: linear-gradient(to right, #666, #999); }
+
   .win-title-icon {
     width: 14px; height: 14px;
     background: #fff;
@@ -185,11 +195,7 @@
     text-overflow: ellipsis;
     text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
   }
-  .win-btns {
-    display: flex;
-    gap: 2px;
-    flex-shrink: 0;
-  }
+  .win-btns { display: flex; gap: 2px; flex-shrink: 0; }
   .win-btn {
     width: 20px; height: 18px;
     background: #d4d0c8;
@@ -207,177 +213,397 @@
   @media (hover: hover) and (pointer: fine) {
     .win-btn { cursor: none; width: 16px; height: 14px; font-size: 10px; }
   }
-  .win-btn:active {
-    border-color: #808080 #ffffff #ffffff #808080;
-  }
+  .win-btn:active { border-color: #808080 #ffffff #ffffff #808080; }
 
   .win-menubar {
     background: #d4d0c8;
     border-bottom: 1px solid #808080;
     padding: 2px 4px;
-    display: flex;
-    gap: 2px;
+    display: flex; gap: 2px;
   }
-  .win-menubar span {
-    font-size: 0.62rem;
-    padding: 1px 6px;
-    cursor: default;
-    color: #000;
-  }
+  .win-menubar span { font-size: 0.62rem; padding: 1px 6px; cursor: default; color: #000; }
   .win-menubar span:hover { background: #000080; color: #fff; }
 
   .win-body {
-    padding: 0;
-    overflow: hidden;
+    padding: 0; overflow: hidden;
     background: #fff;
     border: 2px solid;
     border-color: #808080 #ffffff #ffffff #808080;
     margin: 4px;
   }
-  .win-body iframe {
-    width: 100%;
-    height: 220px;
-    border: none;
-    display: block;
-  }
-  .win-body .win-label {
-    padding: 10px 12px;
-    font-size: 0.62rem;
-    color: #000;
-    background: #fff;
-  }
-  .win-body .win-label a {
-    color: #000080;
-    text-decoration: underline;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .win-body .win-label a { cursor: none; }
-  }
+  .win-body iframe { width: 100%; height: 220px; border: none; display: block; }
+  .win-body .win-label { padding: 10px 12px; font-size: 0.62rem; color: #000; background: #fff; }
+  .win-body .win-label a { color: #000080; text-decoration: underline; }
+  @media (hover: hover) and (pointer: fine) { .win-body .win-label a { cursor: none; } }
   .win-body .win-label a:hover { color: #0000ff; }
 
   .win-statusbar {
     background: #d4d0c8;
     border-top: 1px solid #fff;
     padding: 2px 6px;
-    font-size: 0.58rem;
-    color: #444;
-    display: flex;
-    gap: 4px;
+    font-size: 0.58rem; color: #444;
+    display: flex; gap: 4px;
   }
   .win-statusbar-cell {
     border: 1px solid;
     border-color: #808080 #fff #fff #808080;
-    padding: 1px 6px;
-    flex: 1;
+    padding: 1px 6px; flex: 1;
   }
 
-  /* on mobile, iframes are too small to be useful — show a link instead */
   @media (max-width: 480px) {
     .win-body iframe { display: none; }
     .win-body .mobile-link-only { display: block !important; }
   }
   .win-body .mobile-link-only { display: none; }
+
+  /* ── TASKBAR ── */
+  #taskbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 32px;
+    background: #d4d0c8;
+    border-top: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    z-index: 9999;
+    font-family: 'DM Mono', monospace;
+  }
+  #taskbar.visible { display: flex; }
+
+  #tb-start {
+    height: 22px;
+    padding: 0 8px 0 5px;
+    background: #d4d0c8;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: 'Tahoma', 'DM Mono', sans-serif;
+    color: #000;
+    cursor: pointer;
+    flex-shrink: 0;
+    letter-spacing: 0.01em;
+  }
+  @media (hover: hover) and (pointer: fine) { #tb-start { cursor: none; } }
+  #tb-start:active,
+  #tb-start.open { border-color: #808080 #ffffff #ffffff #808080; background: #bbb8b0; }
+
+  #tb-start-logo {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+  }
+
+  .tb-divider {
+    width: 2px; height: 22px;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #fff;
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+
+  .tb-win-btn {
+    height: 22px;
+    min-width: 100px; max-width: 150px;
+    padding: 0 6px;
+    background: #d4d0c8;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    display: flex; align-items: center; gap: 4px;
+    font-size: 0.60rem;
+    font-family: 'DM Mono', monospace;
+    color: #000;
+    cursor: pointer;
+    overflow: hidden; white-space: nowrap; flex-shrink: 0;
+  }
+  @media (hover: hover) and (pointer: fine) { .tb-win-btn { cursor: none; } }
+  .tb-win-btn.focused { border-color: #808080 #ffffff #ffffff #808080; background: #bbb8b0; }
+  .tb-win-btn .tb-icon { font-size: 11px; flex-shrink: 0; }
+  .tb-win-btn .tb-label { overflow: hidden; text-overflow: ellipsis; }
+
+  #tb-clock {
+    margin-left: auto;
+    height: 22px; padding: 0 8px;
+    border: 1px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    display: flex; align-items: center;
+    font-size: 0.60rem; color: #000;
+    flex-shrink: 0; letter-spacing: 0.03em;
+  }
+
+  /* ── START MENU (true Win98) ── */
+  #start-menu {
+    position: fixed;
+    bottom: 34px; left: 4px;
+    width: 240px;
+    background: #d4d0c8;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    box-shadow: 2px 2px 0 #000;
+    display: none;
+    z-index: 10001;
+    font-family: 'Tahoma', 'DM Mono', sans-serif;
+  }
+  #start-menu.open { display: flex; }
+
+  /* tall coloured sidebar strip */
+  #sm-sidebar {
+    width: 26px;
+    background: linear-gradient(to bottom, #1c5fa8 0%, #000080 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 6px;
+    flex-shrink: 0;
+  }
+  #sm-sidebar span {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    font-family: 'Tahoma', sans-serif;
+  }
+  #sm-sidebar span em {
+    color: #fff;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  /* right side content */
+  #sm-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+  }
+
+  /* section header inside menu */
+  .sm-section-head {
+    background: linear-gradient(to right, #000080, #1084d0);
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+  }
+
+  .sm-items { padding: 2px 0; flex: 1; }
+
+  .sm-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 4px 8px;
+    font-size: 0.68rem;
+    color: #000;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Tahoma', 'DM Mono', sans-serif;
+  }
+  @media (hover: hover) and (pointer: fine) { .sm-item { cursor: none; } }
+  .sm-item:hover, .sm-item:focus { background: #000080; color: #fff; outline: none; }
+  .sm-item .sm-icon {
+    font-size: 16px;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+  }
+  .sm-item-text { display: flex; flex-direction: column; }
+  .sm-item-label { font-size: 0.68rem; font-weight: 700; }
+  .sm-item-sub { font-size: 0.56rem; color: #555; }
+  .sm-item:hover .sm-item-sub,
+  .sm-item:focus .sm-item-sub { color: #adf; }
+
+  .sm-separator {
+    height: 1px;
+    background: #808080;
+    margin: 3px 4px;
+    border-bottom: 1px solid #fff;
+  }
+
+  /* bottom strip with shutdown etc */
+  #sm-footer {
+    border-top: 1px solid #808080;
+    background: #d4d0c8;
+    padding: 3px 4px;
+    display: flex;
+    gap: 2px;
+  }
+  .sm-footer-btn {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 0.60rem;
+    font-family: 'Tahoma', 'DM Mono', sans-serif;
+    background: #d4d0c8;
+    border: 1px solid;
+    border-color: #fff #808080 #808080 #fff;
+    cursor: pointer;
+    color: #000;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  @media (hover: hover) and (pointer: fine) { .sm-footer-btn { cursor: none; } }
+  .sm-footer-btn:hover { background: #000080; color: #fff; border-color: #808080 #fff #fff #808080; }
+  .sm-footer-btn:active { border-color: #808080 #fff #fff #808080; }
 </style>
 </head>
 <body>
 
-<div class="cursor" id="cursor"></div>
-<div class="scroll-hint" id="hint">scroll</div>
+<a href="#main-content" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" onfocus="this.style.cssText='position:fixed;left:8px;top:8px;width:auto;height:auto;overflow:visible;padding:6px 12px;background:#000080;color:#fff;font-family:DM Mono,monospace;font-size:0.7rem;z-index:99999;text-decoration:none;'">Skip to content</a>
 
-<!-- scroll-driven text -->
-<div class="scroll-section" id="scrollSection">
+<!-- Win98 arrow cursor SVG — hotspot at tip (0,0) -->
+<div class="cursor" id="cursor" aria-hidden="true">
+  <svg viewBox="0 0 20 24" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+    <!-- black outline path -->
+    <polygon points="1,1 1,18 5,14 8,21 10,20 7,13 12,13" fill="#000000"/>
+    <!-- white fill -->
+    <polygon points="2,2 2,16 5,13 8,19 9,18.5 6.5,12 11,12" fill="#ffffff"/>
+  </svg>
+</div>
+
+<div class="scroll-hint" id="hint" aria-hidden="true">scroll</div>
+
+<div class="scroll-section" id="scrollSection" aria-hidden="true">
   <div class="sticky-wrap">
     <div class="ja-text" id="jaText">ja<span class="accent">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</span><span style="color:var(--green)">cc</span>k.me</div>
   </div>
 </div>
 
-<!-- main content -->
-<div class="landing" id="landing">
-  <h1>Things I have <em>made.</em></h1>
-  <div class="links-row">
-    <a href="mailto:hello@jaacck.me">Contact</a>
+<main id="main-content">
+  <div class="landing" id="landing">
+    <h1>Things I have <em>made.</em></h1>
+    <div class="links-row" role="navigation" aria-label="Primary links">
+      <a href="mailto:hello@jaacck.me">Contact</a>
+    </div>
   </div>
-</div>
+</main>
 
 <!-- popups -->
-<div class="win-popup" id="popup-stem">
+<div class="win-popup" id="popup-stem" role="dialog" aria-labelledby="title-stem" aria-modal="true">
   <div class="win-titlebar" id="drag-stem">
-    <div class="win-title-icon">🧪</div>
-    <span class="win-title">lab — lab.jaacck.me</span>
+    <div class="win-title-icon" aria-hidden="true">🧪</div>
+    <span class="win-title" id="title-stem">lab — lab.jaacck.me</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('stem')">_</div>
-      <div class="win-btn" onclick="closePopup('stem')">&#x2715;</div>
+      <button class="win-btn" onclick="toggleMin('stem')" aria-label="Minimise lab window">_</button>
+      <button class="win-btn" onclick="closePopup('stem')" aria-label="Close lab window">&#x2715;</button>
     </div>
   </div>
-  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
+  <div class="win-menubar" role="menubar" aria-label="lab menu">
+    <span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">View</span><span role="menuitem" tabindex="-1">Help</span>
+  </div>
   <div class="win-body">
     <div class="win-label"><a href="https://lab.jaacck.me" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
-    <iframe src="" data-src="https://lab.jaacck.me" title="lab" allow="autoplay"></iframe>
-    <div class="win-label mobile-link-only" style="padding-top:0;">
-      <a href="https://lab.jaacck.me" target="_blank" rel="noopener">Tap to open lab.jaacck.me &#x2197;</a>
-    </div>
+    <iframe src="" data-src="https://lab.jaacck.me" title="lab.jaacck.me project browser" allow="autoplay"></iframe>
+    <div class="win-label mobile-link-only" style="padding-top:0;"><a href="https://lab.jaacck.me" target="_blank" rel="noopener">Tap to open lab.jaacck.me &#x2197;</a></div>
   </div>
-  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+  <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
 </div>
 
-<div class="win-popup" id="popup-contact">
+<div class="win-popup" id="popup-contact" role="dialog" aria-labelledby="title-contact" aria-modal="true">
   <div class="win-titlebar" id="drag-contact">
-    <div class="win-title-icon">&#x2709;</div>
-    <span class="win-title">Contact</span>
+    <div class="win-title-icon" aria-hidden="true">&#x2709;</div>
+    <span class="win-title" id="title-contact">Contact</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('contact')">_</div>
-      <div class="win-btn" onclick="closePopup('contact')">&#x2715;</div>
+      <button class="win-btn" onclick="toggleMin('contact')" aria-label="Minimise Contact window">_</button>
+      <button class="win-btn" onclick="closePopup('contact')" aria-label="Close Contact window">&#x2715;</button>
     </div>
   </div>
-  <div class="win-menubar"><span>File</span><span>Edit</span><span>Help</span></div>
+  <div class="win-menubar" role="menubar" aria-label="Contact menu">
+    <span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">Edit</span><span role="menuitem" tabindex="-1">Help</span>
+  </div>
   <div class="win-body">
     <div class="win-label" style="padding:20px 16px; font-size:0.68rem; line-height:2.4;">
-      Say hello<br>
-      <a href="mailto:hello@jaacck.me">hello@jaacck.me</a>
+      Say hello<br><a href="mailto:hello@jaacck.me">hello@jaacck.me</a>
     </div>
   </div>
-  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+  <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
 </div>
 
-<div class="win-popup" id="popup-about">
+<div class="win-popup" id="popup-about" role="dialog" aria-labelledby="title-about" aria-modal="true">
   <div class="win-titlebar" id="drag-about">
-    <div class="win-title-icon">&#x1F4C4;</div>
-    <span class="win-title">jaacck.me</span>
+    <div class="win-title-icon" aria-hidden="true">&#x1F4C4;</div>
+    <span class="win-title" id="title-about">jaacck.me</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('about')">_</div>
-      <div class="win-btn" onclick="closePopup('about')">&#x2715;</div>
+      <button class="win-btn" onclick="toggleMin('about')" aria-label="Minimise jaacck.me window">_</button>
+      <button class="win-btn" onclick="closePopup('about')" aria-label="Close jaacck.me window">&#x2715;</button>
     </div>
   </div>
-  <div class="win-menubar"><span>File</span><span>Edit</span><span>Help</span></div>
+  <div class="win-menubar" role="menubar" aria-label="About menu">
+    <span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">Edit</span><span role="menuitem" tabindex="-1">Help</span>
+  </div>
   <div class="win-body">
-    <div class="win-label" style="padding:20px 16px; font-size:0.68rem; line-height:2.4;">
-      Forever love &lt;3
-    </div>
+    <div class="win-label" style="padding:20px 16px; font-size:0.68rem; line-height:2.4;">Forever love &lt;3</div>
   </div>
-  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+  <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
 </div>
 
-<div class="win-popup" id="popup-css">
+<div class="win-popup" id="popup-css" role="dialog" aria-labelledby="title-css" aria-modal="true">
   <div class="win-titlebar" id="drag-css">
-    <div class="win-title-icon">🧊</div>
-    <span class="win-title">3D CSS</span>
+    <div class="win-title-icon" aria-hidden="true">🧊</div>
+    <span class="win-title" id="title-css">3D CSS</span>
     <div class="win-btns">
-      <div class="win-btn" onclick="toggleMin('css')">_</div>
-      <div class="win-btn" onclick="closePopup('css')">&#x2715;</div>
+      <button class="win-btn" onclick="toggleMin('css')" aria-label="Minimise 3D CSS window">_</button>
+      <button class="win-btn" onclick="closePopup('css')" aria-label="Close 3D CSS window">&#x2715;</button>
     </div>
   </div>
-  <div class="win-menubar"><span>File</span><span>View</span><span>Help</span></div>
+  <div class="win-menubar" role="menubar" aria-label="3D CSS menu">
+    <span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">View</span><span role="menuitem" tabindex="-1">Help</span>
+  </div>
   <div class="win-body">
     <div class="win-label"><a href="3d.html" target="_blank" rel="noopener">&#x2197; Open in new tab</a></div>
-    <iframe src="" data-src="3d.html" title="3D CSS"></iframe>
-    <div class="win-label mobile-link-only" style="padding-top:0;">
-      <a href="3d.html" target="_blank" rel="noopener">Tap to open 3D CSS &#x2197;</a>
+    <iframe src="" data-src="3d.html" title="3D CSS experiment"></iframe>
+    <div class="win-label mobile-link-only" style="padding-top:0;"><a href="3d.html" target="_blank" rel="noopener">Tap to open 3D CSS &#x2197;</a></div>
+  </div>
+  <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
+</div>
+
+<div id="a11y-announce" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;"></div>
+
+<!-- start menu -->
+<div id="start-menu" role="menu" aria-label="Start menu">
+  <div id="sm-sidebar" aria-hidden="true">
+    <span><em>Windows</em> 98</span>
+  </div>
+  <div id="sm-content">
+    <div id="sm-items" class="sm-items"></div>
+    <div id="sm-footer">
+      <button class="sm-footer-btn" onclick="closeStartMenu()" aria-label="Close Start menu">
+        <span>✕</span> Close
+      </button>
     </div>
   </div>
-  <div class="win-statusbar"><div class="win-statusbar-cell">Ready</div></div>
+</div>
+
+<!-- taskbar -->
+<div id="taskbar" role="toolbar" aria-label="Taskbar">
+  <button id="tb-start" onclick="toggleStartMenu()" aria-haspopup="menu" aria-expanded="false" aria-controls="start-menu">
+    <!-- Win flag SVG -->
+    <svg id="tb-start-logo" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-hidden="true">
+      <rect x="0" y="0" width="7" height="7" fill="#f00"/>
+      <rect x="9" y="0" width="7" height="7" fill="#0a0"/>
+      <rect x="0" y="9" width="7" height="7" fill="#00f"/>
+      <rect x="9" y="9" width="7" height="7" fill="#fa0"/>
+    </svg>
+    Start
+  </button>
+  <div class="tb-divider" aria-hidden="true"></div>
+  <div id="tb-windows" style="display:flex;gap:4px;align-items:center;flex:1;overflow:hidden;" role="group" aria-label="Open windows"></div>
+  <div id="tb-clock" aria-live="off">00:00</div>
 </div>
 
 <script>
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   /* ── scroll ── */
   const jaText        = document.getElementById('jaText');
   const scrollSection = document.getElementById('scrollSection');
@@ -387,7 +613,14 @@
   let popupsSpawned = false;
   document.fonts.ready.then(() => { textWidth = jaText.scrollWidth; });
 
+  if (prefersReducedMotion) {
+    landing.classList.add('visible');
+    popupsSpawned = true;
+    setTimeout(spawnAllPopups, 100);
+  }
+
   window.addEventListener('scroll', () => {
+    if (prefersReducedMotion) return;
     const sectionTop = scrollSection.offsetTop;
     const sectionH   = scrollSection.offsetHeight;
     const scrollY    = window.scrollY;
@@ -406,25 +639,43 @@
   });
   window.dispatchEvent(new Event('scroll'));
 
+  /* ── announce ── */
+  const announcer = document.getElementById('a11y-announce');
+  function announce(msg) {
+    announcer.textContent = '';
+    requestAnimationFrame(() => { announcer.textContent = msg; });
+  }
+
   /* ── popup management ── */
   const POPUP_IDS = ['stem', 'contact', 'about', 'css'];
+  const POPUP_META = {
+    stem:    { icon: '🧪', label: 'lab',       sub: 'lab.jaacck.me' },
+    contact: { icon: '✉',  label: 'Contact',   sub: 'Say hello' },
+    about:   { icon: '📄', label: 'jaacck.me', sub: 'About' },
+    css:     { icon: '🧊', label: '3D CSS',    sub: 'Experiment' },
+  };
+
+  const taskbar   = document.getElementById('taskbar');
+  const tbWindows = document.getElementById('tb-windows');
 
   function clampPos(el, x, y) {
     const margin = 8;
+    const tbH = taskbar.classList.contains('visible') ? 36 : 0;
     const w = el.offsetWidth  || 300;
     const h = el.offsetHeight || 200;
     return {
       x: Math.min(Math.max(margin, x), window.innerWidth  - w - margin),
-      y: Math.min(Math.max(margin, y), window.innerHeight - h - margin)
+      y: Math.min(Math.max(margin, y), window.innerHeight - h - margin - tbH)
     };
   }
 
   function randomPos(el) {
     const margin = 24;
+    const tbH = taskbar.classList.contains('visible') ? 36 : 0;
     const w = el.offsetWidth  || 300;
     const h = el.offsetHeight || 200;
     const maxX = Math.max(margin, window.innerWidth  - w - margin);
-    const maxY = Math.max(margin, window.innerHeight - h - margin);
+    const maxY = Math.max(margin, window.innerHeight - h - margin - tbH);
     return {
       x: margin + Math.random() * (maxX - margin),
       y: margin + Math.random() * (maxY - margin)
@@ -432,9 +683,12 @@
   }
 
   function spawnAllPopups() {
+    taskbar.classList.add('visible');
+    hint.classList.add('tb-offset');
     const ids = [...POPUP_IDS].sort(() => Math.random() - 0.5);
     ids.forEach((id, i) => {
-      setTimeout(() => openPopup(id), i * 320 + Math.random() * 200);
+      const delay = prefersReducedMotion ? 0 : i * 320 + Math.random() * 200;
+      setTimeout(() => openPopup(id), delay);
     });
   }
 
@@ -444,86 +698,270 @@
     if (iframe && !iframe.src && iframe.dataset.src) iframe.src = iframe.dataset.src;
     el.classList.add('active');
     el.classList.remove('minimized');
+    el.removeAttribute('aria-hidden');
     const pos = randomPos(el);
     el.style.left = pos.x + 'px';
     el.style.top  = pos.y + 'px';
     bringToFront(el);
+    syncTaskbar();
+    announce(`${POPUP_META[id].label} window opened`);
   }
 
   function closePopup(id) {
-    document.getElementById('popup-' + id).classList.remove('active');
+    const el = document.getElementById('popup-' + id);
+    el.classList.remove('active');
+    el.setAttribute('aria-hidden', 'true');
+    syncTaskbar();
+    announce(`${POPUP_META[id].label} window closed`);
   }
 
   function toggleMin(id) {
-    document.getElementById('popup-' + id).classList.toggle('minimized');
+    const el = document.getElementById('popup-' + id);
+    const minimising = !el.classList.contains('minimized');
+    el.classList.toggle('minimized');
+    syncTaskbar();
+    announce(`${POPUP_META[id].label} window ${minimising ? 'minimised' : 'restored'}`);
   }
 
   let zTop = 9000;
-  function bringToFront(el) { el.style.zIndex = ++zTop; }
+  function bringToFront(el) { el.style.zIndex = ++zTop; syncTaskbar(); }
 
-  /* ── drag: mouse + touch ── */
+  /* ── taskbar sync ── */
+  function syncTaskbar() {
+    tbWindows.innerHTML = '';
+    POPUP_IDS.forEach(id => {
+      const el = document.getElementById('popup-' + id);
+      if (!el.classList.contains('active')) return;
+      const meta = POPUP_META[id];
+      const isMinimized = el.classList.contains('minimized');
+      const isFocused   = !isMinimized && parseInt(el.style.zIndex) === zTop;
+      const btn = document.createElement('button');
+      btn.className = 'tb-win-btn' + (isFocused ? ' focused' : '');
+      btn.setAttribute('aria-pressed', isFocused ? 'true' : 'false');
+      btn.setAttribute('aria-label', `${meta.label} window${isMinimized ? ' (minimised)' : ''}`);
+      btn.innerHTML = `<span class="tb-icon" aria-hidden="true">${meta.icon}</span><span class="tb-label">${meta.label}</span>`;
+      btn.onclick = () => {
+        if (isMinimized) { el.classList.remove('minimized'); bringToFront(el); announce(`${meta.label} restored`); }
+        else if (parseInt(el.style.zIndex) === zTop) { el.classList.add('minimized'); syncTaskbar(); announce(`${meta.label} minimised`); }
+        else { bringToFront(el); }
+      };
+      btn.addEventListener('mouseenter', () => c.classList.add('pointer'));
+      btn.addEventListener('mouseleave', () => c.classList.remove('pointer'));
+      tbWindows.appendChild(btn);
+    });
+    document.getElementById('tb-start').setAttribute('aria-expanded',
+      startMenu.classList.contains('open') ? 'true' : 'false');
+  }
+
+  /* ── start menu ── */
+  const startMenu   = document.getElementById('start-menu');
+  const smItems     = document.getElementById('sm-items');
+  const tbStartBtn  = document.getElementById('tb-start');
+
+  function toggleStartMenu() {
+    const opening = !startMenu.classList.contains('open');
+    startMenu.classList.toggle('open');
+    tbStartBtn.classList.toggle('open', opening);
+    tbStartBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    if (opening) {
+      syncStartMenu();
+      requestAnimationFrame(() => {
+        const first = smItems.querySelector('.sm-item');
+        if (first) first.focus();
+      });
+    }
+  }
+
+  function closeStartMenu() {
+    startMenu.classList.remove('open');
+    tbStartBtn.classList.remove('open');
+    tbStartBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function syncStartMenu() {
+    smItems.innerHTML = '';
+
+    const open   = POPUP_IDS.filter(id =>  document.getElementById('popup-' + id).classList.contains('active'));
+    const closed = POPUP_IDS.filter(id => !document.getElementById('popup-' + id).classList.contains('active'));
+
+    function makeItem(id, action, extraSub) {
+      const meta = POPUP_META[id];
+      const item = document.createElement('div');
+      item.className = 'sm-item';
+      item.setAttribute('role', 'menuitem');
+      item.setAttribute('tabindex', '0');
+      item.innerHTML = `
+        <span class="sm-icon" aria-hidden="true">${meta.icon}</span>
+        <span class="sm-item-text">
+          <span class="sm-item-label">${meta.label}</span>
+          <span class="sm-item-sub">${extraSub || meta.sub}</span>
+        </span>`;
+      item.onclick = action;
+      item.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); action(); } };
+      item.addEventListener('mouseenter', () => c.classList.add('pointer'));
+      item.addEventListener('mouseleave', () => c.classList.remove('pointer'));
+      return item;
+    }
+
+    if (open.length) {
+      const head = document.createElement('div');
+      head.className = 'sm-section-head';
+      head.textContent = 'Open';
+      smItems.appendChild(head);
+      open.forEach(id => smItems.appendChild(makeItem(id, () => {
+        const el = document.getElementById('popup-' + id);
+        el.classList.remove('minimized');
+        bringToFront(el);
+        closeStartMenu();
+      }, 'bring to front')));
+    }
+
+    if (closed.length) {
+      if (open.length) {
+        const sep = document.createElement('div');
+        sep.className = 'sm-separator';
+        sep.setAttribute('role', 'separator');
+        smItems.appendChild(sep);
+      }
+      const head = document.createElement('div');
+      head.className = 'sm-section-head';
+      head.textContent = 'Closed';
+      smItems.appendChild(head);
+      closed.forEach(id => smItems.appendChild(makeItem(id, () => {
+        openPopup(id);
+        closeStartMenu();
+      }, 'reopen')));
+    }
+
+    /* arrow key nav */
+    smItems.onkeydown = e => {
+      const items = [...smItems.querySelectorAll('.sm-item')];
+      const idx = items.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus(); }
+      if (e.key === 'Escape')    { closeStartMenu(); tbStartBtn.focus(); }
+    };
+  }
+
+  document.addEventListener('mousedown', e => {
+    if (!startMenu.contains(e.target) && !e.target.closest('#tb-start')) closeStartMenu();
+  });
+  document.addEventListener('touchstart', e => {
+    if (!startMenu.contains(e.target) && !e.target.closest('#tb-start')) closeStartMenu();
+  }, { passive: true });
+
+  /* ── keyboard shortcuts ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (startMenu.classList.contains('open')) { closeStartMenu(); return; }
+      const top = POPUP_IDS
+        .map(id => document.getElementById('popup-' + id))
+        .filter(el => el.classList.contains('active') && !el.classList.contains('minimized'))
+        .sort((a, b) => parseInt(b.style.zIndex) - parseInt(a.style.zIndex))[0];
+      if (top) closePopup(top.id.replace('popup-', ''));
+    }
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+      const top = POPUP_IDS
+        .map(id => document.getElementById('popup-' + id))
+        .filter(el => el.classList.contains('active') && !el.classList.contains('minimized'))
+        .sort((a, b) => parseInt(b.style.zIndex) - parseInt(a.style.zIndex))[0];
+      if (!top) return;
+      const step = e.shiftKey ? 20 : 8;
+      const x = parseInt(top.style.left) || 0;
+      const y = parseInt(top.style.top)  || 0;
+      const moves = { ArrowUp:[0,-step], ArrowDown:[0,step], ArrowLeft:[-step,0], ArrowRight:[step,0] };
+      const [dx, dy] = moves[e.key];
+      const pos = clampPos(top, x + dx, y + dy);
+      top.style.left = pos.x + 'px';
+      top.style.top  = pos.y + 'px';
+      e.preventDefault();
+    }
+  });
+
+  /* ── clock ── */
+  const tbClock = document.getElementById('tb-clock');
+  function updateClock() {
+    const now = new Date();
+    const str = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    tbClock.textContent = str;
+    tbClock.setAttribute('aria-label', `Current time: ${str}`);
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  /* ── drag ── */
   document.querySelectorAll('.win-titlebar').forEach(bar => {
     const popup = bar.closest('.win-popup');
     let ox, oy, dragging = false;
-
-    function startDrag(clientX, clientY) {
-      if (!dragging) {
-        dragging = true;
-        ox = clientX - popup.offsetLeft;
-        oy = clientY - popup.offsetTop;
-        bringToFront(popup);
-      }
-    }
-
-    function moveDrag(clientX, clientY) {
-      if (!dragging) return;
-      const pos = clampPos(popup, clientX - ox, clientY - oy);
-      popup.style.left = pos.x + 'px';
-      popup.style.top  = pos.y + 'px';
-    }
-
+    function startDrag(cx, cy) { dragging = true; ox = cx - popup.offsetLeft; oy = cy - popup.offsetTop; bringToFront(popup); }
+    function moveDrag(cx, cy) { if (!dragging) return; const p = clampPos(popup, cx-ox, cy-oy); popup.style.left=p.x+'px'; popup.style.top=p.y+'px'; }
     function endDrag() { dragging = false; }
-
-    /* mouse */
-    bar.addEventListener('mousedown', e => {
-      if (e.target.classList.contains('win-btn')) return;
-      startDrag(e.clientX, e.clientY);
-      e.preventDefault();
-    });
+    bar.addEventListener('mousedown', e => { if (e.target.classList.contains('win-btn')) return; startDrag(e.clientX,e.clientY); e.preventDefault(); });
     document.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
     document.addEventListener('mouseup', endDrag);
-
-    /* touch */
-    bar.addEventListener('touchstart', e => {
-      if (e.target.classList.contains('win-btn')) return;
-      const t = e.touches[0];
-      startDrag(t.clientX, t.clientY);
-      e.preventDefault();
-    }, { passive: false });
-
-    bar.addEventListener('touchmove', e => {
-      const t = e.touches[0];
-      moveDrag(t.clientX, t.clientY);
-      e.preventDefault();
-    }, { passive: false });
-
+    bar.addEventListener('touchstart', e => { if (e.target.classList.contains('win-btn')) return; startDrag(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+    bar.addEventListener('touchmove', e => { moveDrag(e.touches[0].clientX,e.touches[0].clientY); e.preventDefault(); }, {passive:false});
     bar.addEventListener('touchend', endDrag);
-
-    /* bring to front on tap */
     popup.addEventListener('mousedown', () => bringToFront(popup));
-    popup.addEventListener('touchstart', () => bringToFront(popup), { passive: true });
+    popup.addEventListener('touchstart', () => bringToFront(popup), {passive:true});
   });
 
-  /* ── cursor (mouse only) ── */
+  /* ── cursor ── */
   const c = document.getElementById('cursor');
   document.addEventListener('mousemove', e => {
     c.style.left = e.clientX + 'px';
     c.style.top  = e.clientY + 'px';
   });
-  document.querySelectorAll('a, button, .win-btn').forEach(el => {
-    el.addEventListener('mouseenter', () => c.classList.add('expand'));
-    el.addEventListener('mouseleave', () => c.classList.remove('expand'));
+  // pointer state on interactive elements
+  document.querySelectorAll('a, button, .win-btn, .sm-item, .sm-footer-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => c.classList.add('pointer'));
+    el.addEventListener('mouseleave', () => c.classList.remove('pointer'));
   });
+  // move cursor — show hand SVG when pointer class active
+  const cursorSVGs = {
+    default: `<svg viewBox="0 0 20 24" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+      <polygon points="1,1 1,18 5,14 8,21 10,20 7,13 12,13" fill="#000"/>
+      <polygon points="2,2 2,16 5,13 8,19 9,18.5 6.5,12 11,12" fill="#fff"/>
+    </svg>`,
+    pointer: `<svg viewBox="0 0 16 22" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+      <!-- hand outline -->
+      <rect x="5" y="8" width="2" height="8" fill="#000"/>
+      <rect x="7" y="6" width="2" height="10" fill="#000"/>
+      <rect x="9" y="7" width="2" height="9" fill="#000"/>
+      <rect x="11" y="8" width="2" height="8" fill="#000"/>
+      <rect x="3" y="11" width="2" height="6" fill="#000"/>
+      <rect x="3" y="16" width="10" height="3" fill="#000"/>
+      <!-- hand fill -->
+      <rect x="6" y="9" width="1" height="6" fill="#fff"/>
+      <rect x="8" y="7" width="1" height="8" fill="#fff"/>
+      <rect x="10" y="8" width="1" height="7" fill="#fff"/>
+      <rect x="12" y="9" width="1" height="6" fill="#fff"/>
+      <rect x="4" y="12" width="2" height="4" fill="#fff"/>
+      <rect x="4" y="15" width="9" height="2" fill="#fff"/>
+      <!-- pointing finger tip -->
+      <rect x="6" y="3" width="1" height="6" fill="#000"/>
+      <rect x="7" y="2" width="1" height="1" fill="#000"/>
+      <rect x="7" y="3" width="1" height="4" fill="#fff"/>
+    </svg>`
+  };
+
+  // swap SVG on state change
+  const origClass = c.getAttribute('class');
+  new MutationObserver(() => {
+    if (c.classList.contains('pointer')) {
+      c.innerHTML = cursorSVGs.pointer;
+      c.style.width  = '16px';
+      c.style.height = '22px';
+    } else {
+      c.innerHTML = cursorSVGs.default;
+      c.style.width  = '20px';
+      c.style.height = '24px';
+    }
+  }).observe(c, { attributes: true, attributeFilter: ['class'] });
+
+  // init
+  c.innerHTML = cursorSVGs.default;
 </script>
 </body>
 </html>
