@@ -51,17 +51,19 @@
     pointer-events: none;
     z-index: 10000;
     display: none;
-    /* hotspot is top-left, no offset needed */
   }
   @media (hover: hover) and (pointer: fine) {
     .cursor { display: block; }
   }
   .cursor svg { width: 100%; height: 100%; }
-  /* pointer state (over links/buttons) */
   .cursor.pointer { width: 16px; height: 22px; }
 
   /* ── SCROLL SECTION ── */
   .scroll-section { height: 600vh; position: relative; }
+  /* shorter scroll on mobile — enough to see the animation without marathon scrolling */
+  @media (max-width: 600px) {
+    .scroll-section { height: 350vh; }
+  }
   .sticky-wrap {
     position: sticky; top: 0;
     height: 100vh; overflow: hidden;
@@ -209,9 +211,12 @@
     font-family: 'DM Mono', monospace;
     flex-shrink: 0;
     line-height: 1;
+    /* bigger tap target on touch */
+    min-width: 28px;
+    min-height: 28px;
   }
   @media (hover: hover) and (pointer: fine) {
-    .win-btn { cursor: none; width: 16px; height: 14px; font-size: 10px; }
+    .win-btn { cursor: none; min-width: 16px; min-height: 14px; width: 16px; height: 14px; font-size: 10px; }
   }
   .win-btn:active { border-color: #808080 #ffffff #ffffff #808080; }
 
@@ -236,6 +241,7 @@
   .win-body .win-label a { color: #000080; text-decoration: underline; }
   @media (hover: hover) and (pointer: fine) { .win-body .win-label a { cursor: none; } }
   .win-body .win-label a:hover { color: #0000ff; }
+  .win-body .win-label a { min-height: 44px; display: inline-flex; align-items: center; }
 
   .win-statusbar {
     background: #d4d0c8;
@@ -250,11 +256,22 @@
     padding: 1px 6px; flex: 1;
   }
 
-  @media (max-width: 480px) {
+  /* on touch devices, always hide iframe and show the tap link */
+  @media (hover: none), (max-width: 480px) {
     .win-body iframe { display: none; }
     .win-body .mobile-link-only { display: block !important; }
   }
   .win-body .mobile-link-only { display: none; }
+
+  /* ── MOBILE: stack popups in a sheet-style drawer instead of random positions ── */
+  @media (max-width: 600px) {
+    /* on mobile, popups anchor to bottom of screen, stacked */
+    .win-popup.active {
+      width: calc(100vw - 16px);
+      left: 8px !important;
+    }
+    /* let JS handle top positioning via JS mobile stack logic */
+  }
 
   /* ── TASKBAR ── */
   #taskbar {
@@ -270,6 +287,9 @@
     padding: 0 4px;
     z-index: 9999;
     font-family: 'DM Mono', monospace;
+    /* respect iOS safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: calc(32px + env(safe-area-inset-bottom, 0px));
   }
   #taskbar.visible { display: flex; }
 
@@ -289,8 +309,13 @@
     cursor: pointer;
     flex-shrink: 0;
     letter-spacing: 0.01em;
+    /* bigger tap target */
+    min-width: 44px;
+    min-height: 44px;
   }
-  @media (hover: hover) and (pointer: fine) { #tb-start { cursor: none; } }
+  @media (hover: hover) and (pointer: fine) {
+    #tb-start { cursor: none; min-width: unset; min-height: unset; }
+  }
   #tb-start:active,
   #tb-start.open { border-color: #808080 #ffffff #ffffff #808080; background: #bbb8b0; }
 
@@ -309,7 +334,7 @@
 
   .tb-win-btn {
     height: 22px;
-    min-width: 100px; max-width: 150px;
+    min-width: 60px; max-width: 120px;
     padding: 0 6px;
     background: #d4d0c8;
     border: 2px solid;
@@ -320,11 +345,21 @@
     color: #000;
     cursor: pointer;
     overflow: hidden; white-space: nowrap; flex-shrink: 0;
+    /* touch target */
+    min-height: 44px;
   }
-  @media (hover: hover) and (pointer: fine) { .tb-win-btn { cursor: none; } }
+  @media (hover: hover) and (pointer: fine) {
+    .tb-win-btn { cursor: none; min-height: unset; }
+  }
   .tb-win-btn.focused { border-color: #808080 #ffffff #ffffff #808080; background: #bbb8b0; }
   .tb-win-btn .tb-icon { font-size: 11px; flex-shrink: 0; }
   .tb-win-btn .tb-label { overflow: hidden; text-overflow: ellipsis; }
+
+  /* hide labels on very small screens, show just icons */
+  @media (max-width: 380px) {
+    .tb-win-btn { min-width: 36px; max-width: 44px; padding: 0 4px; }
+    .tb-win-btn .tb-label { display: none; }
+  }
 
   #tb-clock {
     margin-left: auto;
@@ -334,13 +369,15 @@
     display: flex; align-items: center;
     font-size: 0.60rem; color: #000;
     flex-shrink: 0; letter-spacing: 0.03em;
+    white-space: nowrap;
   }
 
   /* ── START MENU (true Win98) ── */
   #start-menu {
     position: fixed;
-    bottom: 34px; left: 4px;
-    width: 240px;
+    bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+    left: 4px;
+    width: min(240px, calc(100vw - 16px));
     background: #d4d0c8;
     border: 2px solid;
     border-color: #ffffff #808080 #808080 #ffffff;
@@ -351,7 +388,6 @@
   }
   #start-menu.open { display: flex; }
 
-  /* tall coloured sidebar strip */
   #sm-sidebar {
     width: 26px;
     background: linear-gradient(to bottom, #1c5fa8 0%, #000080 100%);
@@ -378,7 +414,6 @@
     font-weight: 900;
   }
 
-  /* right side content */
   #sm-content {
     flex: 1;
     display: flex;
@@ -386,7 +421,6 @@
     min-height: 200px;
   }
 
-  /* section header inside menu */
   .sm-section-head {
     background: linear-gradient(to right, #000080, #1084d0);
     color: #fff;
@@ -409,8 +443,12 @@
     cursor: pointer;
     white-space: nowrap;
     font-family: 'Tahoma', 'DM Mono', sans-serif;
+    /* bigger tap target on touch */
+    min-height: 40px;
   }
-  @media (hover: hover) and (pointer: fine) { .sm-item { cursor: none; } }
+  @media (hover: hover) and (pointer: fine) {
+    .sm-item { cursor: none; min-height: unset; }
+  }
   .sm-item:hover, .sm-item:focus { background: #000080; color: #fff; outline: none; }
   .sm-item .sm-icon {
     font-size: 16px;
@@ -432,7 +470,6 @@
     border-bottom: 1px solid #fff;
   }
 
-  /* bottom strip with shutdown etc */
   #sm-footer {
     border-top: 1px solid #808080;
     background: #d4d0c8;
@@ -451,8 +488,11 @@
     cursor: pointer;
     color: #000;
     display: flex; align-items: center; justify-content: center; gap: 4px;
+    min-height: 36px;
   }
-  @media (hover: hover) and (pointer: fine) { .sm-footer-btn { cursor: none; } }
+  @media (hover: hover) and (pointer: fine) {
+    .sm-footer-btn { cursor: none; min-height: unset; }
+  }
   .sm-footer-btn:hover { background: #000080; color: #fff; border-color: #808080 #fff #fff #808080; }
   .sm-footer-btn:active { border-color: #808080 #fff #fff #808080; }
 </style>
@@ -461,12 +501,9 @@
 
 <a href="#main-content" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" onfocus="this.style.cssText='position:fixed;left:8px;top:8px;width:auto;height:auto;overflow:visible;padding:6px 12px;background:#000080;color:#fff;font-family:DM Mono,monospace;font-size:0.7rem;z-index:99999;text-decoration:none;'">Skip to content</a>
 
-<!-- Win98 arrow cursor SVG — hotspot at tip (0,0) -->
 <div class="cursor" id="cursor" aria-hidden="true">
   <svg viewBox="0 0 20 24" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-    <!-- black outline path -->
     <polygon points="1,1 1,18 5,14 8,21 10,20 7,13 12,13" fill="#000000"/>
-    <!-- white fill -->
     <polygon points="2,2 2,16 5,13 8,19 9,18.5 6.5,12 11,12" fill="#ffffff"/>
   </svg>
 </div>
@@ -587,7 +624,6 @@
 <!-- taskbar -->
 <div id="taskbar" role="toolbar" aria-label="Taskbar">
   <button id="tb-start" onclick="toggleStartMenu()" aria-haspopup="menu" aria-expanded="false" aria-controls="start-menu">
-    <!-- Win flag SVG -->
     <svg id="tb-start-logo" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" aria-hidden="true">
       <rect x="0" y="0" width="7" height="7" fill="#f00"/>
       <rect x="9" y="0" width="7" height="7" fill="#0a0"/>
@@ -603,6 +639,7 @@
 
 <script>
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = () => window.innerWidth <= 600 || window.matchMedia('(hover: none)').matches;
 
   /* ── scroll ── */
   const jaText        = document.getElementById('jaText');
@@ -658,33 +695,48 @@
   const taskbar   = document.getElementById('taskbar');
   const tbWindows = document.getElementById('tb-windows');
 
+  function tbHeight() {
+    return taskbar.classList.contains('visible') ? taskbar.offsetHeight : 0;
+  }
+
   function clampPos(el, x, y) {
     const margin = 8;
-    const tbH = taskbar.classList.contains('visible') ? 36 : 0;
     const w = el.offsetWidth  || 300;
     const h = el.offsetHeight || 200;
     return {
       x: Math.min(Math.max(margin, x), window.innerWidth  - w - margin),
-      y: Math.min(Math.max(margin, y), window.innerHeight - h - margin - tbH)
+      y: Math.min(Math.max(margin, y), window.innerHeight - h - margin - tbHeight())
     };
   }
 
   function randomPos(el) {
-    const margin = 24;
-    const tbH = taskbar.classList.contains('visible') ? 36 : 0;
+    const margin = 16;
     const w = el.offsetWidth  || 300;
     const h = el.offsetHeight || 200;
     const maxX = Math.max(margin, window.innerWidth  - w - margin);
-    const maxY = Math.max(margin, window.innerHeight - h - margin - tbH);
+    const maxY = Math.max(margin, window.innerHeight - h - margin - tbHeight());
     return {
-      x: margin + Math.random() * (maxX - margin),
-      y: margin + Math.random() * (maxY - margin)
+      x: margin + Math.random() * Math.max(0, maxX - margin),
+      y: margin + Math.random() * Math.max(0, maxY - margin)
     };
+  }
+
+  /* mobile: stack from bottom up with small offsets so they're clearly separate */
+  let mobileStackIndex = 0;
+  function mobilePos(el) {
+    const tbH = tbHeight();
+    const h = el.offsetHeight || 180;
+    // stack upward from taskbar, with 28px offset between windows
+    const baseY = window.innerHeight - tbH - h - 8;
+    const y = Math.max(8, baseY - mobileStackIndex * 28);
+    mobileStackIndex++;
+    return { x: 8, y };
   }
 
   function spawnAllPopups() {
     taskbar.classList.add('visible');
     hint.classList.add('tb-offset');
+    mobileStackIndex = 0;
     const ids = [...POPUP_IDS].sort(() => Math.random() - 0.5);
     ids.forEach((id, i) => {
       const delay = prefersReducedMotion ? 0 : i * 320 + Math.random() * 200;
@@ -699,9 +751,14 @@
     el.classList.add('active');
     el.classList.remove('minimized');
     el.removeAttribute('aria-hidden');
-    const pos = randomPos(el);
-    el.style.left = pos.x + 'px';
-    el.style.top  = pos.y + 'px';
+
+    // position after layout
+    requestAnimationFrame(() => {
+      const pos = isMobile() ? mobilePos(el) : randomPos(el);
+      el.style.left = pos.x + 'px';
+      el.style.top  = pos.y + 'px';
+    });
+
     bringToFront(el);
     syncTaskbar();
     announce(`${POPUP_META[id].label} window opened`);
@@ -833,7 +890,6 @@
       }, 'reopen')));
     }
 
-    /* arrow key nav */
     smItems.onkeydown = e => {
       const items = [...smItems.querySelectorAll('.sm-item')];
       const idx = items.indexOf(document.activeElement);
@@ -913,41 +969,33 @@
     c.style.left = e.clientX + 'px';
     c.style.top  = e.clientY + 'px';
   });
-  // pointer state on interactive elements
   document.querySelectorAll('a, button, .win-btn, .sm-item, .sm-footer-btn').forEach(el => {
     el.addEventListener('mouseenter', () => c.classList.add('pointer'));
     el.addEventListener('mouseleave', () => c.classList.remove('pointer'));
   });
-  // move cursor — show hand SVG when pointer class active
   const cursorSVGs = {
     default: `<svg viewBox="0 0 20 24" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
       <polygon points="1,1 1,18 5,14 8,21 10,20 7,13 12,13" fill="#000"/>
       <polygon points="2,2 2,16 5,13 8,19 9,18.5 6.5,12 11,12" fill="#fff"/>
     </svg>`,
     pointer: `<svg viewBox="0 0 16 22" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-      <!-- hand outline -->
       <rect x="5" y="8" width="2" height="8" fill="#000"/>
       <rect x="7" y="6" width="2" height="10" fill="#000"/>
       <rect x="9" y="7" width="2" height="9" fill="#000"/>
       <rect x="11" y="8" width="2" height="8" fill="#000"/>
       <rect x="3" y="11" width="2" height="6" fill="#000"/>
       <rect x="3" y="16" width="10" height="3" fill="#000"/>
-      <!-- hand fill -->
       <rect x="6" y="9" width="1" height="6" fill="#fff"/>
       <rect x="8" y="7" width="1" height="8" fill="#fff"/>
       <rect x="10" y="8" width="1" height="7" fill="#fff"/>
       <rect x="12" y="9" width="1" height="6" fill="#fff"/>
       <rect x="4" y="12" width="2" height="4" fill="#fff"/>
       <rect x="4" y="15" width="9" height="2" fill="#fff"/>
-      <!-- pointing finger tip -->
       <rect x="6" y="3" width="1" height="6" fill="#000"/>
       <rect x="7" y="2" width="1" height="1" fill="#000"/>
       <rect x="7" y="3" width="1" height="4" fill="#fff"/>
     </svg>`
   };
-
-  // swap SVG on state change
-  const origClass = c.getAttribute('class');
   new MutationObserver(() => {
     if (c.classList.contains('pointer')) {
       c.innerHTML = cursorSVGs.pointer;
@@ -959,8 +1007,6 @@
       c.style.height = '24px';
     }
   }).observe(c, { attributes: true, attributeFilter: ['class'] });
-
-  // init
   c.innerHTML = cursorSVGs.default;
 </script>
 </body>
