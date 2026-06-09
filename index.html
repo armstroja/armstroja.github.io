@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; frame-src 'self' https://lab.jaacck.me; img-src 'self' data:; connect-src 'self' fonts.googleapis.com fonts.gstatic.com;">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>jaacck.me</title>
 <!-- OS detection — runs before any paint -->
 <script>
@@ -689,7 +691,7 @@
   <div class="win-menubar" role="menubar"><span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">View</span><span role="menuitem" tabindex="-1">Help</span></div>
   <div class="win-body">
     <div class="win-label"><a href="https://lab.jaacck.me" target="_blank" rel="noopener">↗ Open in new tab</a></div>
-    <iframe src="" data-src="https://lab.jaacck.me" title="lab.jaacck.me" allow="autoplay"></iframe>
+    <iframe src="" data-src="https://lab.jaacck.me" title="lab.jaacck.me" allow="autoplay" sandbox="allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
     <div class="win-label mobile-link-only" style="padding-top:0;"><a href="https://lab.jaacck.me" target="_blank" rel="noopener">Tap to open lab.jaacck.me ↗</a></div>
   </div>
   <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
@@ -744,7 +746,7 @@
   <div class="win-menubar" role="menubar"><span role="menuitem" tabindex="-1">File</span><span role="menuitem" tabindex="-1">View</span><span role="menuitem" tabindex="-1">Help</span></div>
   <div class="win-body">
     <div class="win-label"><a href="3d.html" target="_blank" rel="noopener">↗ Open in new tab</a></div>
-    <iframe src="" data-src="3d.html" title="3D CSS experiment"></iframe>
+    <iframe src="" data-src="3d.html" title="3D CSS experiment" sandbox="allow-scripts allow-same-origin"></iframe>
     <div class="win-label mobile-link-only" style="padding-top:0;"><a href="3d.html" target="_blank" rel="noopener">Tap to open 3D CSS ↗</a></div>
   </div>
   <div class="win-statusbar" aria-hidden="true"><div class="win-statusbar-cell">Ready</div></div>
@@ -940,7 +942,10 @@
       const item=document.createElement('div');
       item.className='dock-item'+(isOpen?' open':'');
       item.setAttribute('aria-label',`${meta.label}${isOpen?(isMin?' (minimised)':' (open)'):''}`);
-      item.innerHTML=`<div class="dock-icon ${meta.color}" aria-hidden="true">${meta.icon}</div><div class="dock-dot" aria-hidden="true"></div><div class="dock-label">${meta.label}</div>`;
+      const dIcon=document.createElement('div'); dIcon.className=`dock-icon ${meta.color}`; dIcon.setAttribute('aria-hidden','true'); dIcon.textContent=meta.icon;
+      const dDot=document.createElement('div'); dDot.className='dock-dot'; dDot.setAttribute('aria-hidden','true');
+      const dLbl=document.createElement('div'); dLbl.className='dock-label'; dLbl.textContent=meta.label;
+      item.append(dIcon,dDot,dLbl);
       item.onclick=()=>{
         if (!isOpen) openPopup(id);
         else if (isMin) { el.classList.remove('minimized'); bringToFront(el); announce(`${meta.label} restored`); }
@@ -967,7 +972,9 @@
       btn.className='tb-win-btn'+(isFocused?' focused':'');
       btn.setAttribute('aria-pressed',isFocused?'true':'false');
       btn.setAttribute('aria-label',`${meta.label} window${isMin?' (minimised)':''}`);
-      btn.innerHTML=`<span class="tb-icon" aria-hidden="true">${meta.icon}</span><span class="tb-label">${meta.label}</span>`;
+      const tIcon=document.createElement('span'); tIcon.className='tb-icon'; tIcon.setAttribute('aria-hidden','true'); tIcon.textContent=meta.icon;
+      const tLbl=document.createElement('span'); tLbl.className='tb-label'; tLbl.textContent=meta.label;
+      btn.append(tIcon,tLbl);
       btn.onclick=()=>{
         if (isMin) { el.classList.remove('minimized'); bringToFront(el); announce(`${meta.label} restored`); }
         else if (parseInt(el.style.zIndex)===zTop) { el.classList.add('minimized'); syncTaskbar(); announce(`${meta.label} minimised`); }
@@ -999,7 +1006,8 @@
       const meta=POPUP_META[id]; const isOpen=open.includes(id);
       const item=document.createElement('div');
       item.className='am-item'; item.setAttribute('role','menuitem'); item.setAttribute('tabindex','0');
-      item.innerHTML=`<span>${meta.icon}</span> ${meta.label}`;
+      const aIcon=document.createElement('span'); aIcon.textContent=meta.icon;
+      item.append(aIcon,` ${meta.label}`);
       item.onclick=()=>{
         if(!isOpen) openPopup(id);
         else { const el=document.getElementById('popup-'+id); el.classList.remove('minimized'); bringToFront(el); }
@@ -1029,7 +1037,11 @@
     function makeItem(id,action,sub){
       const meta=POPUP_META[id]; const item=document.createElement('div');
       item.className='sm-item'; item.setAttribute('role','menuitem'); item.setAttribute('tabindex','0');
-      item.innerHTML=`<span class="sm-icon" aria-hidden="true">${meta.icon}</span><span class="sm-item-text"><span class="sm-item-label">${meta.label}</span><span class="sm-item-sub">${sub||meta.sub}</span></span>`;
+      const sIcon=document.createElement('span'); sIcon.className='sm-icon'; sIcon.setAttribute('aria-hidden','true'); sIcon.textContent=meta.icon;
+      const sText=document.createElement('span'); sText.className='sm-item-text';
+      const sLbl=document.createElement('span'); sLbl.className='sm-item-label'; sLbl.textContent=meta.label;
+      const sSub=document.createElement('span'); sSub.className='sm-item-sub'; sSub.textContent=sub||meta.sub;
+      sText.append(sLbl,sSub); item.append(sIcon,sText);
       item.onclick=action; item.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();action();} };
       item.addEventListener('mouseenter',()=>c.classList.add('pointer'));
       item.addEventListener('mouseleave',()=>c.classList.remove('pointer'));
