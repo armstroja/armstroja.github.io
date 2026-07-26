@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>cutmydeas — jaacck.me</title>
+<meta name="description" content="things that were real, just not it">
+<meta name="theme-color" content="#D7E01E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --sulfur:#D7E01E;
+    --ink:#000;
+    --display:"Anton","Haettenschweiler","Arial Narrow",Impact,sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  html{background:var(--sulfur);-webkit-text-size-adjust:100%}
+
+  body{
+    background:var(--sulfur);
+    color:var(--ink);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .screen{
+    min-height:100svh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:clamp(24px,6vw,64px);
+  }
+
+  .hero{
+    text-align:center;
+    max-width:1280px;
+    width:100%;
+    animation:rise .7s cubic-bezier(.16,1,.3,1) both;
+  }
+
+  .wordmark{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:clamp(56px,22vw,96px);
+    line-height:.86;
+    letter-spacing:-.015em;
+  }
+
+  .tagline{
+    margin-top:clamp(20px,3vw,40px);
+    font-size:clamp(14px,1.6vw,20px);
+    font-weight:400;
+    letter-spacing:-.005em;
+  }
+
+  .actions{
+    margin-top:clamp(28px,4vw,52px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:34px;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--body);
+    font-size:15px;
+    font-weight:500;
+    line-height:1;
+    letter-spacing:-.005em;
+    padding:15px 22px;
+    min-width:58px;
+    border:1.5px solid var(--ink);
+    border-radius:6px;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background-color .18s ease,color .18s ease;
+  }
+
+  .btn--solid{background:var(--ink);color:var(--sulfur)}
+  .btn--outline{background:transparent;color:var(--ink)}
+
+  .btn--solid:hover,.btn--solid:focus-visible{background:transparent;color:var(--ink)}
+  .btn--outline:hover,.btn--outline:focus-visible{background:var(--ink);color:var(--sulfur)}
+
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+
+  @keyframes rise{
+    from{opacity:0;transform:translateY(14px)}
+    to{opacity:1;transform:none}
+  }
+
+  @media (max-width:520px){
+    .actions{
+      flex-direction:column;
+      gap:10px;
+      margin-inline:auto;
+      max-width:320px;
+    }
+    .btn{width:100%;padding:14px 18px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .hero{animation:none}
+    .btn{transition:none}
+  }
+
+  .back{
+    position:fixed;
+    right:clamp(16px,4vw,32px);
+    bottom:calc(clamp(16px,4vw,32px) + env(safe-area-inset-bottom));
+    font-family:var(--body);
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:-.005em;
+    color:var(--ink);
+    text-decoration:none;
+    opacity:.6;
+    transition:opacity .18s ease;
+  }
+  .back:hover,.back:focus-visible{opacity:1}
+
+  @media (max-width:520px){
+    .back{right:50%;transform:translateX(50%);bottom:calc(14px + env(safe-area-inset-bottom))}
+  }
+
+  .secret{
+    text-align:center;
+    padding-bottom:calc(clamp(24px,6vw,64px) + env(safe-area-inset-bottom));
+  }
+
+  .secret-inner{
+    opacity:0;
+    transform:translateY(16px);
+    transition:opacity .8s ease, transform .8s ease;
+  }
+  .secret.is-visible .secret-inner{
+    opacity:1;
+    transform:none;
+  }
+
+  .secret-line{
+    font-family:var(--display);
+    font-weight:400;
+    font-size:clamp(28px,6vw,44px);
+    line-height:1.05;
+    letter-spacing:-.01em;
+  }
+
+  .secret-sub{
+    max-width:60ch;
+    margin-inline:auto;
+    font-size:clamp(16px,2.4vw,22px);
+    font-weight:500;
+    color:var(--ink);
+    line-height:1.55;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .secret-inner{transition:none}
+  }
+</style>
+</head>
+<body>
+
+  <section class="screen">
+    <main class="hero">
+      <h1 class="wordmark">cutMYdeas</h1>
+      <p class="tagline">NOT EVERYTHING MAKES IT MAN SOMETIMES I JUST DONT ROCK WITH IT YK</p>
+
+      <nav class="actions" aria-label="Primary">
+        <a class="btn btn--solid" href="earth">earth</a>
+      </nav>
+    </main>
+  </section>
+
+  <section class="screen secret" id="secret">
+    <div class="secret-inner">
+      <p class="secret-sub">OKAY SO LISTEN SOMETIMES IM COOKING UP WITH CLAUDE N LIKE WHEN IM COOKING IM JUST BLABBERING ON AND I PUT ALL THIS TIME AND EFFORT INTO THESE THINGS ON CLAUDE N FIGMA THAT I JUST FORGET THAT IM GOING FOR SOME CONFRONTATIONAL OR SOMETHING LIKE THAT SO ITS JUST TOUGH BECUASE I LOVE THESE PROJECTS BUT LIKE COME ON&gt;JAACCK</p>
+    </div>
+  </section>
+
+  <a class="back" href="https://jaacck.me">&larr; jaacck.me</a>
+
+<script>
+  var secret = document.getElementById("secret");
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){
+        secret.classList.add("is-visible");
+        io.disconnect();
+      }
+    });
+  }, { threshold: 0.4 });
+  io.observe(secret);
+</script>
+
+</body>
+</html>
