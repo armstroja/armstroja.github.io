@@ -4,8 +4,6 @@ jaaaaaaaaaaaaaacck
 
 Always inspired by Virgil Abloh.
 
-Personal site. Single-file, no-dependency builds, guerrilla-marketing-brained design.
-
 ## Tools
 
 Made with a handful of tools:
