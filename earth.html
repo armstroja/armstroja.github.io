@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Earth - Wikipedia</title>
+<meta name="theme-color" content="#ffffff">
+
+<style>
+  :root{
+    --ink:#202122;
+    --link:#0645ad;
+    --link-visited:#0b0080;
+    --hair:#a2a9b1;
+    --panel:#f8f9fa;
+    --panel-border:#a2a9b1;
+    --muted:#54595d;
+    --serif:Georgia,"Nimbus Roman No9 L","Times New Roman",Times,serif;
+    --sans:Arial,Helvetica,sans-serif;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:#fff;
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:16px;
+    line-height:1.65;
+  }
+
+  /* ---- top chrome ---- */
+  .topbar{
+    border-bottom:1px solid var(--hair);
+    padding:10px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    font-family:var(--sans);
+  }
+  .topbar .brand{display:flex;align-items:center;gap:10px}
+  .topbar .mark{
+    width:26px;height:26px;border-radius:50%;
+    border:2px solid var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;flex:none;
+  }
+  .topbar .word{font-weight:700;font-size:15px;letter-spacing:.2px}
+  .topbar .sub{color:var(--muted);font-size:11px}
+  .topbar .search{
+    border:1px solid var(--hair);
+    border-radius:2px;
+    padding:5px 10px;
+    color:var(--muted);
+    font-size:12.5px;
+    min-width:160px;
+    display:none;
+  }
+  @media (min-width:640px){ .topbar .search{display:block} }
+
+  .subnav{
+    border-bottom:1px solid var(--hair);
+    padding:6px 20px;
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+    font-family:var(--sans);
+    font-size:12.5px;
+    overflow-x:auto;
+  }
+  .subnav .left, .subnav .right{display:flex;gap:16px}
+  .subnav span{white-space:nowrap;cursor:default;color:var(--muted)}
+  .subnav .active{color:var(--ink);font-weight:700}
+  .subnav .right span:first-child{color:var(--ink);font-weight:700}
+
+  /* ---- article shell ---- */
+  .page{
+    max-width:1040px;
+    margin:0 auto;
+    padding:22px 20px 0;
+  }
+
+  .hatnote{
+    font-family:var(--sans);
+    font-style:italic;
+    font-size:13px;
+    color:var(--muted);
+    padding-left:20px;
+    margin-bottom:10px;
+  }
+
+  .title-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    border-bottom:1px solid var(--hair);
+    padding-bottom:8px;
+    margin-bottom:2px;
+    flex-wrap:wrap;
+  }
+  h1.title{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:34px;
+    margin:0;
+  }
+  .coords{
+    font-family:var(--sans);
+    font-size:12px;
+    color:var(--link);
+    white-space:nowrap;
+  }
+  .from-wiki{
+    font-family:var(--sans);
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:16px;
+  }
+
+  .toc{
+    border:1px solid var(--panel-border);
+    background:var(--panel);
+    display:inline-block;
+    padding:12px 22px;
+    margin:8px 0 22px;
+    font-family:var(--sans);
+    font-size:13px;
+  }
+  .toc .toc-title{font-weight:700;margin-bottom:6px}
+  .toc ol{margin:0;padding-left:18px}
+  .toc li{margin-bottom:3px}
+  .toc a{color:var(--link);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+
+  .layout{
+    display:flex;
+    gap:26px;
+    align-items:flex-start;
+  }
+  .article-body{flex:1 1 560px; min-width:0}
+  .article-body p{margin:0 0 16px}
+  .article-body h2{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:22px;
+    border-bottom:1px solid var(--hair);
+    padding-bottom:4px;
+    margin:32px 0 12px;
+  }
+  .article-body h3{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:17px;
+    margin:22px 0 10px;
+  }
+
+  a.wl{color:var(--link);text-decoration:none;cursor:default}
+  a.wl:hover{text-decoration:underline}
+
+  .infobox{
+    flex:0 0 280px;
+    border:1px solid var(--panel-border);
+    background:var(--panel);
+    font-family:var(--sans);
+    font-size:12.5px;
+    margin-bottom:20px;
+  }
+  .infobox .cap{
+    text-align:center;
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:15px;
+    padding:8px 8px 4px;
+  }
+  .infobox .art{
+    padding:6px 22px 4px;
+    display:flex;
+    justify-content:center;
+  }
+  .infobox .art-cap{
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    padding:0 14px 10px;
+  }
+  .infobox .section-label{
+    background:#eaecf0;
+    font-weight:700;
+    padding:5px 8px;
+    border-top:1px solid #eaecf0;
+  }
+  .infobox table{width:100%;border-collapse:collapse}
+  .infobox th,.infobox td{
+    text-align:left;
+    padding:4px 8px;
+    border-top:1px solid #eaecf0;
+    vertical-align:top;
+  }
+  .infobox th{width:38%;font-weight:700;color:#202122}
+  .infobox tr:first-child th,.infobox tr:first-child td{border-top:none}
+
+  .refs{
+    font-family:var(--sans);
+    font-size:12.5px;
+    color:var(--muted);
+    padding:18px 0 40px;
+  }
+  .refs h2{font-family:var(--serif);font-weight:400;font-size:20px;border-bottom:1px solid var(--hair);padding-bottom:4px;margin-bottom:10px;color:var(--ink)}
+  .refs ol{padding-left:22px}
+  .refs li{margin-bottom:6px}
+
+  .catbar{
+    font-family:var(--sans);
+    font-size:12.5px;
+    border-top:1px solid var(--hair);
+    border-bottom:1px solid var(--hair);
+    padding:8px 20px;
+    color:var(--ink);
+  }
+  .catbar a{color:var(--link);text-decoration:none;margin-right:4px}
+  .catbar .label{color:var(--muted);margin-right:6px}
+
+  .footer{
+    font-family:var(--sans);
+    font-size:11.5px;
+    color:var(--muted);
+    padding:14px 20px 140px;
+    line-height:1.6;
+  }
+  .footer a{color:var(--link);text-decoration:none}
+
+  /* ---- word wrap + redaction ---- */
+  .word{
+    display:inline-block;
+    transition:background-color .35s ease, color .1s .1s;
+    border-radius:2px;
+  }
+  .word.redacted{
+    background:#0a0a0a;
+    color:transparent;
+    user-select:none;
+  }
+  .word.redacted::selection{background:#0a0a0a}
+
+  /* ---- endgame: flashlight over a fully consumed page ---- */
+  #flashlight{
+    position:fixed;
+    inset:0;
+    background:#000;
+    z-index:9999;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 1.4s ease;
+    -webkit-mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,50%), transparent 0%, transparent 55%, #000 100%);
+    mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,50%), transparent 0%, transparent 55%, #000 100%);
+  }
+  body.endgame #flashlight{opacity:1}
+
+  #secret-link{
+    position:fixed;
+    left:37%;
+    top:68%;
+    transform:translate(-50%,-50%);
+    font-family:var(--sans);
+    font-size:13px;
+    letter-spacing:.06em;
+    color:#8a8a8a;
+    text-decoration:none;
+    opacity:0;
+    pointer-events:none;
+    z-index:9998; /* sits just under the flashlight overlay, so it's only ever seen inside the cutout */
+    transition:opacity .8s ease 1s, color .2s ease;
+  }
+  #secret-link:hover{color:#fff}
+  body.endgame #secret-link{
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  @media (max-width:760px){
+    .layout{flex-direction:column}
+    .infobox{flex:none;width:100%}
+    h1.title{font-size:26px}
+    .toc{display:block}
+  }
+</style>
+</head>
+<body>
+  <div id="flashlight" aria-hidden="true"></div>
+  <a id="secret-link" href="https://jaacck.me">jaacck.me</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">W</div>
+      <div>
+        <div class="word">WIKIPEDIA</div>
+        <div class="sub">The Free Encyclopedia</div>
+      </div>
+    </div>
+    <div class="search">Search Wikipedia</div>
+  </header>
+  <nav class="subnav">
+    <div class="left">
+      <span>Main page</span><span>Contents</span><span>Current events</span>
+      <span>Random article</span><span>About Wikipedia</span><span>Contact us</span>
+    </div>
+  </nav>
+  <nav class="subnav">
+    <div class="left">
+      <span class="active">Article</span><span>Talk</span>
+    </div>
+    <div class="right">
+      <span>Read</span><span>Edit</span><span>View history</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="hatnote">This article is about the planet. For other uses, see Earth (disambiguation).</div>
+
+    <div class="title-row">
+      <h1 class="title">Earth</h1>
+      <span class="coords">Coordinates: everywhere you have ever stood</span>
+    </div>
+    <div class="from-wiki">From Wikipedia, the free encyclopedia</div>
+
+    <div class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#etymology">Etymology</a></li>
+        <li><a href="#formation">Formation and early history</a></li>
+        <li><a href="#physical">Physical characteristics</a></li>
+        <li><a href="#atmosphere">Atmosphere and biosphere</a></li>
+        <li><a href="#hydrosphere">Hydrosphere and climate</a></li>
+        <li><a href="#humans">Human civilization</a></li>
+        <li><a href="#geography">Human geography</a></li>
+        <li><a href="#culture">Culture and shared imagination</a></li>
+        <li><a href="#information">Information and memory</a></li>
+        <li><a href="#seealso">See also</a></li>
+      </ol>
+    </div>
+
+    <div class="layout">
+
+      <div class="article-body" id="article">
+
+        <p>Earth is the third planet from the Sun and the only astronomical object known to harbor life. About 71 percent of its surface is covered by ocean, with the remainder made up of continents and islands that together hold nearly all of Earth's terrestrial life, including <a class="wl" href="#">us</a>. It is the largest of the four rocky planets in the Solar System and the only one whose surface is not dominated by a single, unbroken terrain.</p>
+
+        <p>The planet formed roughly 4.5 billion years ago, and within a relatively narrow band of distance from its star, conditions allowed liquid water, a stable atmosphere, and eventually life to persist across nearly the entire span of its history. No other confirmed location shares this combination. For all we know, we are alone here, and here is all we have.</p>
+
+        <h2 id="etymology">Etymology</h2>
+        <p>The name "Earth" descends from Old English and Germanic roots referring simply to ground, soil, or the land beneath one's feet, long before anyone had reason to think of it as a single object at all. Unlike the other planets, which carry the names of distant gods, this one was named for the dirt. It is, depending on how you look at it, the least mythologized planet in the sky, or the only one we ever actually had to touch.</p>
+
+        <h2 id="formation">Formation and early history</h2>
+        <p>Earth accreted from the disk of gas and dust surrounding the young Sun, colliding and merging with smaller bodies over tens of millions of years until it reached roughly its current mass. A collision with a Mars-sized body early in this process is thought to have ejected the material that became the Moon, leaving Earth with a single, unusually large satellite that stabilizes its axial tilt to this day.</p>
+
+        <p>The earliest oceans condensed within several hundred million years of formation, and the first traces of life appear in the geological record not long after that, geologically speaking. Whatever conditions allowed this to happen have not been confirmed to exist anywhere else we have looked, though we have not looked very far, and we have not been looking for very long.</p>
+
+        <h3>The Moon and its influence</h3>
+        <p>Earth's single natural satellite is unusually large relative to its parent planet, a ratio not repeated anywhere else in the Solar System. Its gravitational pull raises tides in the ocean, slows Earth's rotation by a small but measurable amount each century, and keeps the planet's axial tilt from wandering into a much less stable range, one that would likely make long-term climate, and by extension us, impossible.</p>
+
+        <h2 id="physical">Physical characteristics</h2>
+        <p>Earth has an equatorial radius of about 6,378 kilometers and a mass of roughly 5.97 &times; 10<sup>24</sup> kilograms. Its interior is layered: a solid inner core, a molten outer core that generates the planet's magnetic field, a slow-moving mantle, and a thin outer crust, on the surface of which everything we have ever built, and everyone we have ever known, has existed entirely.</p>
+
+        <p>The magnetic field generated deep within the planet extends far out into space, deflecting most of the charged particles streaming from the Sun and protecting the atmosphere from being gradually stripped away, a fate that appears to have befallen at least one of Earth's nearest neighbors. Without it, none of what follows in this article would apply to anything.</p>
+
+        <h2 id="atmosphere">Atmosphere and biosphere</h2>
+        <p>A thin layer of gas, mostly nitrogen and oxygen, wraps the planet and makes breathing possible for its animal life. This atmosphere also regulates temperature, filters radiation, and moves water between ocean, air, and land in a cycle that every living thing on the surface depends on, whether it notices or not. We rarely think about the air around us until something changes it.</p>
+
+        <p>Earth's biosphere is estimated to contain several million distinct species, most still undescribed. Humans make up a single branch of this tree, notable less for our numbers than for our capacity to reshape the conditions the rest of the tree depends on. We have done this quickly, and mostly without agreement on what we owe the rest of it.</p>
+
+        <h3>Extinction and renewal</h3>
+        <p>The fossil record shows at least five events in which a large share of existing species disappeared within a geologically short window, followed each time by a slow recovery into new forms. Some researchers argue a sixth such event is already underway, driven for the first time not by an asteroid or a shift in the atmosphere's chemistry on its own, but by a single species acting, largely, without asking the rest of us.</p>
+
+        <h2 id="hydrosphere">Hydrosphere and climate</h2>
+        <p>Roughly 97 percent of Earth's water is saline, held in the oceans that cover most of the surface. The remainder is fresh water, mostly locked in ice sheets and glaciers, with a small fraction available as the rivers, lakes, and groundwater that nearly every human settlement in history has been built beside, or built because of.</p>
+
+        <p>Earth's climate has shifted many times across its history, moving between ice ages and warmer periods driven by changes in orbit, solar output, and the composition of the atmosphere. The current period of change is unusual mainly in its speed and in the fact that, for the first time, one species can plausibly be assigned a share of the cause, and knows it.</p>
+
+        <h2 id="humans">Human civilization</h2>
+        <p>Organized human settlement dates back roughly twelve thousand years, beginning with agriculture and followed by cities, writing, and increasingly large and interconnected societies. Today more than eight billion people live across every habitable continent, speaking thousands of languages, governed by hundreds of separate states, and divided by borders that, from a sufficient distance, are not visible at all.</p>
+
+        <p>What separates us from one another is almost always a matter of history, language, or belief, not biology. We share the same air, the same water cycle, the same thin shell of rock and soil that everything we have ever built rests on. What we call ours was never really ours alone; it was only ever lent to us, briefly, together with everyone else standing on it.</p>
+
+        <h3>Technology and reach</h3>
+        <p>In the span of roughly one human lifetime, our species went from the first powered flight to leaving footprints on another world, and from the first radio broadcast to a network that now connects most of the planet's population in something close to real time. Almost everything about how we live, communicate, and understand each other has changed within living memory, more than once.</p>
+
+        <h2 id="geography">Human geography</h2>
+        <p>Human population is unevenly distributed, concentrated overwhelmingly along coastlines, rivers, and a handful of fertile inland regions, while vast areas of desert, ice, and open ocean remain almost entirely unoccupied. More than half of humanity now lives in urban areas, a threshold crossed only within the last two decades, reversing thousands of years in which most of us lived close to the land we depended on directly.</p>
+
+        <p>Movement between regions, whether by choice or by necessity, has shaped nearly every population on the planet at some point in its history. Almost no group now living occupies only the land its most distant ancestors did; nearly all of us are, at some remove, descended from someone who left somewhere else to get here.</p>
+
+        <h2 id="culture">Culture and shared imagination</h2>
+        <p>Despite enormous differences in belief, language, and custom, certain themes recur across nearly every human culture with no direct contact between them: a story explaining where the world came from, a sense of obligation to those who came before, and some accounting for what happens to us after we die. Whether this reflects something shared in human nature or simply the same problems being solved independently, again and again, remains an open question.</p>
+
+        <h3>The view from orbit</h3>
+        <p>Every astronaut who has seen Earth from space describes some version of the same experience: a planet with no visible borders, no indication of the divisions that organize nearly all human conflict, just one connected surface, lit from one side, turning. Several have described the feeling as disorienting, and several more as the single clearest moment of their lives in which they understood, briefly, that we are all standing on the same thing.</p>
+
+        <h2 id="information">Information and memory</h2>
+        <p>Much of what humanity knows about itself is not held in any single mind but distributed across records, archives, and now, increasingly, digital networks maintained collectively and edited by anyone willing to contribute. This page is one small example of that system: written by no one in particular, corrected by many, trusted more than it probably should be, and read by you.</p>
+
+        <p>What gets written down outlives the people who wrote it. What gets left out disappears as if it never happened at all. Somewhere between those two facts is the entire history of how we have chosen, again and again, to remember ourselves, and each other, or not.</p>
+
+        <p>Every archive is also, quietly, an argument about what mattered enough to keep. Every omission is a decision, made by someone, on behalf of everyone who comes after. We rarely notice the shape of what is missing until we go looking for it and find only the outline of where it used to be.</p>
+
+        <h2 id="seealso">See also</h2>
+        <p>Atmosphere of Earth &middot; History of human migration &middot; List of Earth-observing satellites &middot; Collective memory &middot; Overview effect &middot; Terraforming &middot; Tragedy of the commons &middot; Pale Blue Dot</p>
+
+      </div>
+
+      <aside class="infobox">
+        <div class="cap">Earth</div>
+        <div class="art">
+          <svg width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
+            <circle cx="75" cy="75" r="70" fill="#e9edf1" stroke="#a2a9b1" stroke-width="1"/>
+            <path d="M22 58 Q44 42 66 58 T108 58 Q124 63 130 79" fill="none" stroke="#8a97a3" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+            <path d="M16 96 Q48 83 75 98 T134 93" fill="none" stroke="#8a97a3" stroke-width="6" stroke-linecap="round" opacity=".45"/>
+            <path d="M40 118 Q60 108 88 120" fill="none" stroke="#8a97a3" stroke-width="5" stroke-linecap="round" opacity=".35"/>
+            <circle cx="75" cy="75" r="70" fill="none" stroke="#a2a9b1" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="art-cap">Earth, photographed by everyone who has ever looked up.</div>
+
+        <div class="section-label">Orbital characteristics</div>
+        <table>
+          <tr><th>Orbital period</th><td>365.25 days</td></tr>
+          <tr><th>Rotation period</th><td>23h 56m</td></tr>
+          <tr><th>Distance from Sun</th><td>~149.6 million km</td></tr>
+          <tr><th>Natural satellites</th><td>1 (the Moon)</td></tr>
+        </table>
+
+        <div class="section-label">Physical characteristics</div>
+        <table>
+          <tr><th>Equatorial radius</th><td>6,378 km</td></tr>
+          <tr><th>Surface water</th><td>~71%</td></tr>
+          <tr><th>Atmosphere</th><td>78% N&#8322;, 21% O&#8322;, trace</td></tr>
+        </table>
+
+        <div class="section-label">Inhabitants</div>
+        <table>
+          <tr><th>Population</th><td>~8.2 billion</td></tr>
+          <tr><th>Known to host life</th><td>Yes, so far only here</td></tr>
+          <tr><th>Sovereign states</th><td>~195</td></tr>
+          <tr><th>Languages spoken</th><td>~7,000</td></tr>
+          <tr><th>Status</th><td>Shared, contested, ongoing</td></tr>
+        </table>
+      </aside>
+
+    </div>
+
+    <div class="refs">
+      <h2>References</h2>
+      <ol id="refs-list">
+        <li>Sagan, C. — on the vantage point of distance and the smallness of borders from orbit.</li>
+        <li>International census estimates, aggregated and continuously revised.</li>
+        <li>Atmospheric composition data, standard reference tables.</li>
+        <li>Geological Society estimates on extinction events and recovery intervals.</li>
+        <li>Collective editorship discussion, "who gets to write this down," archived talk page.</li>
+        <li>Astronaut testimony collections, various space agencies, on viewing Earth from orbit.</li>
+        <li>This entry, edited by everyone, owned by no one, read by you, briefly.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="catbar">
+    <span class="label">Categories:</span>
+    <a href="#">Planets of the Solar System</a>
+    <a href="#">Earth</a>
+    <a href="#">Astronomical objects known to support life</a>
+    <a href="#">Articles in need of continual revision</a>
+  </div>
+
+  <div class="footer">
+    This page was last edited on an ongoing basis, by everyone who has ever contributed to it.<br>
+    This project is released under the MIT License. Use it, fork it, take it apart, no strings attached.<br>
+    Wikipedia&reg; is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization. This page is not affiliated with or endorsed by the Wikimedia Foundation.
+  </div>
+
+<script>
+(function(){
+  function wrapWords(el){
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    var textNodes = [];
+    var n;
+    while ((n = walker.nextNode())) textNodes.push(n);
+
+    textNodes.forEach(function(node){
+      if (!node.nodeValue || !node.nodeValue.trim()) return;
+      var frag = document.createDocumentFragment();
+      var parts = node.nodeValue.split(/(\s+)/);
+      parts.forEach(function(part){
+        if (part === "") return;
+        if (/^\s+$/.test(part)){
+          frag.appendChild(document.createTextNode(part));
+        } else {
+          var span = document.createElement("span");
+          span.className = "word";
+          span.dataset.rt = Math.random().toFixed(3); // this word's own corruption threshold
+          span.textContent = part;
+          frag.appendChild(span);
+        }
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
+  var article = document.getElementById("article");
+  var refs = document.getElementById("refs-list");
+  wrapWords(article);
+  wrapWords(refs);
+
+  var paragraphs = Array.prototype.slice.call(article.querySelectorAll("p, h2, h3"))
+    .concat(Array.prototype.slice.call(refs.querySelectorAll("li")));
+
+  var total = paragraphs.length - 1 || 1;
+  var maxDepth = 0; // ratchet: the furthest fraction of the page ever reached, never decreases
+  var ticking = false;
+
+  function evaluate(){
+    ticking = false;
+    var doc = document.documentElement;
+    var vh = window.innerHeight;
+    var scrollable = doc.scrollHeight - vh;
+    var currentDepth = scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0;
+
+    // the wave only ever moves forward, so once destroyed it stays destroyed on the way back up
+    maxDepth = Math.max(maxDepth, currentDepth);
+
+    if (maxDepth >= 0.995 && !document.body.classList.contains("endgame")){
+      document.body.classList.add("endgame");
+    }
+
+    paragraphs.forEach(function(block, i){
+      if (block.dataset.gone === "1") return; // fully consumed already, nothing left to check
+
+      // this block's position in the article, compressed so the wave is already biting
+      // early in the scroll instead of only catching up near the bottom
+      var pos = (i / total) * 0.5;
+      var severity = Math.min(1, Math.max(0, (maxDepth - pos) / 0.2));
+
+      var words = block.querySelectorAll(".word");
+      var remaining = false;
+
+      words.forEach(function(w){
+        if (w.classList.contains("redacted")) return;
+
+        // decide once whether this word is doomed, based on the corruption wave -
+        // it stays doomed forever once marked, even while still fully visible
+        if (w.dataset.doomed !== "1"){
+          if (severity > 0 && parseFloat(w.dataset.rt) < severity){
+            w.dataset.doomed = "1";
+          } else {
+            remaining = true;
+            return;
+          }
+        }
+
+        // doomed, but only actually blacked out while it's outside the viewport -
+        // above (already passed) or below (not yet reached) both count; only what's
+        // on screen right now is protected
+        var wr = w.getBoundingClientRect();
+        if (wr.bottom < 0 || wr.top > vh){
+          w.classList.add("redacted");
+        } else {
+          remaining = true;
+        }
+      });
+
+      if (!remaining) block.dataset.gone = "1";
+    });
+  }
+
+  window.addEventListener("scroll", function(){
+    if (!ticking){
+      window.requestAnimationFrame(evaluate);
+      ticking = true;
+    }
+  }, { passive:true });
+
+  var root = document.documentElement;
+  var pointerTicking = false;
+  var lastX = window.innerWidth / 2;
+  var lastY = window.innerHeight / 2;
+
+  function applyPointer(){
+    pointerTicking = false;
+    root.style.setProperty("--mx", lastX + "px");
+    root.style.setProperty("--my", lastY + "px");
+  }
+
+  function trackPointer(x, y){
+    lastX = x;
+    lastY = y;
+    if (!pointerTicking){
+      window.requestAnimationFrame(applyPointer);
+      pointerTicking = true;
+    }
+  }
+
+  window.addEventListener("mousemove", function(e){
+    trackPointer(e.clientX, e.clientY);
+  }, { passive:true });
+
+  window.addEventListener("touchmove", function(e){
+    if (e.touches && e.touches[0]) trackPointer(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive:true });
+
+  evaluate();
+})();
+</script>
+
+</body>
+</html>
