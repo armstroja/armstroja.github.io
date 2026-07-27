@@ -14,7 +14,156 @@
 <style>
   :root{
     --pink:#FF00C3;
-    --ink:#000;
+    --ink:#000;<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jaacck.me</title>
+<meta name="description" content="jaacck.me — personal website, lab, and projects.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   jaacck.me — tokens
+   ================================================================ */
+:root{
+  --paper:#F5F5F5;
+  --ink:#0A0A0A;
+  --ink-60:rgba(10,10,10,.6);
+  --ink-40:rgba(10,10,10,.4);
+
+  --magenta:#FF00A8;
+  --acid:#D7E600;
+  --blue:#12A7E8;
+
+  --display:"Archivo Black",Impact,"Arial Black",sans-serif;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+
+  --ease:cubic-bezier(.65,0,.35,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* ================================================================
+   Panels — sticky flood stack (same mechanic as MOLTO's feature panels:
+   each panel is position:sticky at top:0 with no wrapper height override,
+   so the next panel in DOM order rises up and physically covers the last)
+   ================================================================ */
+.stack{position:relative}
+
+.panel{
+  position:sticky;top:0;
+  min-height:100svh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:80px 6vw;
+}
+
+.panel-inner{position:relative;z-index:2;max-width:1100px}
+
+.panel h1,
+.panel h2{
+  font-family:var(--display);
+  font-weight:400;
+  text-transform:lowercase;
+  line-height:1.05;
+  letter-spacing:-.01em;
+}
+
+.panel-hero h1{font-size:clamp(3.4rem,13vw,10rem)}
+.panel-lab h2,
+.panel-headline h2{font-size:clamp(2.4rem,9vw,6.5rem)}
+
+.panel-caption{
+  margin-top:22px;
+  font-size:clamp(.95rem,1.6vw,1.15rem);
+  font-weight:500;
+  opacity:.65;
+  letter-spacing:-.01em;
+}
+
+.panel-cta{
+  display:inline-flex;
+  align-items:center;
+  gap:.5em;
+  margin-top:36px;
+  padding:0 30px;
+  min-height:50px;
+  border-radius:8px;
+  background:var(--ink);
+  color:var(--paper);
+  font-weight:600;
+  font-size:.95rem;
+  text-transform:lowercase;
+  letter-spacing:-.01em;
+  transition:transform .3s var(--ease), opacity .2s;
+  will-change:transform;
+}
+.panel-cta:hover{transform:translateY(-2px)}
+.panel-cta:active{transform:scale(.97)}
+
+/* color assignments — order = DOM/scroll order */
+.panel-hero{background:var(--magenta);color:var(--ink)}
+.panel-lab{background:var(--acid);color:var(--ink)}
+.panel-headline{background:var(--blue);color:var(--ink)}
+
+</style>
+</head>
+<body>
+
+<div class="stack" aria-label="jaacck.me sections">
+
+  <!-- ============ PANEL 1 — HERO ============ -->
+  <section class="panel panel-hero" id="hero">
+    <div class="panel-inner">
+      <h1 id="hero-h">jaacck.me</h1>
+      <p class="panel-caption">scrolll...</p>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 2 — LAB ============ -->
+  <section class="panel panel-lab" id="lab">
+    <div class="panel-inner">
+      <h2>jaacck.me lab</h2>
+      <p class="panel-caption">my projects - scroll down for headline</p>
+      <a class="panel-cta" href="/lab">lab</a>
+    </div>
+  </section>
+
+  <!-- ============ PANEL 3 — HEADLINE PROJECT ============ -->
+  <section class="panel panel-headline" id="headline">
+    <div class="panel-inner">
+      <h2>headline project</h2>
+      <p class="panel-caption">my favourite project</p>
+      <a class="panel-cta" href="/headline-project">view !</a>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
     --display:"Anton","Haettenschweiler","Arial Narrow",Impact,sans-serif;
     --body:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
   }
