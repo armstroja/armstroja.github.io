@@ -32,23 +32,68 @@
     );
     -webkit-background-clip: text;
     background-clip: text;
-    -webkit-backdrop-filter: blur(6px) saturate(180%);
-    backdrop-filter: blur(6px) saturate(180%);
 
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  }
+
+  #loader {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 10;
+    opacity: 1;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  #loader.hidden { opacity: 0; }
+
+  .bar-track {
+    width: min(240px, 60vw);
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+  }
+  .bar-fill {
+    width: 40%;
+    height: 100%;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.85);
+    animation: slide 1.1s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
   }
 </style>
 </head>
 <body>
+  <div id="loader"><div class="bar-track"><div class="bar-fill"></div></div></div>
   <div class="wrap">
     <video id="v" src="15883588-hd_1280_720_30fps.mp4" autoplay muted loop playsinline preload="auto"></video>
     <h1>jaacck.me</h1>
   </div>
   <script>
     const v = document.getElementById('v');
+    const loader = document.getElementById('loader');
     const tryPlay = () => v.play().catch(err => console.log('autoplay blocked:', err));
+
+    const showLoader = () => loader.classList.remove('hidden');
+    const hideLoader = () => loader.classList.add('hidden');
+
     v.addEventListener('loadedmetadata', tryPlay);
     window.addEventListener('load', tryPlay);
+
+    // stalls / rebuffering
+    v.addEventListener('waiting', showLoader);
+    v.addEventListener('stalled', showLoader);
+
+    // recovered / actually playing
+    v.addEventListener('playing', hideLoader);
+    v.addEventListener('canplaythrough', hideLoader);
   </script>
 </body>
 </html>
