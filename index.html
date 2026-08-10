@@ -9,6 +9,12 @@
 </style>
 </head>
 <body>
-  <video src="15883588-hd_1280_720_30fps.mp4" autoplay muted loop playsinline></video>
+  <video id="v" src="15883588-hd_1280_720_30fps.mp4" autoplay muted loop playsinline preload="auto"></video>
+  <script>
+    const v = document.getElementById('v');
+    const tryPlay = () => v.play().catch(err => console.log('autoplay blocked:', err));
+    v.addEventListener('loadedmetadata', tryPlay);
+    window.addEventListener('load', tryPlay);
+  </script>
 </body>
 </html>
