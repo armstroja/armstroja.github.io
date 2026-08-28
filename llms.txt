@@ -1,0 +1,1 @@
+A developer run website (jaacck.me) that hosts my main project the stem-mixer (mix.jaacck.me) a simple design focused stemmixer which takes audio input from the user and interprets the data to create an immersive experience by manipulating the audio to allow users to mute / silence different stems of the song (vocal, drums, bass melody(other)). 
