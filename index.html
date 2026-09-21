@@ -1,49 +1,309 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>jaacck</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AIR MIX JAACCK.ME</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <style>
-  html, body {
-    margin: 0;
-    height: 100%;
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-  }
-  a {
-    color: #fff;
-    font-family: 'Anton', sans-serif;
-    font-size: 1.8rem;
-    text-decoration: none;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  a:hover {
-    opacity: 0.6;
-  }
-  .footer {
+  html { background: #0b1a2b; scroll-snap-type: y proximity; }
+  body { margin: 0; background: transparent; overflow-x: hidden; }
+
+  /* The video never moves: it's pinned to the viewport behind everything */
+  #bg {
     position: fixed;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    text-align: center;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    object-fit: cover;      /* fills the screen, keeps the video's native aspect ratio, crops the overflow */
+    object-position: center;
+    background: #0b1a2b center / cover no-repeat;
+  }
+
+  /* Only this layer scrolls */
+  #words {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+  }
+  .line {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    scroll-snap-align: center;
+  }
+
+  /* Each word's viewBox is fitted to its glyph edges, then the SVG is forced into a
+     fixed box, so every word is stretched to the same giant size. */
+  .word {
+    width: 92vw;
+    height: 82vh;
+    height: 82dvh;
+    overflow: visible;
+    opacity: 0;
+    filter: drop-shadow(0 4px 40px rgba(8, 20, 40, 0.35));
+  }
+  .word.ready { opacity: 1; transition: opacity 1.4s ease; }
+  .word text {
+    font-family: Anton, Impact, 'Arial Narrow Bold', sans-serif;
+    font-size: 200px;
+    fill: #fff;
+  }
+
+  /* Disclaimer: deliberately oversized, cramped and edge-to-edge */
+  .note {
+    display: block;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 4vw 2vw 8vw;
+    box-sizing: border-box;
+    text-align: left;
+    scroll-snap-align: start;
+    font-family: Anton, Impact, 'Arial Narrow Bold', sans-serif;
     color: #fff;
-    font-family: 'Anton', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 0.05em;
+    text-shadow: 0 2px 28px rgba(8, 20, 40, 0.45);
+  }
+  .note p {
+    margin: 0 0 3vw;
+    font-size: 17vw;
+    line-height: 0.86;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .note a,
+  .note a:visited {
+    display: block;
+    color: #0000EE;
+    font-size: 12.5vw;
+    line-height: 0.9;
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.1em;
+    overflow-wrap: anywhere;
+  }
+  .note a:hover { text-decoration-thickness: 0.14em; }
+  .note a:focus-visible { outline: 3px solid #fff; outline-offset: 6px; }
+
+  /* Footer: deliberately plain and corporate, a stock website-builder strip */
+  .site-footer {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    padding: 64px 24px 40px;
+    background: #fff;
+    border-top: 1px solid #e4e6eb;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1f2226;
+  }
+  .footer-inner { max-width: 1000px; margin: 0 auto; }
+
+  .footer-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .site-footer h2 {
+    margin: 0 0 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    color: #8a8f98;
+  }
+  .site-footer ul { margin: 0; padding: 0; list-style: none; }
+  .site-footer li { margin: 0 0 14px; }
+  .site-footer a { color: #1f2226; text-decoration: none; }
+  .site-footer a:hover { text-decoration: underline; }
+  .site-footer a:focus-visible { outline: 2px solid #116dff; outline-offset: 3px; }
+  .site-footer a.cta { color: #116dff; font-weight: 600; }
+
+  .footer-legal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px 32px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid #e4e6eb;
+    color: #8a8f98;
+  }
+  .footer-legal nav { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+  .footer-legal a { color: #8a8f98; }
+
+  .made-with { margin-top: 32px; text-align: center; }
+  .made-with a {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid #e4e6eb;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #5f6368;
+  }
+  .made-with a:hover { text-decoration: none; border-color: #c9ccd2; }
+  .made-with strong { font-weight: 800; color: #1f2226; letter-spacing: 0.02em; }
+
+  @media (max-width: 760px) {
+    .site-footer { padding: 44px 24px 32px; }
+    .footer-cols { grid-template-columns: 1fr 1fr; gap: 36px 24px; }
+  }
+  @media (max-width: 460px) {
+    .footer-cols { grid-template-columns: 1fr; }
+  }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-snap-type: none; }
+    .word.ready { transition: none; }
   }
 </style>
 </head>
 <body>
-<a href="https://mix.jaacck.me">mix.jaacck.me</a>
-<div class="footer">2026</div>
+<video id="bg" autoplay muted loop playsinline preload="auto" disablepictureinpicture></video>
+
+<main id="words">
+  <h1 class="sr-only">AIR MIX JAACCK.ME</h1>
+  <section class="line"><svg class="word" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100"><text x="0" y="0">AIR</text></svg></section>
+  <section class="line"><svg class="word" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100"><text x="0" y="0">MIX</text></svg></section>
+  <section class="line"><svg class="word" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100"><text x="0" y="0">JAA</text></svg></section>
+  <section class="line"><svg class="word" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100"><text x="0" y="0">CCK</text></svg></section>
+  <section class="line"><svg class="word" aria-hidden="true" preserveAspectRatio="none" viewBox="0 0 100 100"><text x="0" y="0">.ME</text></svg></section>
+  <section class="note">
+    <p>PLEASE BRING 4 MIX FILES (VOCALS, DRUMS, BASS, OTHER)</p>
+    <a href="https://mix.jaacck.me/air">mix.jaacck.me/air</a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+
+    <div class="footer-cols">
+      <div>
+        <h2>Solutions</h2>
+        <ul>
+          <li><a href="#">Scalable Synergies</a></li>
+          <li><a href="#">Best-in-Class Deliverables</a></li>
+          <li><a href="#">Frictionless Ecosystems</a></li>
+          <li><a href="#">Mission-Critical Paradigms</a></li>
+          <li><a href="https://www.google.com/search?q=what%27s+for+dinner+tonight">What&rsquo;s for Dinner Tonight</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Resources</h2>
+        <ul>
+          <li><a href="#">Thought Leadership</a></li>
+          <li><a href="#">Value Proposition</a></li>
+          <li><a href="#">Key Learnings &amp; Insights</a></li>
+          <li><a href="#">Stakeholder Enablement</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Let&rsquo;s connect</h2>
+        <ul>
+          <li><a class="cta" href="mailto:jack@jaacck.me">Hire me for web design</a></li>
+          <li><a href="#">Schedule a Discovery Call</a></li>
+          <li><a href="#">Request a Proposal</a></li>
+          <li><a href="#">Leverage Your Brand</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-legal">
+      <span>&copy; 2026 Jaacck.me. All Rights Reserved.</span>
+      <nav>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">Cookie Preferences</a>
+        <a href="#">Accessibility Statement</a>
+      </nav>
+    </div>
+
+    <div class="made-with">
+      <a href="#">This website was made with <strong>Dix</strong></a>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+(async () => {
+  const WORKER   = 'https://patient-mode-2bc6.optimizedjack.workers.dev';
+  const VIDEO_ID = 12443878; // pexels.com/video/sun-behind-clouds-12443878/
+
+  const el = document.getElementById('bg');
+
+  try {
+    const res = await fetch(`${WORKER}/video?id=${VIDEO_ID}`);
+    if (!res.ok) throw new Error(`Worker returned ${res.status}`);
+    const data = await res.json();
+
+    // Show Pexels' still frame while the video loads
+    if (data.image) el.poster = data.image;
+
+    // Pixels the screen actually needs (dpr capped at 2 so phones don't pull 4K)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const needW = window.innerWidth * dpr;
+    const needH = window.innerHeight * dpr;
+
+    // MP4s only (Pexels also lists HLS playlists)
+    const files = (data.video_files || [])
+      .filter(f => f.file_type === 'video/mp4' && f.width && f.height && f.link)
+      .sort((a, b) => a.width * a.height - b.width * b.height); // smallest -> largest
+
+    // object-fit: cover scales the video by max(needW/w, needH/h).
+    // Pick the smallest file where that scale is <= 1 (no upscaling); otherwise the largest.
+    const best =
+      files.find(f => Math.max(needW / f.width, needH / f.height) <= 1) ||
+      files[files.length - 1];
+
+    if (!best) throw new Error('No playable MP4 found');
+
+    el.src = best.link;
+    el.play().catch(() => {}); // autoplay is allowed because it's muted; ignore if a browser still blocks it
+  } catch (err) {
+    console.error('Background video failed:', err);
+  }
+})();
+</script>
+
+<script>
+// Fit each word's SVG viewBox exactly to its glyph edges. Because each SVG is then
+// given a fixed box with preserveAspectRatio="none", the letters stretch to fill it.
+(async () => {
+  const FONT = "Anton, Impact, 'Arial Narrow Bold', sans-serif";
+  try { await document.fonts.load('200px Anton', 'AIRMXJCK.E'); } catch (e) {}
+
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = `200px ${FONT}`;
+
+  document.querySelectorAll('.word').forEach(svg => {
+    const str = svg.querySelector('text').textContent.trim();
+    const m = ctx.measureText(str);
+
+    const x = -m.actualBoundingBoxLeft;
+    const y = -m.actualBoundingBoxAscent;
+    const w = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+    const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+
+    svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    svg.classList.add('ready');
+  });
+})();
+</script>
+<script>
+// Links that go nowhere: swallow the click so the page doesn't jump to the top
+document.querySelectorAll('.site-footer a[href="#"]').forEach(a =>
+  a.addEventListener('click', e => e.preventDefault())
+);
+</script>
 </body>
 </html>
