@@ -136,7 +136,9 @@
   .footer-legal nav { display: flex; flex-wrap: wrap; gap: 8px 24px; }
   .footer-legal a { color: #8a8f98; }
 
-  .made-with { margin-top: 32px; text-align: center; }
+  .credit { margin: 24px 0 0; text-align: center; font-size: 12px; color: #8a8f98; }
+  .credit a { color: #5f6368; text-decoration: underline; }
+  .made-with { margin-top: 20px; text-align: center; }
   .made-with a {
     display: inline-block;
     padding: 8px 16px;
@@ -154,6 +156,216 @@
   }
   @media (max-width: 460px) {
     .footer-cols { grid-template-columns: 1fr; }
+  }
+
+  /* Cookie banner: stock consent box, sits above everything */
+  .cookie-banner {
+    position: fixed;
+    z-index: 10;
+    left: 24px;
+    bottom: 24px;
+    box-sizing: border-box;
+    width: 420px;
+    max-width: calc(100vw - 32px);
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+    padding: 24px;
+    background: #fff;
+    border: 1px solid #e4e6eb;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #32363d;
+  }
+  .cookie-banner[hidden] { display: none; }
+  .cookie-banner h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: #1f2226; }
+  .cookie-banner p { margin: 0 0 20px; }
+  .cookie-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .cookie-actions button {
+    flex: 1 1 auto;
+    padding: 11px 18px;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .cookie-accept { background: #116dff; border: 1px solid #116dff; color: #fff; }
+  .cookie-accept:hover { background: #0d5ad6; border-color: #0d5ad6; }
+  .cookie-reject { background: #fff; border: 1px solid #c9ccd2; color: #1f2226; }
+  .cookie-reject:hover { background: #f4f5f7; }
+  .cookie-actions button:focus-visible,
+  .cookie-banner a:focus-visible { outline: 2px solid #116dff; outline-offset: 3px; }
+  .cookie-banner a { display: inline-block; margin-top: 14px; color: #5f6368; text-decoration: underline; }
+  @media (max-width: 460px) {
+    .cookie-banner { left: 16px; bottom: 16px; padding: 20px; }
+  }
+
+  /* Manage Preferences flow: maze, captcha, puzzle */
+  .prefs-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    padding: 16px;
+    overflow: auto;
+    background: rgba(15, 20, 28, 0.6);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #32363d;
+  }
+  .prefs-overlay[hidden] { display: none; }
+  .prefs-card {
+    box-sizing: border-box;
+    width: min(500px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    padding: 28px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    font-size: 14px;
+    line-height: 1.5;
+    outline: none;
+  }
+  .prefs-step {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8a8f98;
+  }
+  .prefs-card h2 { margin: 0 0 12px; font-size: 20px; line-height: 1.25; color: #1f2226; outline: none; }
+  .prefs-text { margin: 0 0 16px; }
+  .prefs-btn {
+    padding: 11px 18px;
+    border: 1px solid #116dff;
+    border-radius: 6px;
+    background: #116dff;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .prefs-btn:hover { background: #0d5ad6; border-color: #0d5ad6; }
+  .prefs-link, .prefs-cancel {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #8a8f98;
+    font: inherit;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .prefs-cancel { display: block; margin-top: 24px; }
+  .prefs-card button:focus-visible,
+  .prefs-card input:focus-visible { outline: 2px solid #116dff; outline-offset: 2px; }
+
+  /* Step 1: maze */
+  .maze-wrap { display: flex; justify-content: center; margin: 4px 0 12px; }
+  .maze {
+    display: grid;
+    width: max-content;
+    background: #fff;
+    box-shadow: 0 0 0 1px #c9ccd2;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: crosshair;
+  }
+  .maze div { display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #fff; }
+  .maze .w { background: #1f2226; }
+  .maze .o { background: #f1f3f6; }
+  .maze .s { background: #1a9d5c; }
+  .maze .e { background: #8a8f98; }
+  .maze.armed .s { background: #116dff; }
+  .maze.at-goal .e { background: #116dff; }
+  .maze.hit { box-shadow: 0 0 0 3px #d93025; }
+  .maze-status { min-height: 1.5em; margin: 0; text-align: center; font-size: 13px; }
+
+  /* Step 2: captcha */
+  .rc-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid #d3d3d3;
+    border-radius: 3px;
+    background: #f9f9f9;
+  }
+  .rc-check {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 2px solid #c1c1c1;
+    border-radius: 2px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .rc-check.busy {
+    border: 3px solid #d3d3d3;
+    border-top-color: #116dff;
+    border-radius: 50%;
+    background: transparent;
+    cursor: default;
+    animation: prefs-spin 0.8s linear infinite;
+  }
+  .rc-label { flex: 1; font-size: 14px; color: #1f2226; }
+  .rc-brand { font-size: 10px; color: #8a8f98; text-align: right; }
+  .cap {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    margin: 0 0 12px;
+    border: 1px solid #d3d3d3;
+    border-radius: 3px;
+  }
+  .cap-row { display: flex; gap: 10px; max-width: 300px; }
+  .cap-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid #c9ccd2;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .cap-error { min-height: 1.5em; margin: 8px 0 4px; color: #d93025; font-size: 13px; }
+  @keyframes prefs-spin { to { transform: rotate(360deg); } }
+
+  /* Step 3: sliding puzzle */
+  .puzzle {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: min(100%, 264px);
+    margin: 0 auto 12px;
+  }
+  .tile {
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1px solid #c9ccd2;
+    border-radius: 6px;
+    background: #f1f3f6;
+    color: #1f2226;
+    font: inherit;
+    font-size: 28px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tile:hover { background: #e6e9ee; }
+  .tile.gap { visibility: hidden; }
+  .puzzle-meta { margin: 0; text-align: center; font-size: 13px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rc-check.busy { animation: none; }
   }
 
   .sr-only {
@@ -222,10 +434,12 @@
       <nav>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
-        <a href="#">Cookie Preferences</a>
+        <a href="#" data-cookies>Cookie Preferences</a>
         <a href="#">Accessibility Statement</a>
       </nav>
     </div>
+
+    <p class="credit">Background video by <a href="https://www.pexels.com/@electrotrack/">Dmitry Marchenkov</a> on <a href="https://www.pexels.com/video/sun-behind-clouds-12443878/">Pexels</a></p>
 
     <div class="made-with">
       <a href="#">This website was made with <strong>Dix</strong></a>
@@ -233,6 +447,25 @@
 
   </div>
 </footer>
+
+<div class="cookie-banner" id="cookies" role="region" aria-label="Cookie consent">
+  <h2>We value your privacy</h2>
+  <p>We use cookies to leverage your browsing ecosystem and deliver best-in-class experiences at scale. By clicking &ldquo;Accept All&rdquo;, you consent to the seamless use of all cookies.</p>
+  <div class="cookie-actions">
+    <button type="button" class="cookie-accept" data-dismiss>Accept All</button>
+    <button type="button" class="cookie-reject" data-dismiss>Reject All</button>
+  </div>
+  <a href="#" id="manage-prefs">Manage Preferences</a>
+</div>
+
+<div class="prefs-overlay" id="prefs" hidden>
+  <div class="prefs-card" role="dialog" aria-modal="true" aria-labelledby="prefs-title" tabindex="-1">
+    <p class="prefs-step" id="prefs-step"></p>
+    <h2 id="prefs-title" tabindex="-1"></h2>
+    <div id="prefs-body"></div>
+    <button type="button" class="prefs-cancel" id="prefs-cancel">Cancel</button>
+  </div>
+</div>
 
 <script>
 (async () => {
@@ -301,9 +534,362 @@
 </script>
 <script>
 // Links that go nowhere: swallow the click so the page doesn't jump to the top
-document.querySelectorAll('.site-footer a[href="#"]').forEach(a =>
+document.querySelectorAll('.site-footer a[href="#"], .cookie-banner a[href="#"]').forEach(a =>
   a.addEventListener('click', e => e.preventDefault())
 );
+
+// Cookie banner: both buttons just close it. It comes back on every page load,
+// and the footer's "Cookie Preferences" link opens it again.
+const cookies = document.getElementById('cookies');
+cookies.querySelectorAll('[data-dismiss]').forEach(b =>
+  b.addEventListener('click', () => { cookies.hidden = true; })
+);
+document.querySelector('[data-cookies]').addEventListener('click', () => { cookies.hidden = false; });
+</script>
+<script>
+// Manage Preferences: an unreasonably long way to say "off"
+// Step 1 maze, step 2 captcha, step 3 sliding puzzle.
+(() => {
+  const overlay = document.getElementById('prefs');
+  const card = overlay.querySelector('.prefs-card');
+  const stepEl = document.getElementById('prefs-step');
+  const titleEl = document.getElementById('prefs-title');
+  const body = document.getElementById('prefs-body');
+  const cancelBtn = document.getElementById('prefs-cancel');
+  const opener = document.getElementById('manage-prefs');
+  const banner = document.getElementById('cookies');
+  let timer = null;
+  let returnFocus = null;
+
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text) n.textContent = text;
+    return n;
+  };
+
+  function setStep(n, title) {
+    clearTimeout(timer);
+    stepEl.textContent = n ? 'Step ' + n + ' of 3' : 'Complete';
+    titleEl.textContent = title;
+    body.replaceChildren();
+    cancelBtn.hidden = n === 0;
+  }
+
+  function open() {
+    returnFocus = document.activeElement;
+    overlay.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    runMaze();
+    card.focus({ preventScroll: true });
+  }
+
+  function close() {
+    clearTimeout(timer);
+    overlay.hidden = true;
+    body.replaceChildren();
+    document.documentElement.style.overflow = '';
+    if (returnFocus && returnFocus.focus) returnFocus.focus({ preventScroll: true });
+  }
+
+  opener.addEventListener('click', open);
+  cancelBtn.addEventListener('click', close);
+
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key !== 'Tab') return;
+    const f = [...card.querySelectorAll('button, input')].filter(n => !n.disabled && n.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1], a = document.activeElement;
+    if (e.shiftKey && (a === first || a === card || a === titleEl)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+  });
+
+  /* ---------- Step 1: maze ---------- */
+
+  // Randomised depth-first maze. Grid of blocks, 1 = wall, 0 = open.
+  function makeMaze(cols, rows) {
+    const R = 2 * rows + 1, C = 2 * cols + 1;
+    const g = Array.from({ length: R }, () => Array(C).fill(1));
+    const seen = Array.from({ length: rows }, () => Array(cols).fill(false));
+    const stack = [[0, 0]];
+    seen[0][0] = true;
+    g[1][1] = 0;
+    while (stack.length) {
+      const [i, j] = stack[stack.length - 1];
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        .map(([di, dj]) => [i + di, j + dj, di, dj])
+        .filter(([a, b]) => a >= 0 && b >= 0 && a < rows && b < cols && !seen[a][b]);
+      if (!nb.length) { stack.pop(); continue; }
+      const [a, b, di, dj] = nb[Math.floor(Math.random() * nb.length)];
+      seen[a][b] = true;
+      g[2 * i + 1 + di][2 * j + 1 + dj] = 0;
+      g[2 * a + 1][2 * b + 1] = 0;
+      stack.push([a, b]);
+    }
+    return g;
+  }
+
+  function runMaze() {
+    setStep(1, 'Turn off non-essential cookies');
+    const small = window.innerWidth < 500;
+    const cols = small ? 7 : 12, rows = 8;
+    const W = 6, P = small ? 26 : 28;       // wall and path track sizes in px
+    const g = makeMaze(cols, rows);
+    const sr = 1, sc = 1, gr = 2 * rows - 1, gc = 2 * cols - 1;
+
+    // Which block does a coordinate (px from the maze's edge) fall in? -1 = outside.
+    const idx = (t, n) => {
+      if (t < 0) return -1;
+      const period = W + P;
+      const k = Math.floor(t / period);
+      if (k >= n) return t < n * period + W ? 2 * n : -1;
+      return t - k * period < W ? 2 * k : 2 * k + 1;
+    };
+    const tracks = n => Array.from({ length: 2 * n + 1 }, (_, k) => (k % 2 === 0 ? W : P) + 'px').join(' ');
+
+    body.appendChild(el('p', 'prefs-text',
+      'Guide your pointer from the green square to OFF without touching a wall, then click OFF. Touch a wall and you start over.'));
+
+    const wrap = el('div', 'maze-wrap');
+    const maze = el('div', 'maze');
+    maze.style.gridTemplateColumns = tracks(cols);
+    maze.style.gridTemplateRows = tracks(rows);
+    for (let r = 0; r < g.length; r++) {
+      for (let c = 0; c < g[0].length; c++) {
+        const cell = el('div', g[r][c] ? 'w' : 'o');
+        if (r === sr && c === sc) { cell.className = 's'; cell.textContent = 'GO'; }
+        if (r === gr && c === gc) { cell.className = 'e'; cell.textContent = 'OFF'; }
+        maze.appendChild(cell);
+      }
+    }
+    wrap.appendChild(maze);
+    const status = el('p', 'maze-status', 'Move your pointer onto the green square to begin.');
+    status.setAttribute('aria-live', 'polite');
+    body.append(wrap, status);
+
+    let armed = false, atGoal = false, last = null, flashT = null;
+    const paint = () => {
+      maze.classList.toggle('armed', armed);
+      maze.classList.toggle('at-goal', atGoal);
+    };
+    const reset = msg => { armed = false; atGoal = false; paint(); status.textContent = msg; };
+    const fail = () => {
+      reset('You touched a wall. Go back to the green square.');
+      maze.classList.add('hit');
+      clearTimeout(flashT);
+      flashT = setTimeout(() => maze.classList.remove('hit'), 400);
+    };
+
+    function check(x, y) {
+      const rect = maze.getBoundingClientRect();
+      const c = idx(x - rect.left, cols), r = idx(y - rect.top, rows);
+      if (c < 0 || r < 0) { if (armed) reset('You left the maze. Start again at the green square.'); return; }
+      if (g[r][c] === 1) { if (armed) fail(); return; }
+      if (!armed && r === sr && c === sc) { armed = true; status.textContent = "Go. Don't touch the walls."; paint(); }
+      const now = armed && r === gr && c === gc;
+      if (now !== atGoal) {
+        atGoal = now;
+        status.textContent = now ? 'Now click OFF.' : "Go. Don't touch the walls.";
+        paint();
+      }
+    }
+
+    // Sample along the path between events so a fast mouse can't hop over a thin wall
+    function track(x, y) {
+      if (last) {
+        const dx = x - last.x, dy = y - last.y;
+        const steps = Math.min(300, Math.ceil(Math.hypot(dx, dy) / 3));
+        for (let k = 1; k <= steps; k++) check(last.x + dx * k / steps, last.y + dy * k / steps);
+      } else {
+        check(x, y);
+      }
+      last = { x, y };
+    }
+
+    maze.addEventListener('pointerdown', e => track(e.clientX, e.clientY));
+    maze.addEventListener('pointermove', e => track(e.clientX, e.clientY));
+    maze.addEventListener('pointerleave', () => {
+      last = null;
+      if (armed) reset('You left the maze. Start again at the green square.');
+    });
+    maze.addEventListener('pointerup', e => {
+      track(e.clientX, e.clientY);
+      if (armed && atGoal) { armed = false; runCaptcha(); return; }
+      if (e.pointerType === 'touch') { last = null; reset('Start again at the green square.'); }
+    });
+  }
+
+  /* ---------- Step 2: captcha ---------- */
+
+  function runCaptcha() {
+    setStep(2, 'Verify that you are human');
+    body.innerHTML =
+      '<p class="prefs-text">Our systems detected unusual activity from your browser. Please confirm you are not a robot.</p>' +
+      '<div class="rc-box"><button type="button" class="rc-check" aria-label="I am not a robot"></button>' +
+      '<span class="rc-label">I&rsquo;m not a robot</span><span class="rc-brand">Security check</span></div>';
+    const check = body.querySelector('.rc-check');
+    const label = body.querySelector('.rc-label');
+    check.addEventListener('click', () => {
+      check.disabled = true;
+      check.classList.add('busy');
+      label.textContent = 'Verifying\u2026';
+      timer = setTimeout(runCaptchaText, 1400);
+    });
+    check.focus();
+  }
+
+  function runCaptchaText() {
+    body.innerHTML =
+      '<p class="prefs-text">Additional verification required. Type the characters you see below.</p>' +
+      '<canvas class="cap" width="300" height="90" role="img" aria-label="Distorted characters"></canvas>' +
+      '<div class="cap-row"><input type="text" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Characters from the image">' +
+      '<button type="button" class="prefs-btn">Verify</button></div>' +
+      '<p class="cap-error" role="alert"></p>' +
+      '<button type="button" class="prefs-link">Get a new code</button>';
+    const canvas = body.querySelector('canvas');
+    const input = body.querySelector('input');
+    const verify = body.querySelector('.prefs-btn');
+    const err = body.querySelector('.cap-error');
+    const fresh = body.querySelector('.prefs-link');
+    const CHARS = 'ABCDEFGHJKMNPRSTUVWXYZ23456789';
+    const rand = (a, b) => a + Math.random() * (b - a);
+    let code = '';
+
+    function draw() {
+      code = Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      ctx.fillStyle = '#eef1f5';
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 140; i++) {
+        ctx.fillStyle = 'hsla(' + Math.floor(rand(0, 360)) + ',40%,45%,0.35)';
+        ctx.fillRect(rand(0, w), rand(0, h), 2, 2);
+      }
+      const fonts = ['Georgia', 'Courier New', 'Arial Black', 'Times New Roman', 'Verdana'];
+      const slot = w / (code.length + 1);
+      for (let i = 0; i < code.length; i++) {
+        ctx.save();
+        ctx.translate(slot * (i + 1), h / 2 + rand(-8, 8));
+        ctx.rotate(rand(-0.5, 0.5));
+        ctx.font = 'bold ' + Math.floor(rand(30, 42)) + 'px ' + fonts[Math.floor(Math.random() * fonts.length)];
+        ctx.fillStyle = 'hsl(' + Math.floor(rand(190, 260)) + ',55%,28%)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(code[i], 0, 0);
+        ctx.restore();
+      }
+      for (let i = 0; i < 6; i++) {
+        ctx.strokeStyle = 'hsla(' + Math.floor(rand(0, 360)) + ',50%,35%,0.55)';
+        ctx.lineWidth = rand(1, 2.2);
+        ctx.beginPath();
+        ctx.moveTo(rand(0, w), rand(0, h));
+        ctx.bezierCurveTo(rand(0, w), rand(0, h), rand(0, w), rand(0, h), rand(0, w), rand(0, h));
+        ctx.stroke();
+      }
+    }
+
+    function submit() {
+      if (input.value.trim().toUpperCase() === code) { runPuzzle(); return; }
+      err.textContent = 'Incorrect. Here is a new code.';
+      input.value = '';
+      draw();
+      input.focus();
+    }
+
+    verify.addEventListener('click', submit);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    fresh.addEventListener('click', () => { err.textContent = ''; input.value = ''; draw(); input.focus(); });
+    draw();
+    input.focus();
+  }
+
+  /* ---------- Step 3: sliding puzzle ---------- */
+
+  function runPuzzle() {
+    setStep(3, 'Confirm your preferences');
+    body.appendChild(el('p', 'prefs-text',
+      'Last step. Slide the tiles into order, 1 to 8, to confirm this request came from you.'));
+    const grid = el('div', 'puzzle');
+    const meta = el('p', 'puzzle-meta', 'Moves: 0');
+    body.append(grid, meta);
+
+    const SOLVED = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+    const near = i => {
+      const r = Math.floor(i / 3), c = i % 3, out = [];
+      if (r > 0) out.push(i - 3);
+      if (r < 2) out.push(i + 3);
+      if (c > 0) out.push(i - 1);
+      if (c < 2) out.push(i + 1);
+      return out;
+    };
+    const t = SOLVED.slice();
+    const isSolved = () => t.every((v, i) => v === SOLVED[i]);
+
+    // Shuffle by making legal moves from the solved state, so it is always solvable
+    let prev = -1;
+    do {
+      for (let k = 0; k < 120; k++) {
+        const e = t.indexOf(0);
+        const opts = near(e).filter(n => n !== prev);
+        const pick = opts[Math.floor(Math.random() * opts.length)];
+        t[e] = t[pick]; t[pick] = 0; prev = e;
+      }
+    } while (isSolved());
+
+    let moves = 0, focusN = null, finished = false;
+
+    function render() {
+      grid.replaceChildren();
+      t.forEach((v, i) => {
+        if (!v) {
+          const gap = el('div', 'tile gap');
+          gap.setAttribute('aria-hidden', 'true');
+          grid.appendChild(gap);
+          return;
+        }
+        const b = el('button', 'tile', String(v));
+        b.type = 'button';
+        b.dataset.n = v;
+        b.setAttribute('aria-label', 'Tile ' + v);
+        b.addEventListener('click', () => move(i));
+        grid.appendChild(b);
+      });
+      if (focusN) {
+        const f = grid.querySelector('[data-n="' + focusN + '"]');
+        if (f) f.focus();
+      }
+    }
+
+    function move(i) {
+      if (finished) return;
+      const e = t.indexOf(0);
+      if (!near(e).includes(i)) return;
+      focusN = t[i];
+      t[e] = t[i]; t[i] = 0; moves++;
+      meta.textContent = 'Moves: ' + moves;
+      render();
+      if (isSolved()) {
+        finished = true;
+        meta.textContent = 'Solved in ' + moves + ' moves.';
+        timer = setTimeout(runDone, 700);
+      }
+    }
+    render();
+  }
+
+  /* ---------- Done ---------- */
+
+  function runDone() {
+    setStep(0, 'No preferences saved');
+    body.innerHTML =
+      '<p class="prefs-text">None of your cookie preferences were saved. Thank you for your patience.</p>' +
+      '<button type="button" class="prefs-btn">Done</button>';
+    const done = body.querySelector('.prefs-btn');
+    done.addEventListener('click', close);
+    done.focus();
+  }
+})();
 </script>
 </body>
 </html>
