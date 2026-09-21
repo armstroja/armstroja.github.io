@@ -190,9 +190,25 @@
     font-weight: 600;
     cursor: pointer;
   }
-  .cookie-accept { background: #116dff; border: 1px solid #116dff; color: #fff; }
-  .cookie-accept:hover { background: #0d5ad6; border-color: #0d5ad6; }
-  .cookie-reject { background: #fff; border: 1px solid #c9ccd2; color: #1f2226; }
+  .cookie-accept {
+    background: #116dff;
+    border: 1px solid #116dff;
+    color: #fff;
+    transition: background-color 0.25s, border-color 0.25s;
+  }
+  /* Hold the pointer on it and it slowly goes red. It never does anything. */
+  .cookie-accept:hover, .cookie-accept:active {
+    background: #d93025;
+    border-color: #d93025;
+    cursor: not-allowed;
+    transition: background-color 5s linear, border-color 5s linear;
+  }
+  .cookie-reject {
+    background: #fff;
+    border: 1px solid #c9ccd2;
+    color: #1f2226;
+    transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
   .cookie-reject:hover { background: #f4f5f7; }
   .cookie-actions button:focus-visible,
   .cookie-banner a:focus-visible { outline: 2px solid #116dff; outline-offset: 3px; }
@@ -365,6 +381,7 @@
   .puzzle-meta { margin: 0; text-align: center; font-size: 13px; }
 
   @media (prefers-reduced-motion: reduce) {
+    .cookie-reject { transition: none; }
     .rc-check.busy { animation: none; }
   }
 
@@ -452,8 +469,8 @@
   <h2>We value your privacy</h2>
   <p>We use cookies to leverage your browsing ecosystem and deliver best-in-class experiences at scale. By clicking &ldquo;Accept All&rdquo;, you consent to the seamless use of all cookies.</p>
   <div class="cookie-actions">
-    <button type="button" class="cookie-accept" data-dismiss>Accept All</button>
-    <button type="button" class="cookie-reject" data-dismiss>Reject All</button>
+    <button type="button" class="cookie-accept" aria-disabled="true">Accept All</button>
+    <button type="button" class="cookie-reject" aria-disabled="true">Reject All</button>
   </div>
   <a href="#" id="manage-prefs">Manage Preferences</a>
 </div>
@@ -538,13 +555,74 @@ document.querySelectorAll('.site-footer a[href="#"], .cookie-banner a[href="#"]'
   a.addEventListener('click', e => e.preventDefault())
 );
 
-// Cookie banner: both buttons just close it. It comes back on every page load,
-// and the footer's "Cookie Preferences" link opens it again.
+// Cookie banner: "Accept All" does nothing (CSS turns it red), "Reject All" runs from the pointer.
+// The only way to dismiss the banner is through Manage Preferences. The footer's
+// "Cookie Preferences" link brings it back.
 const cookies = document.getElementById('cookies');
-cookies.querySelectorAll('[data-dismiss]').forEach(b =>
-  b.addEventListener('click', () => { cookies.hidden = true; })
-);
 document.querySelector('[data-cookies]').addEventListener('click', () => { cookies.hidden = false; });
+
+(() => {
+  const btn = cookies.querySelector('.cookie-reject');
+  const overlay = document.getElementById('prefs');
+  const RADIUS = 120;   // how close the pointer can get before it bolts
+  const MARGIN = 8;     // keep it this far inside the viewport
+  let tx = 0, ty = 0;   // translate the button is heading to
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+  // Where the button sits with no transform, so we always work from the target spot
+  function base() {
+    const r = btn.getBoundingClientRect();
+    const t = getComputedStyle(btn).transform;
+    const m = t && t !== 'none' ? new DOMMatrixReadOnly(t) : new DOMMatrixReadOnly();
+    return { left: r.left - m.m41, top: r.top - m.m42, w: r.width, h: r.height };
+  }
+
+  function place(b, left, top) {
+    tx = left - b.left;
+    ty = top - b.top;
+    btn.style.transform = 'translate(' + tx + 'px, ' + ty + 'px)';
+  }
+
+  function flee(x, y) {
+    if (cookies.hidden || !overlay.hidden) return;
+    const b = base();
+    const left = b.left + tx, top = b.top + ty;
+    const nx = clamp(x, left, left + b.w), ny = clamp(y, top, top + b.h);
+    const d = Math.hypot(x - nx, y - ny);
+    if (d > RADIUS) return;
+
+    const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+    const maxL = vw - b.w - MARGIN, maxT = vh - b.h - MARGIN;
+
+    let vx = left + b.w / 2 - x, vy = top + b.h / 2 - y;
+    const len = Math.hypot(vx, vy) || 1;
+    const push = RADIUS - d + 90;
+    let newL = clamp(left + (vx / len) * push, MARGIN, maxL);
+    let newT = clamp(top + (vy / len) * push, MARGIN, maxT);
+
+    // Cornered against an edge: give up running and jump somewhere far from the pointer
+    if (Math.hypot(newL - left, newT - top) < push * 0.4) {
+      for (let k = 0; k < 40; k++) {
+        const l = rand(MARGIN, maxL), t = rand(MARGIN, maxT);
+        if (Math.hypot(l + b.w / 2 - x, t + b.h / 2 - y) > 260) { newL = l; newT = t; break; }
+      }
+    }
+    place(b, newL, newT);
+  }
+
+  // If the window shrinks, pull it back on screen
+  window.addEventListener('resize', () => {
+    const b = base();
+    const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
+    place(b, clamp(b.left + tx, MARGIN, Math.max(MARGIN, vw - b.w - MARGIN)),
+             clamp(b.top + ty, MARGIN, Math.max(MARGIN, vh - b.h - MARGIN)));
+  });
+
+  document.addEventListener('pointermove', e => flee(e.clientX, e.clientY));
+  document.addEventListener('pointerdown', e => flee(e.clientX, e.clientY));
+})();
 </script>
 <script>
 // Manage Preferences: an unreasonably long way to say "off"
@@ -886,7 +964,7 @@ document.querySelector('[data-cookies]').addEventListener('click', () => { cooki
       '<p class="prefs-text">None of your cookie preferences were saved. Thank you for your patience.</p>' +
       '<button type="button" class="prefs-btn">Done</button>';
     const done = body.querySelector('.prefs-btn');
-    done.addEventListener('click', close);
+    done.addEventListener('click', () => { banner.hidden = true; close(); });
     done.focus();
   }
 })();
