@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Graphwar</title>
+<title>Graph</title>
 <style>
 :root{--bg:#ecebe6;--ink:#1a1a1a;--grid:#d9d7d0;--mute:#8a877f;--acc:#e4572e;--wall:#c4c1b8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141414;--ink:#ecebe6;--grid:#242424;--mute:#77746d;--acc:#ff6a3d;--wall:#303030;color-scheme:dark}}
@@ -28,7 +28,7 @@ button.fire:disabled{opacity:.35;cursor:default}
 #hint{color:var(--mute);margin-top:8px}
 #err{color:var(--acc);min-height:1.4em}
 </style></head><body><main>
-<header><h1>Graphwar</h1><div id="turn"></div></header>
+<header><h1>Graph</h1><div id="turn"></div></header>
 <canvas id="cv" width="900" height="900"></canvas>
 <div class="row">
   <div class="eq"><span id="lbl">f(x) =</span><input id="f" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Function"></div>
